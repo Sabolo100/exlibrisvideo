@@ -11,6 +11,9 @@ import { Hero } from '@/components/landing/Hero';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { PrivacyPromise } from '@/components/landing/PrivacyPromise';
 import { WhatYouGet } from '@/components/landing/WhatYouGet';
+import { AppHome } from '@/components/app/AppHome';
+import { getUiMode } from '@/components/app/ui-mode.server';
+import { serverUploadLimits } from '@/components/upload/server-limits';
 
 /** Optional sample collection (public build-time setting, like the header's "Minta könyvtár" link). */
 function demoCollectionId(): string | null {
@@ -38,6 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
+  // phones get the app home screen instead of the marketing page
+  if ((await getUiMode()) === 'app') return <AppHome limits={serverUploadLimits()} />;
   const demoId = demoCollectionId();
   return (
     <>

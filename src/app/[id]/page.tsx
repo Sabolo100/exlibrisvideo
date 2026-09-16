@@ -6,6 +6,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { AppCollection } from '@/components/app/AppCollection';
+import { AppPinGate } from '@/components/app/AppPinGate';
+import { getUiMode } from '@/components/app/ui-mode.server';
 import { CollectionPage } from '@/components/collection/CollectionPage';
 import { CollectionProvider } from '@/components/collection/CollectionProvider';
 import { PinGate } from '@/components/collection/PinGate';
@@ -72,13 +75,19 @@ export default async function CollectionRoute({ params }: Props) {
   const { id } = await params;
   if (!COLLECTION_ID_RE.test(id)) notFound();
 
-  const result = await getCollectionPage(id);
+  const [result, uiMode] = await Promise.all([getCollectionPage(id), getUiMode()]);
   if (result.kind === 'not_found') notFound();
-  if (result.kind === 'needs_pin') return <PinGate key={`pin-${result.id}`} id={result.id} title={result.title} />;
+  if (result.kind === 'needs_pin') {
+    return uiMode === 'app' ? (
+      <AppPinGate key={`pin-${result.id}`} id={result.id} title={result.title} />
+    ) : (
+      <PinGate key={`pin-${result.id}`} id={result.id} title={result.title} />
+    );
+  }
 
   return (
     <CollectionProvider key={result.data.id} initial={result.data}>
-      <CollectionPage />
+      {uiMode === 'app' ? <AppCollection /> : <CollectionPage />}
     </CollectionProvider>
   );
 }

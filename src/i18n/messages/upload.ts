@@ -22,6 +22,7 @@ export const upload = defineMessages({
 
     'list.label': 'Feltöltendő fájlok',
     'list.title': 'Kiválasztott fájlok',
+    'app.recordMore': 'Még egy polc',
     'list.summary': '{count} fájl · {size}',
     'list.summary_one': '{count} fájl · {size}',
 
@@ -114,6 +115,7 @@ export const upload = defineMessages({
 
     'list.label': 'Files to upload',
     'list.title': 'Selected files',
+    'app.recordMore': 'Another shelf',
     'list.summary': '{count} files · {size}',
     'list.summary_one': '{count} file · {size}',
 

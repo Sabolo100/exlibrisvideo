@@ -7,7 +7,9 @@
  *   translatePlural('en', 'common.unit.book', 1)     → "1 book"
  */
 import type { Locale } from '@/lib/types';
+import { app } from './messages/app';
 import { book } from './messages/book';
+import { camera } from './messages/camera';
 import { collection } from './messages/collection';
 import { common } from './messages/common';
 import { data } from './messages/data';
@@ -39,6 +41,8 @@ const dictionaries = {
   errors,
   legal,
   my,
+  app,
+  camera,
 };
 
 type Dicts = typeof dictionaries;

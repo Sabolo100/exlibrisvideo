@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { getServerT } from '@/i18n/server';
+import { AppDocumentScreen } from '@/components/app/AppDocumentScreen';
+import { getUiMode } from '@/components/app/ui-mode.server';
 import { LegalDocument, type LegalSection } from '@/components/landing/LegalDocument';
 import { uploadLimitVars } from '@/components/upload/limits';
 import { serverUploadLimits } from '@/components/upload/server-limits';
@@ -81,7 +83,7 @@ const SECTIONS: LegalSection[] = [
 
 export default async function TermsPage() {
   const tr = await getServerT();
-  return (
+  const legalDocument = (
     <LegalDocument
       title="legal.terms.title"
       intro="legal.terms.intro"
@@ -92,4 +94,9 @@ export default async function TermsPage() {
       vars={uploadLimitVars(serverUploadLimits(), tr)}
     />
   );
+  if ((await getUiMode()) === 'app') {
+    const { t } = await getServerT();
+    return <AppDocumentScreen title={t('legal.terms.title')}>{legalDocument}</AppDocumentScreen>;
+  }
+  return legalDocument;
 }

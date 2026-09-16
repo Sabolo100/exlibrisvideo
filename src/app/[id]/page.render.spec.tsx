@@ -6,6 +6,7 @@ import { isValidElement, type ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  uiMode: vi.fn(async () => 'web' as 'web' | 'app'),
   load: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
@@ -25,6 +26,9 @@ vi.mock('@/components/collection/CollectionProvider', () => ({
   },
 }));
 vi.mock('@/components/collection/PinGate', () => ({ PinGate: function PinGate() { return null; } }));
+vi.mock('@/components/app/ui-mode.server', () => ({ getUiMode: mocks.uiMode }));
+vi.mock('@/components/app/AppCollection', () => ({ AppCollection: function AppCollection() { return null; } }));
+vi.mock('@/components/app/AppPinGate', () => ({ AppPinGate: function AppPinGate() { return null; } }));
 
 import { makeSampleBook } from '@/components/books/sample-books';
 import type { CollectionWithBooksDTO } from '@/lib/types';
@@ -100,6 +104,18 @@ describe('/[id] page', () => {
     expect(el.props.initial).toBe(d);
     expect(el.key).toBe('334345435');
     expect((el.props.children.type as { name: string }).name).toBe('CollectionPage');
+  });
+
+  it('renders the phone app screens in app mode', async () => {
+    mocks.uiMode.mockResolvedValueOnce('app').mockResolvedValueOnce('app');
+    const d = data();
+    mocks.load.mockResolvedValue({ kind: 'ok', data: d });
+    const el = (await CollectionRoute(params('334345435'))) as ReactElement<{ children: ReactElement }>;
+    expect((el.props.children.type as { name: string }).name).toBe('AppCollection');
+
+    mocks.load.mockResolvedValue({ kind: 'needs_pin', id: '334345435', title: 'Titkos polc' });
+    const gate = (await CollectionRoute(params('334345435'))) as ReactElement;
+    expect((gate.type as { name: string }).name).toBe('AppPinGate');
   });
 });
 

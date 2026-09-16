@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { getServerT } from '@/i18n/server';
+import { AppDocumentScreen } from '@/components/app/AppDocumentScreen';
+import { getUiMode } from '@/components/app/ui-mode.server';
 import { LegalDocument, type LegalSection } from '@/components/landing/LegalDocument';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -127,8 +129,8 @@ const SECTIONS: LegalSection[] = [
   },
 ];
 
-export default function PrivacyPage() {
-  return (
+export default async function PrivacyPage() {
+  const legalDocument = (
     <LegalDocument
       title="legal.privacy.title"
       intro="legal.privacy.intro"
@@ -137,4 +139,9 @@ export default function PrivacyPage() {
       related={{ href: '/terms', label: 'legal.related.terms' }}
     />
   );
+  if ((await getUiMode()) === 'app') {
+    const { t } = await getServerT();
+    return <AppDocumentScreen title={t('legal.privacy.title')}>{legalDocument}</AppDocumentScreen>;
+  }
+  return legalDocument;
 }

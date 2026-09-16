@@ -78,9 +78,12 @@ function Catalogue() {
   );
 }
 
-export function CollectionPage() {
-  const { t } = useI18n();
-  const { collection, isOwner, refresh } = useCollection();
+/**
+ * Page-level effects shared by the website page and the phone app screen: claims owner links, remembers
+ * the collection on this device and runs one quiet refresh after load.
+ */
+export function useCollectionPageLifecycle(): { claiming: boolean; processing: boolean } {
+  const { collection, isOwner } = useCollection();
   const { refreshSilently } = useCollectionShell();
   const { id, title, bookCount, createdAt, status } = collection;
   const processing = status === 'draft' || status === 'processing';
@@ -104,6 +107,14 @@ export function CollectionPage() {
     }, MOUNT_REFRESH_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, [id]);
+
+  return { claiming, processing };
+}
+
+export function CollectionPage() {
+  const { t } = useI18n();
+  const { collection, isOwner, refresh } = useCollection();
+  const { claiming, processing } = useCollectionPageLifecycle();
 
   return (
     <div className="exl-catalogue mx-auto w-full max-w-6xl px-4 pt-6 pb-28 sm:px-6 sm:pt-8">

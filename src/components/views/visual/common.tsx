@@ -9,15 +9,22 @@ import { useCollection } from '@/components/collection/context';
 import { Button, EmptyState, Kbd } from '@/components/ui';
 import { cn } from '@/components/ui/cn';
 import { useUiTranslator } from '@/components/ui/hooks';
+import { useUiMode } from '@/components/app/UiModeProvider';
 
 /** The row of view options above a visual view. */
 export function ViewOptionsBar({ children, aside, className }: { children: ReactNode; aside?: ReactNode; className?: string }) {
   const { t } = useUiTranslator();
+  const app = useUiMode().mode === 'app';
   return (
     <div
       role="group"
       aria-label={t('visual.options')}
-      className={cn('mb-5 flex flex-wrap items-center gap-x-5 gap-y-3 print:hidden', className)}
+      className={cn(
+        'mb-5 flex items-center print:hidden',
+        // phone app: one swipeable row instead of wrapped web controls
+        app ? 'app-scroll app-chrome -mx-3 mb-3 flex-nowrap gap-3 overflow-x-auto px-3 pb-1 whitespace-nowrap [&>*]:shrink-0' : 'flex-wrap gap-x-5 gap-y-3',
+        className,
+      )}
     >
       {children}
       {aside ? <div className="ml-auto flex items-center gap-3 max-md:hidden">{aside}</div> : null}

@@ -47,13 +47,13 @@ function readRaw(): string | null {
   }
 }
 
-function useMyCollections(): MyCollectionEntry[] {
+export function useMyCollections(): MyCollectionEntry[] {
   const raw = useSyncExternalStore(subscribe, readRaw, () => null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => (raw === null ? [] : listMyCollections()), [raw]);
 }
 
-type RemoteState =
+export type RemoteState =
   | { state: 'loading' }
   | { state: 'ok'; status: CollectionStatusDTO }
   | { state: 'gone' }
@@ -61,7 +61,7 @@ type RemoteState =
   | { state: 'unknown' };
 
 /** Fetches the status of every remembered collection (a few at a time). */
-function useRemoteStatuses(ids: string[]): Map<string, RemoteState> {
+export function useRemoteStatuses(ids: string[]): Map<string, RemoteState> {
   const [map, setMap] = useState<Map<string, RemoteState>>(() => new Map());
   const requested = useRef(new Set<string>());
   const key = ids.join(',');
@@ -100,7 +100,7 @@ function useRemoteStatuses(ids: string[]): Map<string, RemoteState> {
   return map;
 }
 
-function statusBadge(remote: RemoteState | undefined): { tone: BadgeTone; key: MessageKey } {
+export function statusBadge(remote: RemoteState | undefined): { tone: BadgeTone; key: MessageKey } {
   if (!remote || remote.state === 'loading') return { tone: 'neutral', key: 'my.status.checking' };
   switch (remote.state) {
     case 'gone':
@@ -236,7 +236,7 @@ function reasonOf(err: unknown): string | null {
   return typeof d?.reason === 'string' ? d.reason : err.code;
 }
 
-function RecoverForm() {
+export function RecoverForm() {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [email, setEmail] = useState('');

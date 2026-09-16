@@ -9,10 +9,10 @@
  *   navigates to /<id> while the uploads continue in the module-level upload store.
  * - With `collectionId` (owner on the collection page): uploads straight into that collection.
  */
-import { ArrowRight, CircleAlert, Info, WifiOff, X } from 'lucide-react';
+import { ArrowRight, CircleAlert, Info, Plus, WifiOff, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
 import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -34,7 +34,12 @@ import { isPlausibleEmail, validateFiles, type Rejection } from './validate';
 
 export interface UploaderProps {
   collectionId?: string;
-  variant?: 'hero' | 'compact';
+  /** hero: landing card · compact: collection page · app: phone app sheet (no drop zone, files come via the ref) */
+  variant?: 'hero' | 'compact' | 'app';
+  /** app variant: lets the parent add recorded or picked files */
+  ref?: Ref<UploaderHandle>;
+  /** app variant: "record another shelf" button next to the file list */
+  onRecordMore?: () => void;
   /** the server's upload limits when a Server Component read them; otherwise loaded from GET /api/config */
   limits?: UploadLimits;
   onCollectionCreated?: (res: CreateCollectionResponse) => void;
@@ -62,6 +67,10 @@ function errorReason(err: unknown): string | null {
   return typeof d?.reason === 'string' ? d.reason : err.code;
 }
 
+export interface UploaderHandle {
+  addFiles: (files: File[]) => void;
+}
+
 export function Uploader({
   collectionId,
   variant = 'hero',
@@ -72,6 +81,8 @@ export function Uploader({
   existingSourceCount = 0,
   resumableUploads,
   showFileList = true,
+  ref,
+  onRecordMore,
 }: UploaderProps) {
   const { t, tp, locale } = useI18n();
   const router = useRouter();
@@ -266,6 +277,10 @@ export function Uploader({
     };
   }, [standalone]);
 
+  const addFilesRef = useRef<(files: File[]) => void>(() => undefined);
+  addFilesRef.current = addFiles;
+  useImperativeHandle(ref, () => ({ addFiles: (files: File[]) => addFilesRef.current(files) }), []);
+
   /* ---------------- start processing ---------------- */
 
   const totalCount = visibleItems.length + pending.length;
@@ -356,7 +371,7 @@ export function Uploader({
 
   const zone = (
     <DropZone
-      variant={variant}
+      variant={variant === 'hero' ? 'hero' : 'compact'}
       onFiles={addFiles}
       disabled={slotsFull || submitting}
       headingLevel={hero ? 'h2' : 'h3'}
@@ -414,6 +429,128 @@ export function Uploader({
     </>
   );
 
+  const hasFilesListed = totalCount > 0;
+
+  const details = (
+    <>
+    <section aria-labelledby="exl-upload-files-heading">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 id="exl-upload-files-heading" className="font-sans text-sm font-semibold text-ink">
+          {t('upload.list.title')}
+        </h3>
+        <span className="text-xs text-muted tabular-nums">
+          {tp('upload.list.summary', totalCount, { size: formatBytes(totalBytes, locale) })}
+        </span>
+      </div>
+      <UploadFileList
+        items={visibleItems}
+        pending={pending}
+        limits={limits}
+        onRemovePending={(key) => updatePending(pendingRef.current.filter((p) => p.key !== key))}
+        className="mt-1"
+      />
+      {onRecordMore ? (
+        <Button variant="secondary" leftIcon={<Plus />} onClick={onRecordMore} className="mt-3 w-full">
+          {t('upload.app.recordMore')}
+        </Button>
+      ) : null}
+    </section>
+
+    <fieldset className="flex flex-col gap-4 border-t border-line/70 pt-4">
+      <legend className="sr-only">{t('upload.fields.legend')}</legend>
+      <div aria-hidden="true" className="-mt-1">
+        <p className="font-display text-lg leading-tight font-semibold text-ink">{t('upload.fields.legend')}</p>
+        <p className="mt-0.5 text-sm text-muted">{t('upload.fields.intro')}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t('upload.field.title.label')} optional>
+          <Input
+            value={title}
+            maxLength={200}
+            autoComplete="off"
+            enterKeyHint="next"
+            placeholder={t('upload.field.title.placeholder')}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </Field>
+        <Field label={t('upload.field.ownerName.label')} hint={t('upload.field.ownerName.hint')} optional>
+          <Input
+            value={ownerName}
+            maxLength={120}
+            autoComplete="name"
+            enterKeyHint="next"
+            placeholder={t('upload.field.ownerName.placeholder')}
+            onChange={(e) => setOwnerName(e.target.value)}
+          />
+        </Field>
+      </div>
+      <Field label={t('upload.field.email.label')} hint={t('upload.field.email.hint')} error={emailError} optional>
+        <Input
+          ref={emailRef}
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          enterKeyHint="go"
+          maxLength={254}
+          value={email}
+          placeholder={t('upload.field.email.placeholder')}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (emailError) setEmailError(null);
+          }}
+          onBlur={(e) => {
+            if (e.target.value.trim()) validateEmail(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void start();
+            }
+          }}
+        />
+      </Field>
+    </fieldset>
+
+    <div
+      className={cn(
+        'flex flex-col items-stretch gap-2 border-t border-line/70 pt-4 sm:flex-row sm:items-center sm:justify-between',
+        variant === 'app' && 'sticky bottom-0 z-10 -mx-4 bg-surface px-4 pb-2 shadow-[0_-10px_16px_-12px_hsl(var(--shadow-color)/0.35)]',
+      )}
+    >
+      <p className={cn('text-sm text-muted text-pretty sm:max-w-xs', variant === 'app' && 'text-[0.8125rem]')}>{t('upload.cta.hint')}</p>
+      <Button
+        variant="primary"
+        size="lg"
+        rightIcon={<ArrowRight />}
+        loading={submitting}
+        onClick={() => void start()}
+        className="w-full sm:w-auto"
+      >
+        {t('upload.cta.start')}
+      </Button>
+    </div>
+    {ctaError ? (
+      <p role="alert" className="-mt-2 text-sm text-danger">
+        {ctaError}
+      </p>
+    ) : null}
+    </>
+  );
+
+  if (variant === 'app') {
+    return (
+      <div className={cn('flex flex-col gap-5', className)}>
+        {alerts}
+        {totalCount > 0 ? details : null}
+        {ctaError && totalCount === 0 ? (
+          <p role="alert" className="text-sm text-danger">
+            {ctaError}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   if (!hero) {
     return (
       <div className={cn('flex flex-col gap-3', className)}>
@@ -424,7 +561,7 @@ export function Uploader({
     );
   }
 
-  const hasFilesListed = totalCount > 0;
+
 
   return (
     <Card variant="bookplate" className={cn('p-2.5 sm:p-3', className)}>
@@ -441,99 +578,7 @@ export function Uploader({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="flex flex-col gap-5 px-2 pt-2 pb-3 sm:px-3">
-              <section aria-labelledby="exl-upload-files-heading">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 id="exl-upload-files-heading" className="font-sans text-sm font-semibold text-ink">
-                    {t('upload.list.title')}
-                  </h3>
-                  <span className="text-xs text-muted tabular-nums">
-                    {tp('upload.list.summary', totalCount, { size: formatBytes(totalBytes, locale) })}
-                  </span>
-                </div>
-                <UploadFileList
-                  items={visibleItems}
-                  pending={pending}
-                  limits={limits}
-                  onRemovePending={(key) => updatePending(pendingRef.current.filter((p) => p.key !== key))}
-                  className="mt-1"
-                />
-              </section>
-
-              <fieldset className="flex flex-col gap-4 border-t border-line/70 pt-4">
-                <legend className="sr-only">{t('upload.fields.legend')}</legend>
-                <div aria-hidden="true" className="-mt-1">
-                  <p className="font-display text-lg leading-tight font-semibold text-ink">{t('upload.fields.legend')}</p>
-                  <p className="mt-0.5 text-sm text-muted">{t('upload.fields.intro')}</p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={t('upload.field.title.label')} optional>
-                    <Input
-                      value={title}
-                      maxLength={200}
-                      autoComplete="off"
-                      enterKeyHint="next"
-                      placeholder={t('upload.field.title.placeholder')}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </Field>
-                  <Field label={t('upload.field.ownerName.label')} hint={t('upload.field.ownerName.hint')} optional>
-                    <Input
-                      value={ownerName}
-                      maxLength={120}
-                      autoComplete="name"
-                      enterKeyHint="next"
-                      placeholder={t('upload.field.ownerName.placeholder')}
-                      onChange={(e) => setOwnerName(e.target.value)}
-                    />
-                  </Field>
-                </div>
-                <Field label={t('upload.field.email.label')} hint={t('upload.field.email.hint')} error={emailError} optional>
-                  <Input
-                    ref={emailRef}
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    enterKeyHint="go"
-                    maxLength={254}
-                    value={email}
-                    placeholder={t('upload.field.email.placeholder')}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) setEmailError(null);
-                    }}
-                    onBlur={(e) => {
-                      if (e.target.value.trim()) validateEmail(e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void start();
-                      }
-                    }}
-                  />
-                </Field>
-              </fieldset>
-
-              <div className="flex flex-col items-stretch gap-2 border-t border-line/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted text-pretty sm:max-w-xs">{t('upload.cta.hint')}</p>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  rightIcon={<ArrowRight />}
-                  loading={submitting}
-                  onClick={() => void start()}
-                  className="w-full sm:w-auto"
-                >
-                  {t('upload.cta.start')}
-                </Button>
-              </div>
-              {ctaError ? (
-                <p role="alert" className="-mt-2 text-sm text-danger">
-                  {ctaError}
-                </p>
-              ) : null}
-            </div>
+            <div className="flex flex-col gap-5 px-2 pt-2 pb-3 sm:px-3">{details}</div>
           </motion.div>
         ) : null}
       </AnimatePresence>

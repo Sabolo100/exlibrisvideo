@@ -21,6 +21,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock('@/components/app/ui-mode.server', () => ({ getUiMode: async () => 'web' }));
+
 vi.mock('@/i18n/server', async () => {
   const { getTranslator } = await import('@/i18n');
   return {
