@@ -89,15 +89,14 @@ ENV NODE_ENV=production \
 # Code stays root-owned (read-only for the app user); only storage/ and the Next.js
 # runtime cache are writable. node_modules is copied whole: `next start` needs the
 # typescript package to load next.config.ts, and the worker runs TypeScript via tsx.
-COPY --from=deps    /app/node_modules  ./node_modules
-COPY --from=builder /app/.next         ./.next
-COPY --from=builder /app/public        ./public
-COPY --from=builder /app/src           ./src
-COPY --from=builder /app/drizzle       ./drizzle
-COPY --from=builder /app/fixtures      ./fixtures
-COPY --from=builder /app/package.json /app/package-lock.json /app/next.config.ts /app/tsconfig.json ./
-RUN mkdir -p .next/cache \
- && chown -R exlibris:exlibris .next/cache /app/storage
+# Nothing here comes from the `builder` stage, so `--target worker` never runs `next build`
+# (the memory-heavy step): web and worker can build side by side on a small server.
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json next.config.ts tsconfig.json ./
+COPY src ./src
+COPY drizzle ./drizzle
+COPY fixtures ./fixtures
+RUN chown exlibris:exlibris /app/storage
 
 # No VOLUME instruction on purpose: an anonymous volume would silently give web and
 # worker two different, never-cleaned-up storages. Mount /app/storage explicitly
@@ -130,6 +129,10 @@ CMD ["node", "node_modules/tsx/dist/cli.mjs", "src/worker/index.ts"]
 
 # ── web: Next.js server (default target – keep this stage last) ──────────────
 FROM runtime AS web
+COPY --from=builder /app/.next  ./.next
+COPY --from=builder /app/public ./public
+RUN mkdir -p .next/cache \
+ && chown -R exlibris:exlibris .next/cache
 EXPOSE 3000
 # `next start` listens on $PORT (default 3000) on all interfaces
 CMD ["node", "node_modules/next/dist/bin/next", "start"]
