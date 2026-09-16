@@ -8,7 +8,10 @@ import {
   estimateBytesSent,
   etaSeconds,
   inferUploadMime,
+  MIN_CHUNK_BYTES,
+  nextChunkSize,
   sourceKindOfMime,
+  START_CHUNK_BYTES,
   type UploadApi,
   type UploadEnvironment,
   type UploadItem,
@@ -288,7 +291,52 @@ describe('upload-store helpers', () => {
 /* Store behaviour                                                      */
 /* ------------------------------------------------------------------ */
 
+describe('nextChunkSize', () => {
+  const MiB = 1024 * 1024;
+  it('starts small before any speed is known', () => {
+    expect(nextChunkSize({ speed: null, maxChunk: 8 * MiB, ceiling: 8 * MiB })).toBe(START_CHUNK_BYTES);
+  });
+  it('aims at about 15 seconds per request, within the server limit', () => {
+    // 100 KB/s → 1.5 MB, rounded down to 256 KiB steps
+    expect(nextChunkSize({ speed: 100_000, maxChunk: 8 * MiB, ceiling: 8 * MiB })).toBe(1280 * 1024);
+    expect(nextChunkSize({ speed: 10 * MiB, maxChunk: 8 * MiB, ceiling: 8 * MiB })).toBe(8 * MiB);
+    // very slow uplinks still send the minimum
+    expect(nextChunkSize({ speed: 2_000, maxChunk: 8 * MiB, ceiling: 8 * MiB })).toBe(MIN_CHUNK_BYTES);
+  });
+  it('respects the ceiling lowered after a failure', () => {
+    expect(nextChunkSize({ speed: 10 * MiB, maxChunk: 8 * MiB, ceiling: 512 * 1024 })).toBe(512 * 1024);
+  });
+  it('never exceeds a tiny server limit', () => {
+    expect(nextChunkSize({ speed: null, maxChunk: 4, ceiling: 4 })).toBe(4);
+    expect(nextChunkSize({ speed: 1_000_000, maxChunk: 4, ceiling: 4 })).toBe(4);
+  });
+});
+
 describe('createUploadStore', () => {
+  it('shrinks the chunks when a proxy keeps cutting long requests, and still finishes', async () => {
+    const MiB = 1024 * 1024;
+    const server = fakeServer({ chunkSize: 8 * MiB });
+    const sizes: number[] = [];
+    const original = server.api.putChunk;
+    server.api.putChunk = async (videoId, offset, chunk, signal) => {
+      sizes.push(chunk.size);
+      // a slow uplink: anything above 512 KiB takes longer than the proxy allows
+      if (chunk.size > 512 * 1024) throw new TypeError('Failed to fetch');
+      return original(videoId, offset, chunk, signal);
+    };
+    const { env } = testEnv();
+    const store = createUploadStore({ api: server.api, env });
+    const file = bytesFile('shelf.mp4', 3 * MiB);
+    const [item] = store.enqueue('c1', [file]);
+    const done = await settle(store, item.localId);
+
+    expect(done.status).toBe('done');
+    await expectSameBytes(file, server.uploads.get('v1'));
+    expect(sizes[0]).toBe(START_CHUNK_BYTES);
+    expect(sizes.filter((n) => n > 512 * 1024).length).toBeLessThanOrEqual(2);
+    expect(Math.max(...sizes.slice(1))).toBeLessThanOrEqual(1 * MiB);
+  });
+
   it('uploads a file in sequential chunks, completes it and notifies listeners', async () => {
     const server = fakeServer({ chunkSize: 4 });
     const { env } = testEnv();

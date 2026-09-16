@@ -144,6 +144,16 @@ const MiB = 1024 * 1024;
 export const MAX_PARALLEL_UPLOADS = 2;
 export const MAX_CHUNK_RETRIES = 5;
 export const DEFAULT_CHUNK_SIZE = 8 * MiB;
+/**
+ * Reverse proxies cut long requests (Coolify's Traefik ends a request after 60 s) and the server drops a
+ * chunk that did not arrive completely – so on a slow uplink a fixed 8 MiB chunk never gets through.
+ * Chunks are sized from the measured upload speed to take about this long.
+ */
+export const CHUNK_TARGET_SECONDS = 15;
+/** first chunk before any speed is known */
+export const START_CHUNK_BYTES = 1 * MiB;
+/** smallest adaptive chunk (unless the server allows even less) */
+export const MIN_CHUNK_BYTES = 256 * 1024;
 /** consecutive offset re-syncs without progress before giving up (guards against ping-pong loops) */
 const MAX_RESYNCS = 12;
 /** complete → "incomplete" → resume loops */
@@ -171,6 +181,18 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 const UNKNOWN_MIME = new Set(['', 'application/octet-stream', 'binary/octet-stream', 'application/unknown']);
+
+/**
+ * Size of the next chunk: about CHUNK_TARGET_SECONDS worth of bytes at the measured speed, never above
+ * the server's limit (`maxChunk`) or the current `ceiling` (halved after a failed chunk). Pure.
+ */
+export function nextChunkSize(opts: { speed: number | null | undefined; maxChunk: number; ceiling: number }): number {
+  const hardMax = Math.max(1, Math.floor(Math.min(opts.maxChunk, opts.ceiling)));
+  const floor = Math.min(MIN_CHUNK_BYTES, hardMax);
+  if (!opts.speed || !(opts.speed > 0)) return Math.min(START_CHUNK_BYTES, hardMax);
+  const ideal = Math.floor((opts.speed * CHUNK_TARGET_SECONDS) / MIN_CHUNK_BYTES) * MIN_CHUNK_BYTES;
+  return Math.min(hardMax, Math.max(floor, ideal));
+}
 
 export function fileExtension(name: string): string {
   return /\.([a-z0-9]{1,5})$/i.exec(name.trim())?.[1]?.toLowerCase() ?? '';
@@ -603,12 +625,16 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
     const size = file.size;
     let offset = session.bytesReceived;
     let chunkSize = session.chunkSize;
+    /** halved after a failed chunk, doubled again after a few successful ones in a row */
+    let ceiling = chunkSize;
+    let streak = 0;
     let failures = 0;
     let resyncs = 0;
 
     while (offset < size) {
       checkStop(ctl);
-      const bytes = Math.min(chunkSize, size - offset);
+      const planned = nextChunkSize({ speed: getItem(localId)?.speed, maxChunk: chunkSize, ceiling });
+      const bytes = Math.min(planned, size - offset);
       const chunk = file.slice(offset, offset + bytes);
       const startedAt = env.now();
       update(localId, { inFlight: { offset, bytes, startedAt }, bytesSent: offset });
@@ -626,6 +652,11 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         if (next > offset) {
           failures = 0;
           resyncs = 0;
+          streak += 1;
+          if (streak >= 3 && ceiling < chunkSize) {
+            ceiling = Math.min(chunkSize, ceiling * 2);
+            streak = 0;
+          }
         } else {
           resyncs += 1;
           if (resyncs > MAX_RESYNCS) throw new FatalUploadError('network');
@@ -657,7 +688,11 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         }
         if (c.kind === 'fatal') throw new FatalUploadError(c.code, c.message);
 
-        // transient: back off (or wait for the network), then ask the server where we are
+        // transient: a chunk that did not arrive (proxy timeout, weak signal) is discarded by the server –
+        // try a smaller one next time
+        ceiling = Math.max(Math.min(MIN_CHUNK_BYTES, chunkSize), Math.floor(bytes / 2));
+        streak = 0;
+        // back off (or wait for the network), then ask the server where we are
         const counted = await backOff(localId, ctl, failures + 1, c.code, c.message);
         if (counted) failures += 1;
         try {
