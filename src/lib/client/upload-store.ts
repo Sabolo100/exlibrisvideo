@@ -88,7 +88,8 @@ export interface ResumableUpload {
 export type UploadApi = Pick<
   typeof defaultApi,
   'initUpload' | 'getUpload' | 'putChunk' | 'completeUpload' | 'deleteUpload'
->;
+> &
+  Partial<Pick<typeof defaultApi, 'reportUploadFailure'>>;
 
 export interface UploadEnvironment {
   isOnline(): boolean;
@@ -156,6 +157,10 @@ export const START_CHUNK_BYTES = 1 * MiB;
 export const MIN_CHUNK_BYTES = 256 * 1024;
 /** consecutive offset re-syncs without progress before giving up (guards against ping-pong loops) */
 const MAX_RESYNCS = 12;
+/** failed reads of the same slice of the picked file before giving up */
+const MAX_READ_RETRIES = 2;
+/** outcomes the user can act on without our help: not reported to the server log */
+const UNREPORTED_CODES = new Set(['unsupported', 'too_large', 'too_many_sources', 'rate_limited', 'forbidden', 'not_found']);
 /** complete → "incomplete" → resume loops */
 const MAX_COMPLETE_ROUNDS = 4;
 
@@ -192,6 +197,25 @@ export function nextChunkSize(opts: { speed: number | null | undefined; maxChunk
   if (!opts.speed || !(opts.speed > 0)) return Math.min(START_CHUNK_BYTES, hardMax);
   const ideal = Math.floor((opts.speed * CHUNK_TARGET_SECONDS) / MIN_CHUNK_BYTES) * MIN_CHUNK_BYTES;
   return Math.min(hardMax, Math.max(floor, ideal));
+}
+
+/**
+ * Copies one slice of the picked file into memory. Chrome on Android refuses to stream a slice of a gallery /
+ * photo-picker file straight into a request ("Failed to fetch", ERR_UPLOAD_FILE_CHANGED) while it reads the
+ * same bytes without complaint – so every chunk goes out as an in-memory Blob, like an in-app recording does.
+ */
+export async function readChunk(file: Blob, offset: number, bytes: number): Promise<Blob> {
+  const buffer = await file.slice(offset, offset + bytes).arrayBuffer();
+  return new Blob([buffer], { type: 'application/octet-stream' });
+}
+
+/** "Name: message" of a low-level failure, for the diagnostics report only (never shown in the UI). */
+export function errorDetail(err: unknown): string | undefined {
+  if (err === undefined || err === null) return undefined;
+  if (typeof err === 'object' && 'name' in err && 'message' in err) {
+    return `${String((err as Error).name)}: ${String((err as Error).message)}`.slice(0, 200);
+  }
+  return String(err).slice(0, 200);
 }
 
 export function fileExtension(name: string): string {
@@ -356,6 +380,8 @@ class FatalUploadError extends Error {
   constructor(
     public code: string,
     message?: string,
+    /** the underlying low-level failure, for the diagnostics report */
+    public detail?: string,
   ) {
     super(message ?? code);
     this.name = 'FatalUploadError';
@@ -489,12 +515,12 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
    * Handles one transient failure: waits for the network (free) or backs off (spends one retry).
    * Throws a FatalUploadError when the budget is exhausted.
    */
-  async function backOff(localId: string, ctl: AbortController, attempt: number, code: string, message?: string) {
+  async function backOff(localId: string, ctl: AbortController, attempt: number, code: string, message?: string, detail?: string) {
     if (!env.isOnline()) {
       await waitForOnline(localId, ctl);
       return false;
     }
-    if (attempt > maxRetries) throw new FatalUploadError(code, message);
+    if (attempt > maxRetries) throw new FatalUploadError(code, message, detail);
     const delay = backoffDelay(attempt, env.random());
     update(localId, { retry: { attempt, max: maxRetries, at: env.now() + delay }, inFlight: null });
     try {
@@ -528,7 +554,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         const c = classifyUploadError(err);
         if (c.kind === 'abort' || ctl.signal.aborted) throw new StopSignal();
         if (c.kind === 'transient') {
-          const counted = await backOff(localId, ctl, attempt + 1, c.code, c.message);
+          const counted = await backOff(localId, ctl, attempt + 1, c.code, c.message, errorDetail(err));
           if (counted) attempt += 1;
           continue;
         }
@@ -547,6 +573,24 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         }
       }
     }
+  }
+
+  /** Tells the server log why an upload failed on this device (real phones cannot be debugged otherwise). */
+  function reportFailure(localId: string, code: string, detail: string | undefined) {
+    const item = getItem(localId);
+    if (!item || !api.reportUploadFailure || UNREPORTED_CODES.has(code)) return;
+    api
+      .reportUploadFailure({
+        code,
+        detail,
+        videoId: item.videoId,
+        mimeType: item.mimeType,
+        extension: fileExtension(item.name),
+        sizeBytes: item.size,
+        bytesSent: item.bytesSent,
+        lastModifiedKnown: item.lastModified > 0,
+      })
+      .catch(() => {});
   }
 
   async function deleteQuietly(videoId: string) {
@@ -630,12 +674,28 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
     let streak = 0;
     let failures = 0;
     let resyncs = 0;
+    let readFailures = 0;
 
     while (offset < size) {
       checkStop(ctl);
       const planned = nextChunkSize({ speed: getItem(localId)?.speed, maxChunk: chunkSize, ceiling });
       const bytes = Math.min(planned, size - offset);
-      const chunk = file.slice(offset, offset + bytes);
+      let chunk: Blob;
+      try {
+        chunk = await readChunk(file, offset, bytes);
+      } catch (err) {
+        // the phone revoked access to the picked file or the gallery app replaced it
+        readFailures += 1;
+        if (readFailures > MAX_READ_RETRIES) throw new FatalUploadError('file_unreadable', undefined, errorDetail(err));
+        try {
+          await env.sleep(500 * readFailures, ctl.signal);
+        } catch {
+          throw new StopSignal();
+        }
+        continue;
+      }
+      checkStop(ctl);
+      readFailures = 0;
       const startedAt = env.now();
       update(localId, { inFlight: { offset, bytes, startedAt }, bytesSent: offset });
       try {
@@ -693,7 +753,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         ceiling = Math.max(Math.min(MIN_CHUNK_BYTES, chunkSize), Math.floor(bytes / 2));
         streak = 0;
         // back off (or wait for the network), then ask the server where we are
-        const counted = await backOff(localId, ctl, failures + 1, c.code, c.message);
+        const counted = await backOff(localId, ctl, failures + 1, c.code, c.message, errorDetail(err));
         if (counted) failures += 1;
         try {
           const info = await api.getUpload(session.videoId);
@@ -781,6 +841,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
       const message = err instanceof FatalUploadError && err.message !== err.code ? err.message : undefined;
       if (!(err instanceof FatalUploadError)) console.error('[upload] unexpected error', err);
       update(localId, { status: 'error', errorCode: code, error: message, retry: null, offline: false, inFlight: null });
+      reportFailure(localId, code, err instanceof FatalUploadError ? (err.detail ?? message) : errorDetail(err));
     } finally {
       if (controllers.get(localId) === ctl) controllers.delete(localId);
       pump(collectionId);

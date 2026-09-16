@@ -50,6 +50,20 @@ async function request<T>(path: string, init?: RequestInit & { json?: unknown })
 
 const enc = encodeURIComponent;
 
+export interface UploadFailureReport {
+  /** UploadItem.errorCode */
+  code: string;
+  /** "Name: message" of the underlying failure */
+  detail?: string;
+  videoId?: string;
+  mimeType: string;
+  extension: string;
+  sizeBytes: number;
+  bytesSent: number;
+  /** false when the browser reported no modification time for the picked file */
+  lastModifiedKnown: boolean;
+}
+
 export const api = {
   createCollection: (body: { title?: string; email?: string; ownerName?: string; locale: Locale }) =>
     request<CreateCollectionResponse>('/api/collections', { method: 'POST', json: body }),
@@ -88,6 +102,10 @@ export const api = {
     request<{ video: VideoDTO }>(`/api/uploads/${enc(videoId)}/complete`, { method: 'POST' }),
 
   deleteUpload: (videoId: string) => request<void>(`/api/uploads/${enc(videoId)}`, { method: 'DELETE' }),
+
+  /** Diagnostics of an upload that failed on this device – written to the server log, nothing else. */
+  reportUploadFailure: (report: UploadFailureReport) =>
+    request<void>('/api/client-log', { method: 'POST', json: { kind: 'upload_failed', ...report }, keepalive: true }),
 
   addBook: (collectionId: string, body: BookPatch & { title: string }) =>
     request<BookDTO>(`/api/collections/${enc(collectionId)}/books`, { method: 'POST', json: body }),

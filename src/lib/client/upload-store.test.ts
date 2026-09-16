@@ -190,6 +190,26 @@ function bytesFile(name: string, size: number, type = 'video/mp4'): File {
   return new File([data], name, { type, lastModified: 1_700_000_000_000 });
 }
 
+/** A picked file whose first `failures` slice reads fail like an Android gallery file that became unreadable. */
+function flakyFile(name: string, size: number, failures: number): File {
+  const file = bytesFile(name, size);
+  const slice = file.slice.bind(file);
+  let left = failures;
+  Object.defineProperty(file, 'slice', {
+    value: (start?: number, end?: number, type?: string) => {
+      const blob = slice(start, end, type);
+      if (left > 0) {
+        left -= 1;
+        Object.defineProperty(blob, 'arrayBuffer', {
+          value: () => Promise.reject(new DOMException('The requested file could not be read', 'NotReadableError')),
+        });
+      }
+      return blob;
+    },
+  });
+  return file;
+}
+
 function items(store: UploadStore, collectionId = 'c1'): readonly UploadItem[] {
   return store.getSnapshot().items.filter((i) => i.collectionId === collectionId);
 }
@@ -423,6 +443,82 @@ describe('createUploadStore', () => {
     expect(server.calls.filter((c) => c === 'put:v1@4')).toHaveLength(6);
     expect(server.calls).not.toContain('complete:v1');
     expect(store.hasActive('c1')).toBe(false);
+  });
+
+  it('sends in-memory copies of the file slices and survives a failed read', async () => {
+    const server = fakeServer({ chunkSize: 4 });
+    const { env } = testEnv();
+    const store = createUploadStore({ api: server.api, env });
+    const file = flakyFile('gallery.mp4', 10, 1);
+    const sent: Blob[] = [];
+    const original = server.api.putChunk;
+    server.api.putChunk = async (videoId, offset, chunk, signal) => {
+      sent.push(chunk);
+      return original(videoId, offset, chunk, signal);
+    };
+    const [item] = store.enqueue('c1', [file]);
+    const done = await settle(store, item.localId);
+    expect(done.status).toBe('done');
+    expect(sent.length).toBeGreaterThan(0);
+    for (const chunk of sent) expect(chunk.type).toBe('application/octet-stream');
+    await expectSameBytes(bytesFile('gallery.mp4', 10), server.uploads.get('v1'));
+  });
+
+  it('gives up on a file the phone will not let us read and reports why', async () => {
+    const server = fakeServer({ chunkSize: 4 });
+    const { env } = testEnv();
+    const reports: Parameters<NonNullable<UploadApi['reportUploadFailure']>>[0][] = [];
+    const store = createUploadStore({
+      api: { ...server.api, reportUploadFailure: async (r) => void reports.push(r) },
+      env,
+    });
+    const [item] = store.enqueue('c1', [flakyFile('gallery.mp4', 10, 99)]);
+    const failed = await settle(store, item.localId);
+    expect(failed.status).toBe('error');
+    expect(failed.errorCode).toBe('file_unreadable');
+    expect(server.calls.some((c) => c.startsWith('put:'))).toBe(false);
+    await vi.waitFor(() => expect(reports).toHaveLength(1));
+    expect(reports[0]).toMatchObject({
+      code: 'file_unreadable',
+      videoId: 'v1',
+      mimeType: 'video/mp4',
+      extension: 'mp4',
+      sizeBytes: 10,
+      bytesSent: 0,
+      lastModifiedKnown: true,
+    });
+    expect(reports[0].detail).toContain('NotReadableError');
+  });
+
+  it('reports the low-level cause of exhausted network retries, but not user-fixable errors', async () => {
+    const server = fakeServer({ chunkSize: 4 });
+    const { env } = testEnv();
+    const reports: Parameters<NonNullable<UploadApi['reportUploadFailure']>>[0][] = [];
+    const store = createUploadStore({
+      api: { ...server.api, reportUploadFailure: async (r) => void reports.push(r) },
+      env,
+    });
+    server.hooks.put = ({ offset }) => {
+      if (offset === 4) throw new TypeError('Failed to fetch');
+    };
+    const [item] = store.enqueue('c1', [bytesFile('a.mp4', 10)]);
+    expect((await settle(store, item.localId)).errorCode).toBe('network');
+    await vi.waitFor(() => expect(reports).toHaveLength(1));
+    expect(reports[0]).toMatchObject({ code: 'network', detail: 'TypeError: Failed to fetch', bytesSent: 4 });
+
+    const refusing = createUploadStore({
+      api: {
+        ...server.api,
+        initUpload: async () => {
+          throw new ApiClientError('too big', 413, 'too_large');
+        },
+        reportUploadFailure: async (r) => void reports.push(r),
+      },
+      env,
+    });
+    const [big] = refusing.enqueue('c1', [bytesFile('big.mp4', 10)]);
+    expect((await settle(refusing, big.localId)).errorCode).toBe('too_large');
+    expect(reports).toHaveLength(1);
   });
 
   it('re-syncs to the server offset on 409 (chunk stored but response lost)', async () => {

@@ -88,6 +88,7 @@ import { POST as createCollectionRoute } from '@/app/api/collections/route';
 import { GET as healthRoute } from '@/app/api/health/route';
 import { GET as mediaRoute } from '@/app/api/media/[...path]/route';
 import { POST as recoverRoute } from '@/app/api/recover/route';
+import { POST as clientLogRoute } from '@/app/api/client-log/route';
 import { POST as completeRoute } from '@/app/api/uploads/[videoId]/complete/route';
 import { DELETE as deleteUploadRoute, GET as getUploadRoute, PUT as putChunkRoute } from '@/app/api/uploads/[videoId]/route';
 
@@ -733,6 +734,29 @@ describe.skipIf(!dbAvailable)('HTTP API routes (PostgreSQL + storage)', () => {
     expect(overview.counts.collections).toBeGreaterThanOrEqual(1);
     expect(overview.recentCollections.some((c: { id: string; hasEmail: boolean }) => c.id === id && c.hasEmail)).toBe(true);
     expect(overview.aiUsage).toMatchObject({ inputTokens: expect.any(Number), byModel: expect.any(Array) });
+  });
+
+  it('POST /api/client-log logs an upload failure without file names and rejects anything else', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const report = {
+        kind: 'upload_failed',
+        code: 'file_unreadable',
+        detail: 'NotReadableError: The requested file could not be read',
+        mimeType: 'video/mp4',
+        extension: 'mp4',
+        sizeBytes: 15219908,
+        bytesSent: 0,
+        lastModifiedKnown: true,
+      };
+      const ok = await clientLogRoute(request('POST', '/api/client-log', { body: report, headers: { 'user-agent': 'Mozilla/5.0 (Linux; Android 14)' } }), undefined);
+      expect(ok.status).toBe(204);
+      expect(warn).toHaveBeenCalledWith('[client] upload failed', expect.objectContaining({ code: 'file_unreadable', userAgent: 'Mozilla/5.0 (Linux; Android 14)' }));
+      const bad = await clientLogRoute(request('POST', '/api/client-log', { body: { ...report, filename: 'x.mp4', kind: 'other' } }), undefined);
+      expect(bad.status).toBe(400);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('cross-site unsafe requests are refused', async () => {

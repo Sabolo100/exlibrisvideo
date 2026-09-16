@@ -33,6 +33,7 @@ const ERROR_KEYS: Record<string, MessageKey> = {
   upload_incomplete: 'upload.error.upload_incomplete',
   conflict: 'upload.error.upload_incomplete',
   file_missing: 'upload.error.file_missing',
+  file_unreadable: 'upload.error.file_unreadable',
 };
 
 /** Localized explanation for a failed upload. `vars.max`: the per-file size limit ("1 GB", quoted for `too_large`). */

@@ -57,6 +57,7 @@ export const upload = defineMessages({
     'error.upload_closed': 'Ez a feltöltés már lezárult. Távolítsd el, és válaszd ki újra a fájlt.',
     'error.upload_incomplete': 'A fájl nem érkezett meg hiánytalanul. Próbáld újra.',
     'error.file_missing': 'A fájl már nem érhető el ebben a böngészőablakban. Válaszd ki újra.',
+    'error.file_unreadable': 'A telefon nem engedte beolvasni a videót. Mentsd le a telefonra (vagy nyisd meg a Fájlok alkalmazásból), és válaszd ki újra – vagy vedd fel a polcot az appon belül.',
     'error.generic': 'Nem sikerült feltölteni a fájlt. Próbáld újra.',
 
     'reject.title': '{count} fájlt nem tudtunk hozzáadni',
@@ -150,6 +151,7 @@ export const upload = defineMessages({
     'error.upload_closed': 'This upload has already been closed. Remove it and pick the file again.',
     'error.upload_incomplete': "The file didn't arrive completely. Please try again.",
     'error.file_missing': 'The file is no longer available in this browser tab. Please pick it again.',
+    'error.file_unreadable': "Your phone wouldn't let us read the video. Save it to the phone (or pick it from the Files app) and choose it again – or record the shelf in the app.",
     'error.generic': "The file couldn't be uploaded. Please try again.",
 
     'reject.title': "{count} files couldn't be added",
