@@ -311,22 +311,13 @@ csatolás, más néven bind mount) kell, **nem** Volume Mount: a Coolify a névv
 köteteket erőforrásonként külön hozza létre, így a két alkalmazás két különböző tárhelyet
 kapna – a worker elmentené a gerincfotókat, a web viszont nem találná őket.
 
-### 6.1 A mappa létrehozása a szerveren
+### 6.1 A mappa a szerveren – nincs vele teendő
 
-Az alkalmazás a konténerben a **1001-es** felhasználóként (és 1001-es csoportként) fut,
-ezért a mappa is az övé kell legyen:
-
-**Ez a gazdagépen fut: Coolify → Terminal → localhost**
-
-```bash
-mkdir -p /data/exlibrisvideo/storage
-chown -R 1001:1001 /data/exlibrisvideo/storage
-chmod 750 /data/exlibrisvideo/storage
-ls -ld /data/exlibrisvideo/storage
-```
-
-Az utolsó parancs kimenete ilyesmi legyen: `drwxr-x--- 2 1001 1001 … /data/exlibrisvideo/storage`.
-(Ha a terminál nem `root`-ként lép be, tedd a parancsok elé: `sudo`.)
+A mappát nem kell előre létrehozni: a Docker az első telepítéskor létrehozza (root
+tulajdonnal), a konténer indítószkriptje (`docker-entrypoint.sh`) pedig ilyenkor egyszer
+átadja az alkalmazás **1001-es** felhasználójának, és csak utána indítja el – már nem
+rootként – a webet vagy a workert. A web naplójában ilyenkor egyszer megjelenik:
+`[entrypoint] giving /app/storage to the exlibris user`.
 
 ### 6.2 Csatolás a webalkalmazáshoz
 
@@ -339,8 +330,9 @@ Az utolsó parancs kimenete ilyesmi legyen: `drwxr-x--- 2 1001 1001 … /data/ex
 
 A workernél (7. fejezet) **pontosan ugyanezt** kell megadni.
 
-Ha a jogosultság rossz, a web naplójában induláskor ez a sor jelenik meg:
-`[boot] !!! STORAGE NOT WRITABLE …` – ilyenkor ismételd meg a 6.1 lépést.
+Ha a jogosultság mégis rossz (például a mappát kézzel más felhasználóra állították), a web
+naplójában induláskor ez a sor jelenik meg: `[boot] !!! STORAGE NOT WRITABLE …` – ilyenkor
+elég egy **Restart**, az indítószkript újra rendbe teszi.
 
 Most már megnyomhatod a webalkalmazásnál a **Deploy** gombot (az első build 5–15 perc).
 
@@ -765,7 +757,7 @@ PIN-próbálkozásokat. Az IP-címet az `X-Forwarded-For` fejléc első eleméb�
 | A könyvek megjelennek, de a gerincfotók / képkockák hiányoznak (törött képek) | A web és a worker **különböző** tárhelyet lát (eltér a Directory Mount, vagy Volume Mount lett) | Mindkét alkalmazásnál **Directory Mount**: `/data/exlibrisvideo/storage` → `/app/storage`. Ellenőrzés: `ls /app/storage/spines` mindkét konténer termináljában ugyanazt mutassa. |
 | `/api/health`: `{"ok":false,"db":false}` (503) vagy 404 / „no available server” | Rossz a `DATABASE_URL` (Public URL-t vagy régi jelszót adtál meg), leállt az adatbázis, vagy más *Destination*-ön van | Használd a Postgres **Internal URL**-jét; indítsd el az adatbázist; azonos szerver és Destination. A web naplójában: `[boot] !!! DATABASE MIGRATION FAILED`. |
 | Migrációs hiba | A migrációk induláskor futnak (web és worker, egy adatbázis-zár miatt egyszerre csak az egyik); adatbázis-hiba esetén a web a háttérben újrapróbálkozik (5 mp, 15 mp, … legfeljebb 5 percenként) | Nézd meg a `[boot]` sorokat a naplóban. Kézi futtatás a web konténer termináljában (Coolify → exlibris-web → Terminal): `npm run db:migrate` – a végén `[migrate] done`. |
-| A naplóban `STORAGE NOT WRITABLE` | A szerveren lévő mappa nem a 1001-es felhasználóé | 6.1 lépés (`chown -R 1001:1001 /data/exlibrisvideo/storage`), majd **Restart**. |
+| A naplóban `STORAGE NOT WRITABLE` | A csatolt mappa nem írható az alkalmazás felhasználójának | **Restart** – az indítószkript (`docker-entrypoint.sh`) átadja a mappát a 1001-es felhasználónak. Ha a hiba marad: a gazdagépen `chown -R 1001:1001 /data/exlibrisvideo/storage`. |
 | Tanúsítvány-figyelmeztetés marad | A DNS még nem a szerverre mutat, zárva a 80-as port, vagy Cloudflare-proxy van bekapcsolva | `Resolve-DnsName`; Hetzner tűzfal 80/443; Cloudflare-nél ideiglenesen szürke felhő; a web **Redeploy**. |
 | Nem érkeznek e-mailek | `EMAIL_PROVIDER=console`; nincs hitelesítve a Resend-domain; a Hetzner tiltja a 25/465-ös portot | Worker napló `[email]` sorai; Resend **Domains** → Verified; SMTP-nél 587-es port; spam mappa. |
 | AI-hiba (pl. 401, „insufficient balance”) | Hibás kulcs vagy elfogyott egyenleg | Worker napló `[ai]` sorai; ellenőrizd a kulcsot és az egyenleget a szolgáltatónál. |

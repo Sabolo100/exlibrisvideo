@@ -69,8 +69,7 @@ RUN apt-get update \
  && ffmpeg -hide_banner -version | head -n 1 \
  && ffprobe -hide_banner -version | head -n 1
 
-# Fixed ids so the host storage directory can be chowned before the first deploy:
-#   chown -R 1001:1001 /data/exlibrisvideo/storage
+# Fixed ids (the entrypoint hands a root-owned storage mount to this user automatically)
 ARG APP_UID=1001
 ARG APP_GID=1001
 RUN groupadd --gid ${APP_GID} exlibris \
@@ -103,7 +102,11 @@ RUN mkdir -p .next/cache \
 # No VOLUME instruction on purpose: an anonymous volume would silently give web and
 # worker two different, never-cleaned-up storages. Mount /app/storage explicitly
 # (Coolify: Directory Mount on BOTH apps; docker-compose.yml: shared volume).
-USER exlibris
+
+# No `USER exlibris` here: the container starts as root so docker-entrypoint.sh can hand a freshly
+# mounted (root-owned) storage directory to the app user, then it drops to exlibris with setpriv.
+# The Node processes never run as root.
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # One health check for both roles – Coolify uses an image HEALTHCHECK instead of its
 # dashboard setting, so it must not fail for the worker (which serves no HTTP):
@@ -114,7 +117,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD grep -qsa 'src/worke[r]/index' /proc/[0-9]*/cmdline \
    || node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
 # The commands below are exactly what `npm run worker` / `npm run start` execute, minus the
 # npm + /bin/sh wrappers: dash does not pass SIGTERM on, so under `npm run …` a `docker stop`
