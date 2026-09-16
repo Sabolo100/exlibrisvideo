@@ -10,13 +10,14 @@ import {
   buildCandidateArgs,
   filterRedundant,
   JpegStreamSplitter,
+  pickAdaptive,
   pickWindowBest,
   sampleUniform,
   selectKeyFrames,
   windowSize,
 } from './frames';
 import { probeMedia } from './probe';
-import type { GreySignature } from './sharpness';
+import { analyzeFrame, type GreySignature } from './sharpness';
 
 const sig = (value: number, w = 9, h = 16): GreySignature => ({ width: w, height: h, data: new Uint8Array(w * h).fill(value) });
 
@@ -38,6 +39,29 @@ describe('pickWindowBest', () => {
     expect(pickWindowBest(c, 3).map((x) => x.n)).toEqual([1, 4, 6]);
     expect(pickWindowBest(c, 1).map((x) => x.n)).toEqual([0, 1, 2, 3, 4, 5, 6]);
     expect(pickWindowBest([], 2)).toEqual([]);
+  });
+});
+
+describe('pickAdaptive', () => {
+  /** a shelf of coloured books, shifted by `offset` px (a pan) */
+  const shelf = async (offset: number) => {
+    const books = Array.from({ length: 14 }, (_, i) => {
+      const x = i * 70 - offset;
+      return '<rect x="' + x + '" y="100" width="62" height="440" fill="hsl(' + ((i * 67) % 360) + ',60%,' + (35 + (i % 4) * 10) + '%)"/>';
+    }).join('');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640"><rect width="640" height="640" fill="#222"/>' + books + '</svg>';
+    return analyzeFrame(await sharp(Buffer.from(svg)).png().toBuffer());
+  };
+
+  it('keeps one frame per window when the camera moves slowly, both halves when it pans fast', async () => {
+    const a = { ...(await shelf(0)), n: 0 };
+    const slow = { ...(await shelf(20)), n: 1 };
+    const fast = { ...(await shelf(160)), n: 2 };
+    expect(pickAdaptive(a, { ...slow, sharpness: a.sharpness + 1 }).map((c) => c.n)).toEqual([1]);
+    expect(pickAdaptive({ ...a, sharpness: slow.sharpness + 1 }, slow).map((c) => c.n)).toEqual([0]);
+    expect(pickAdaptive(a, fast).map((c) => c.n)).toEqual([0, 2]);
+    expect(pickAdaptive(null, fast).map((c) => c.n)).toEqual([2]);
+    expect(pickAdaptive(null, null)).toEqual([]);
   });
 });
 

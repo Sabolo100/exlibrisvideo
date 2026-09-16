@@ -53,6 +53,44 @@ export interface VisionProvider {
   readonly name: AiProviderName;
   readonly model: string;
   readSpines(frames: VisionFrame[], ctx: VisionContext): Promise<{ observations: SpineObservation[]; usage: AiUsage }>;
+  /**
+   * Reads book spines that were already cut out of the frames, one physical spine per id (optional: a
+   * provider without it gets whole frames through readSpines).
+   */
+  readSpineImages?(spines: SpineToRead[], ctx: VisionContext): Promise<{ readings: SpineReading[]; usage: AiUsage }>;
+}
+
+/** One picture of a cut-out spine: the spine turned on its side both ways, stacked (see spines/strips.ts). */
+export interface SpineViewImage {
+  jpeg: Buffer;
+  width: number;
+  height: number;
+}
+
+export interface SpineToRead {
+  /** 1-based id inside the request */
+  id: number;
+  /** the same spine in 1–2 different video frames */
+  views: SpineViewImage[];
+  /** much wider than its neighbours: probably several books whose gaps were not found */
+  wide?: boolean;
+}
+
+export type SpineReadingStatus = 'book' | 'illegible' | 'not_book';
+
+export interface SpineReading {
+  id: number;
+  /** 1-based when one picture shows several books side by side, otherwise 1 */
+  part: number;
+  status: SpineReadingStatus;
+  author: string | null;
+  /** "" when no title is legible */
+  title: string;
+  canonicalAuthor: string | null;
+  canonicalTitle: string | null;
+  publisher: string | null;
+  /** 0..1 */
+  confidence: number;
 }
 
 export interface BookForClassification {

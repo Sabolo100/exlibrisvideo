@@ -6,7 +6,9 @@
  *     candidates through a pipe (bounded memory, no giant temp folder for long clips).
  *  2. every candidate gets a Laplacian-variance sharpness score + a tiny greyscale signature.
  *  3. candidates are grouped into windows of W = max(1, round(sampleFps × KEYFRAME_WINDOW_SEC)); the
- *     sharpest of each window is written to a temp dir (motion-blurred frames are discarded).
+ *     sharpest of each window is written to a temp dir (motion-blurred frames are discarded). When the
+ *     camera pans fast inside a window (FAST_PAN_SHIFT), the sharpest of each of its halves is kept, so
+ *     neighbouring key frames still overlap enough for spine tracking.
  *  4. redundancy filter: drop a frame whose signature barely differs from the previously kept frame
  *     (camera not moving) – but never leave a gap longer than maxGapSec (0.75 s, ≤ SPEC's 2 s).
  *  5. more than maxFrames left → uniform sampling (first and last kept).
@@ -20,7 +22,8 @@ import sharp, { type Metadata, type OutputInfo } from 'sharp';
 import { env } from '@/lib/env';
 import { PipelineError } from '@/lib/jobs/errors';
 import { probeMedia, type MediaProbe } from './probe';
-import { analyzeFrame, meanAbsDiff, type GreySignature } from './sharpness';
+import { analyzeFrame, meanAbsDiff, type FrameQuality, type GreySignature } from './sharpness';
+import { estimateShift, type Profile } from './spines/motion';
 
 export interface SelectKeyFramesOptions {
   /** candidate sampling rate (default env FRAME_SAMPLE_FPS = 8) */
@@ -119,6 +122,30 @@ export interface ScoredCandidate {
   n: number;
   timeSec: number;
   sharpness: number;
+}
+
+/**
+ * Spine tracking needs neighbouring key frames that overlap well. A window whose two halves show the camera
+ * moving at least this share of the frame width (≈ ¼ of the frame per window) keeps the sharpest frame of
+ * both halves; measured on the sample clips, a fast pan moves 10–20 % of the width per 0.125 s.
+ */
+export const FAST_PAN_SHIFT = 0.12;
+
+export interface ProfiledCandidate {
+  sharpness: number;
+  profile: Profile;
+}
+
+/**
+ * The frames kept from one window: both half-window bests when the camera panned fast between them (or the
+ * pan could not be measured), otherwise the sharper one (ties → the first half).
+ */
+export function pickAdaptive<T extends ProfiledCandidate>(first: T | null, second: T | null, fastShift = FAST_PAN_SHIFT): T[] {
+  if (!first || !second) return first ? [first] : second ? [second] : [];
+  const estimate = estimateShift(first.profile, second.profile);
+  const fast = !estimate || estimate.score < 0.5 || Math.abs(estimate.shift) >= fastShift;
+  if (fast) return [first, second];
+  return [second.sharpness > first.sharpness ? second : first];
 }
 
 /** Keeps the sharpest candidate of each window of W consecutive candidates (ties → earliest). */
@@ -556,25 +583,28 @@ export async function selectKeyFrames(
     let candidates = 0;
     let lastProgressAt = 0;
 
-    // window currently being filled
+    // window currently being filled: the sharpest candidate of each of its two halves
+    type HalfBest = { n: number; timeSec: number; sharpness: number; signature: GreySignature; profile: Profile; jpeg: Buffer };
     let windowIdx = -1;
-    let windowBest: { n: number; timeSec: number; sharpness: number; signature: GreySignature; jpeg: Buffer } | null = null;
+    let halves: [HalfBest | null, HalfBest | null] = [null, null];
+    const firstHalf = Math.ceil(w / 2);
 
     const flushWindow = async () => {
-      if (!windowBest) return;
-      const tmpPath = path.join(tmpDir, `${String(windowBest.n).padStart(6, '0')}.jpg`);
-      await fs.writeFile(tmpPath, windowBest.jpeg);
-      windowBests.push({
-        n: windowBest.n,
-        timeSec: windowBest.timeSec,
-        sharpness: windowBest.sharpness,
-        signature: windowBest.signature,
-        tmpPath,
-      });
-      windowBest = null;
+      for (const best of pickAdaptive(halves[0], halves[1])) {
+        const tmpPath = path.join(tmpDir, `${String(best.n).padStart(6, '0')}.jpg`);
+        await fs.writeFile(tmpPath, best.jpeg);
+        windowBests.push({
+          n: best.n,
+          timeSec: best.timeSec,
+          sharpness: best.sharpness,
+          signature: best.signature,
+          tmpPath,
+        });
+      }
+      halves = [null, null];
     };
 
-    const consume = async (n: number, jpeg: Buffer, quality: { sharpness: number; signature: GreySignature }) => {
+    const consume = async (n: number, jpeg: Buffer, quality: FrameQuality) => {
       const timeSec = n / sampleFps;
       const win = Math.floor(n / w);
       if (win !== windowIdx) {
@@ -582,8 +612,10 @@ export async function selectKeyFrames(
         windowIdx = win;
       }
       diagnostics?.push({ n, timeSec, sharpness: quality.sharpness, window: win, windowBest: false, diffToPrevKept: null, kept: false });
-      if (!windowBest || quality.sharpness > windowBest.sharpness) {
-        windowBest = { n, timeSec, sharpness: quality.sharpness, signature: quality.signature, jpeg };
+      const half = n % w < firstHalf ? 0 : 1;
+      const current = halves[half];
+      if (!current || quality.sharpness > current.sharpness) {
+        halves[half] = { n, timeSec, sharpness: quality.sharpness, signature: quality.signature, profile: quality.profile, jpeg };
       }
       if (opts.onProgress && expectedCandidates) {
         const now = Date.now();
@@ -595,11 +627,11 @@ export async function selectKeyFrames(
     };
 
     // analyse up to ANALYZE_CONCURRENCY candidates in parallel, consume strictly in order
-    const inflight: { n: number; jpeg: Buffer; result: Promise<{ sharpness: number; signature: GreySignature }> }[] = [];
+    const inflight: { n: number; jpeg: Buffer; result: Promise<FrameQuality> }[] = [];
     const drainOne = async () => {
       const item = inflight.shift();
       if (!item) return;
-      let quality: { sharpness: number; signature: GreySignature };
+      let quality: FrameQuality;
       try {
         quality = await item.result;
       } catch (err) {

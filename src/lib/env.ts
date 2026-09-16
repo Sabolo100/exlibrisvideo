@@ -72,6 +72,13 @@ const schema = z.object({
   /** frames per vision request (consecutive, overlapping by 1) */
   VISION_BATCH_SIZE: int(4),
   VISION_CONCURRENCY: int(2),
+  /**
+   * 'auto': cut every book spine out of the frames and read it on its own when the provider supports it
+   * (falls back to whole frames when no spine is found); 'off': always send whole frames
+   */
+  SPINE_RECOGNITION: str('auto'),
+  /** spine pictures per reading request (a spine has 1–2 pictures) */
+  SPINE_BATCH_IMAGES: int(12),
   /** delete the uploaded source video after successful processing (frames + spine crops are kept) */
   DELETE_SOURCE_AFTER_PROCESSING: bool(true),
 

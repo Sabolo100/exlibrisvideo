@@ -386,3 +386,37 @@ describe('helpers', () => {
     expect(u).toEqual({ model: 'claude-haiku-4-5', inputTokens: 15, outputTokens: 20, estCostUsd: (10 * 1 + 5 * 1.25 + 20 * 5) / 1e6 });
   });
 });
+
+describe('AnthropicVisionProvider – cut-out spines', () => {
+  const spine = (id: number) => ({ id, views: [{ jpeg: frames[0].jpeg, width: 60, height: 100 }] });
+  const wire = (id: number, title: string) => ({
+    id,
+    part: 1,
+    status: 'book',
+    author: null,
+    title,
+    canonical_author: null,
+    canonical_title: null,
+    publisher: null,
+    confidence: 0.9,
+  });
+
+  it('sends labelled spine pictures and maps the structured output', async () => {
+    const { client, calls } = fakeClient([message({ parsed: { spines: [wire(1, 'Abigél'), wire(2, 'Az ajtó')] } })]);
+    const provider = new AnthropicVisionProvider({ client, model: 'claude-opus-5', effort: 'medium' });
+    const res = await provider.readSpineImages([spine(1), spine(2)], CTX);
+    expect(contentTexts(calls[0].params)).toEqual([
+      'The following pictures show 2 book spines cut out of one bookshelf video.',
+      'Spine 1, view 1',
+      'Spine 2, view 1',
+      'Return one entry for each of the spines 1, 2.',
+    ]);
+    expect(res.readings.map((r) => r.title)).toEqual(['Abigél', 'Az ajtó']);
+  });
+
+  it('skips a refused spine batch', async () => {
+    const { client } = fakeClient([message({ stop: 'refusal', stopDetails: { category: 'cyber', explanation: null } })]);
+    const provider = new AnthropicVisionProvider({ client, model: 'claude-opus-5', effort: 'medium' });
+    expect((await provider.readSpineImages([spine(1)], CTX)).readings).toEqual([]);
+  });
+});

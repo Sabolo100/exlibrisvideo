@@ -31,6 +31,7 @@ import { cropSpines } from './crops';
 import { scheduleCollectionCompletion } from './finalize';
 import { selectKeyFrames } from './frames';
 import { probeMedia } from './probe';
+import { recognizeSpines } from './spines/recognize';
 import { clearCanonicalHints, countVideoDetections, runVision } from './vision-step';
 
 export const SHA1_PREFIX_BYTES = 4 * 1024 * 1024;
@@ -316,20 +317,25 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
 
     /* ---------------- vision 20–85 ---------------- */
     await stage('vision', STAGE_PROGRESS.vision[0]);
-    const vision = await runVision(video, frameRows, {
+    const visionCtx = {
       sourceSha1,
       locale,
       signal: opts.signal,
       progressFrom: STAGE_PROGRESS.vision[0],
       progressTo: STAGE_PROGRESS.vision[1],
-    });
+    };
+    // every spine cut out and read on its own; whole frames when no spine was found (or switched off)
+    const spines = e.SPINE_RECOGNITION.toLowerCase() === 'off' ? null : await recognizeSpines(video, frameRows, visionCtx);
+    const vision = spines
+      ? { batches: spines.batches, failedBatches: spines.failedBatches, framesAnalyzed: spines.framesAnalyzed }
+      : await runVision(video, frameRows, visionCtx);
     if (opts.signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
     const detectionCount = await countVideoDetections(videoId);
     if (detectionCount === 0) throw new PipelineError('no_books', 'no legible spines were found');
 
     /* ---------------- merge 85–92 ---------------- */
     await stage('merge', STAGE_PROGRESS.merge[0], { framesAnalyzed: vision.framesAnalyzed });
-    const merged = await mergeVideoDetections(videoId);
+    const merged = await mergeVideoDetections(videoId, spines ? { canonicalHints: spines.hints } : {});
     clearCanonicalHints(videoId);
     if (!(await videoExists(videoId))) throw new VideoGoneError(videoId);
     const bookIds = [...new Set([...merged.newBookIds, ...merged.updatedBookIds])];
@@ -352,6 +358,7 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
       collectionId: video.collectionId,
       kind: probe.kind,
       frames: frameRows.length,
+      recognition: spines ? 'spines' : 'frames',
       batches: vision.batches,
       failedBatches: vision.failedBatches,
       detections: detectionCount,

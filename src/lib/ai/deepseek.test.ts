@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildSpineReadingMessages,
   buildVisionMessages,
   DeepSeekClient,
   DeepSeekTextProvider,
@@ -301,5 +302,58 @@ describe('DeepSeekTextProvider', () => {
     ]);
     expect(calls[0].body.model).toBe('deepseek-v4-pro');
     expect(res.same).toEqual({ q1: true, q2: false });
+  });
+});
+
+describe('DeepSeekVisionProvider – cut-out spines', () => {
+  const view = { jpeg: JPEG, width: 800, height: 200 };
+  const spine = (id: number, views = 1, wide = false) => ({ id, views: Array.from({ length: views }, () => view), wide });
+  const entry = (id: number, title: string, status = 'book') => ({
+    id,
+    part: 1,
+    status,
+    author: null,
+    title,
+    canonical_author: null,
+    canonical_title: null,
+    publisher: null,
+    confidence: 0.8,
+  });
+
+  it('labels every view, marks wide pictures and lists the expected ids', () => {
+    const messages = buildSpineReadingMessages([spine(4, 2), spine(5, 1, true)]);
+    expect(messages[0].role).toBe('system');
+    expect(String(messages[0].content)).toContain('"spines"');
+    const parts = messages[1].content as { type: string; text?: string }[];
+    expect(parts.filter((p) => p.type === 'text').map((p) => p.text)).toEqual([
+      'The following pictures show 2 book spines cut out of one bookshelf video.',
+      'Spine 4, view 1',
+      'Spine 4, view 2',
+      'Spine 5, view 1 (wide: probably several books side by side)',
+      'Return one entry for each of the spines 4, 5.',
+    ]);
+    expect(parts.filter((p) => p.type === 'image_url')).toHaveLength(3);
+  });
+
+  it('reads spines and maps the reply', async () => {
+    const reply = JSON.stringify({ spines: [entry(1, 'Piszkos Fred, a kapitány'), entry(2, '', 'illegible')] });
+    const { fetchImpl, calls } = fakeFetch([ok(completion(reply))]);
+    const provider = new DeepSeekVisionProvider({ client: client(fetchImpl), model: 'deepseek-flash' });
+    const res = await provider.readSpineImages([spine(1), spine(2)], CTX);
+    expect(calls[0].body.response_format).toEqual({ type: 'json_object' });
+    expect(res.readings.map((r) => [r.id, r.status, r.title])).toEqual([
+      [1, 'book', 'Piszkos Fred, a kapitány'],
+      [2, 'illegible', ''],
+    ]);
+    expect(res.usage).toMatchObject({ provider: 'deepseek', inputTokens: 1000, outputTokens: 200 });
+  });
+
+  it('splits a truncated batch and keeps the spine ids', async () => {
+    const one = (id: number, title: string) => completion(JSON.stringify({ spines: [entry(id, title)] }));
+    const { fetchImpl, calls } = fakeFetch([ok(completion('{"spines": [', { finish: 'length' })), ok(one(1, 'Egy')), ok(one(2, 'Kettő'))]);
+    const provider = new DeepSeekVisionProvider({ client: client(fetchImpl), model: 'deepseek-flash' });
+    const res = await provider.readSpineImages([spine(1), spine(2)], CTX);
+    expect(calls).toHaveLength(3);
+    expect(res.readings.map((r) => r.title)).toEqual(['Egy', 'Kettő']);
   });
 });

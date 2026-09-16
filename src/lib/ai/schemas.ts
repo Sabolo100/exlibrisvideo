@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { isTopicKey, TOPICS } from '@/lib/taxonomy';
 import type { BBox } from '@/lib/types';
 import { KNOWN_PUBLISHER_MARKS } from './prompts';
-import type { BookClassification, SpineObservation } from './types';
+import type { BookClassification, SpineObservation, SpineReading, SpineReadingStatus } from './types';
 
 /* ------------------------------------------------------------------ */
 /* Wire schemas                                                        */
@@ -41,6 +41,22 @@ export const SpineObservationWireSchema = z.object({
 
 export const VisionOutputSchema = z.object({
   observations: z.array(SpineObservationWireSchema),
+});
+
+export const SpineReadingWireSchema = z.object({
+  id: z.number(),
+  part: z.number(),
+  status: z.enum(['book', 'illegible', 'not_book']),
+  author: z.string().nullable(),
+  title: z.string(),
+  canonical_author: z.string().nullable(),
+  canonical_title: z.string().nullable(),
+  publisher: z.string().nullable(),
+  confidence: z.number(),
+});
+
+export const SpineReadingOutputSchema = z.object({
+  spines: z.array(SpineReadingWireSchema),
 });
 
 export const BookClassificationWireSchema = z.object({
@@ -74,6 +90,8 @@ export const DuplicateOutputSchema = z.object({
 export type BBoxWire = z.infer<typeof BBoxWireSchema>;
 export type SpineObservationWire = z.infer<typeof SpineObservationWireSchema>;
 export type VisionOutput = z.infer<typeof VisionOutputSchema>;
+export type SpineReadingWire = z.infer<typeof SpineReadingWireSchema>;
+export type SpineReadingOutput = z.infer<typeof SpineReadingOutputSchema>;
 export type BookClassificationWire = z.infer<typeof BookClassificationWireSchema>;
 export type ClassificationOutput = z.infer<typeof ClassificationOutputSchema>;
 export type DuplicateOutput = z.infer<typeof DuplicateOutputSchema>;
@@ -321,6 +339,64 @@ export function mapVisionOutput(wire: VisionOutput, frames: MapFrameInfo[]): Spi
     });
   }
   return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Spine reading mapper                                                */
+/* ------------------------------------------------------------------ */
+
+const STATUS_RANK: Record<SpineReadingStatus, number> = { book: 2, illegible: 1, not_book: 0 };
+
+/**
+ * Maps wire readings of cut-out spines to the contract: unknown ids are dropped, text is cleaned, publisher
+ * marks move out of author / title, canonical values must plausibly correct the reading, confidence is
+ * clamped to 0..1 and every (id, part) is kept once (the best reading). A "book" with nothing legible
+ * becomes "illegible"; "not_book" entries carry no text.
+ */
+export function mapSpineReadingOutput(wire: SpineReadingOutput, spineIds: readonly number[]): SpineReading[] {
+  const known = new Set(spineIds);
+  const best = new Map<string, SpineReading>();
+  for (const w of wire.spines) {
+    const id = Math.round(w.id);
+    if (!known.has(id)) continue;
+    const part = Number.isFinite(w.part) && w.part >= 1 ? Math.round(w.part) : 1;
+    let author = cleanText(w.author);
+    let title = cleanText(w.title);
+    let publisher = cleanText(w.publisher);
+    const canonicalAuthor = plausibleCanonical(author, cleanText(w.canonical_author), 'author');
+    const canonicalTitle = plausibleCanonical(title, cleanText(w.canonical_title), 'title');
+    if (author && isKnownPublisherMark(author)) {
+      publisher = publisher ?? author;
+      author = null;
+    }
+    if (title && isKnownPublisherMark(title)) {
+      publisher = publisher ?? title;
+      title = null;
+    }
+    let status: SpineReadingStatus = w.status;
+    if (status === 'book' && !title && !author && !canonicalTitle && !canonicalAuthor) status = 'illegible';
+    let confidence = Number.isFinite(w.confidence) ? w.confidence : 0.5;
+    if (confidence > 1 && confidence <= 100) confidence /= 100;
+    confidence = Math.round(clamp(confidence, 0, 1) * 1000) / 1000;
+    const isBook = status === 'book';
+    const reading: SpineReading = {
+      id,
+      part,
+      status,
+      author: status === 'not_book' ? null : author,
+      title: isBook ? (title ?? '') : '',
+      canonicalAuthor: isBook ? canonicalAuthor : null,
+      canonicalTitle: isBook ? canonicalTitle : null,
+      publisher: status === 'not_book' ? null : publisher,
+      confidence,
+    };
+    const key = `${id}:${part}`;
+    const prev = best.get(key);
+    if (!prev || STATUS_RANK[reading.status] > STATUS_RANK[prev.status] || (reading.status === prev.status && reading.confidence > prev.confidence)) {
+      best.set(key, reading);
+    }
+  }
+  return [...best.values()].sort((a, b) => a.id - b.id || a.part - b.part);
 }
 
 /* ------------------------------------------------------------------ */
@@ -637,6 +713,54 @@ export function coerceVisionOutput(root: unknown, frameCount: number): VisionOut
     if (parsed.success) observations.push(parsed.data);
   });
   return { observations };
+}
+
+const SPINE_STATUS_ALIASES: Record<string, SpineReadingStatus> = {
+  book: 'book',
+  legible: 'book',
+  partial: 'book',
+  partly_legible: 'book',
+  illegible: 'illegible',
+  unreadable: 'illegible',
+  blank: 'illegible',
+  not_book: 'not_book',
+  notbook: 'not_book',
+  no_book: 'not_book',
+  none: 'not_book',
+  other: 'not_book',
+};
+
+/**
+ * Lenient conversion of a JSON-mode reply about cut-out spines. Returns null when the top-level shape is
+ * unusable (→ caller retries); broken items are dropped. A missing status is inferred from the text.
+ */
+export function coerceSpineReadingOutput(root: unknown): SpineReadingOutput | null {
+  const items = findItems(root, 'spines');
+  if (!items) return null;
+  const spines: SpineReadingWire[] = [];
+  for (const item of items) {
+    if (!isRec(item)) continue;
+    const id = num(pick(item, 'id', 'spine', 'spine_id', 'number'));
+    if (id === null) continue;
+    const title = str(pick(item, 'title')) ?? '';
+    const author = str(pick(item, 'author'));
+    const rawStatus = str(pick(item, 'status', 'kind', 'type'));
+    const status = rawStatus ? SPINE_STATUS_ALIASES[rawStatus.trim().toLowerCase().replace(/[\s-]+/g, '_')] : undefined;
+    const candidate = {
+      id,
+      part: num(pick(item, 'part', 'book', 'index')) ?? 1,
+      status: status ?? (title.trim() || author?.trim() ? 'book' : 'illegible'),
+      author,
+      title,
+      canonical_author: str(pick(item, 'canonical_author', 'canonicalAuthor')),
+      canonical_title: str(pick(item, 'canonical_title', 'canonicalTitle')),
+      publisher: str(pick(item, 'publisher', 'series')),
+      confidence: num(pick(item, 'confidence')) ?? 0.5,
+    };
+    const parsed = SpineReadingWireSchema.safeParse(candidate);
+    if (parsed.success) spines.push(parsed.data);
+  }
+  return { spines };
 }
 
 export function coerceClassificationOutput(root: unknown): ClassificationOutput | null {

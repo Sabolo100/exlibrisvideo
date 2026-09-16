@@ -24,16 +24,22 @@ import {
   JSON_RETRY_NUDGE,
   buildVisionSystemPrompt,
   type BoxCoordinates,
+  SPINE_READING_SYSTEM_PROMPT_JSON,
+  spineBatchIntro,
+  spineBatchOutro,
+  spineViewLabel,
   visionBatchIntro,
   visionBatchOutro,
 } from './prompts';
 import {
   coerceClassificationOutput,
   coerceDuplicateOutput,
+  coerceSpineReadingOutput,
   coerceVisionOutput,
   extractJson,
   mapClassificationOutput,
   mapDuplicateOutput,
+  mapSpineReadingOutput,
   mapVisionOutput,
   resolveBoxScale,
 } from './schemas';
@@ -43,6 +49,8 @@ import type {
   BookForClassification,
   DuplicateQuestion,
   SpineObservation,
+  SpineReading,
+  SpineToRead,
   TextProvider,
   VisionContext,
   VisionFrame,
@@ -396,6 +404,53 @@ export class DeepSeekVisionProvider implements VisionProvider {
     const [a, b] = halves(frames);
     return [...(await this.readBatch(a, ctx, acc, false)), ...(await this.readBatch(b, ctx, acc, false))];
   }
+
+  async readSpineImages(spines: SpineToRead[], ctx: VisionContext): Promise<{ readings: SpineReading[]; usage: AiUsage }> {
+    const acc = new UsageAccumulator('deepseek', this.model);
+    if (spines.length === 0) return { readings: [], usage: acc.total() };
+    const readings = await this.readSpineBatch(spines, ctx, acc, true);
+    return { readings, usage: acc.total() };
+  }
+
+  private async readSpineBatch(
+    spines: SpineToRead[],
+    ctx: VisionContext,
+    acc: UsageAccumulator,
+    allowSplit: boolean,
+  ): Promise<SpineReading[]> {
+    const outcome = await callJson(
+      this.client,
+      this.model,
+      buildSpineReadingMessages(spines),
+      6000,
+      (root) => coerceSpineReadingOutput(root),
+      acc,
+      'readSpineImages',
+    );
+    if (outcome.kind === 'ok') return mapSpineReadingOutput(outcome.value, spines.map((s) => s.id));
+    if (!allowSplit || spines.length < 2) {
+      throw new AiOutputError(`deepseek readSpineImages: reply truncated for ${spines.length} spines`, { provider: 'deepseek' });
+    }
+    console.warn('[ai] deepseek spine reply truncated – splitting the batch', { videoId: ctx.videoId, batch: ctx.batchIndex });
+    const [a, b] = halves(spines);
+    return [...(await this.readSpineBatch(a, ctx, acc, false)), ...(await this.readSpineBatch(b, ctx, acc, false))];
+  }
+}
+
+/** One request about cut-out spines: every view image follows its "Spine k, view v" label. */
+export function buildSpineReadingMessages(spines: SpineToRead[]): DeepSeekMessage[] {
+  const parts: DeepSeekContentPart[] = [{ type: 'text', text: spineBatchIntro(spines.length) }];
+  for (const spine of spines) {
+    spine.views.forEach((view, v) => {
+      parts.push({ type: 'text', text: spineViewLabel(spine.id, v + 1, spine.wide) });
+      parts.push({ type: 'image_url', image_url: { url: `data:${mediaTypeOf(view.jpeg)};base64,${view.jpeg.toString('base64')}` } });
+    });
+  }
+  parts.push({ type: 'text', text: spineBatchOutro(spines.map((s) => s.id)) });
+  return [
+    { role: 'system', content: SPINE_READING_SYSTEM_PROMPT_JSON },
+    { role: 'user', content: parts },
+  ];
 }
 
 /* ------------------------------------------------------------------ */

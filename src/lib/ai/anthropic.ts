@@ -34,6 +34,10 @@ import {
   DUPLICATE_SYSTEM_PROMPT,
   duplicateUserMessage,
   frameLabel,
+  SPINE_READING_SYSTEM_PROMPT,
+  spineBatchIntro,
+  spineBatchOutro,
+  spineViewLabel,
   VISION_SYSTEM_PROMPT,
   visionBatchIntro,
   visionBatchOutro,
@@ -43,8 +47,10 @@ import {
   DuplicateOutputSchema,
   mapClassificationOutput,
   mapDuplicateOutput,
+  mapSpineReadingOutput,
   mapVisionOutput,
   type MapFrameInfo,
+  SpineReadingOutputSchema,
   VisionOutputSchema,
 } from './schemas';
 import type {
@@ -53,6 +59,8 @@ import type {
   BookForClassification,
   DuplicateQuestion,
   SpineObservation,
+  SpineReading,
+  SpineToRead,
   TextProvider,
   VisionContext,
   VisionFrame,
@@ -435,6 +443,56 @@ export class AnthropicVisionProvider implements VisionProvider {
       }
     }
     throw new AiOutputError('anthropic readSpines: invalid structured output twice', { provider: 'anthropic' });
+  }
+
+  async readSpineImages(spines: SpineToRead[], ctx: VisionContext): Promise<{ readings: SpineReading[]; usage: AiUsage }> {
+    const acc = new UsageAccumulator('anthropic', this.model);
+    if (spines.length === 0) return { readings: [], usage: acc.total() };
+    const readings = await this.readSpineBatch(spines, ctx, acc, true);
+    return { readings, usage: acc.total() };
+  }
+
+  private async readSpineBatch(
+    spines: SpineToRead[],
+    ctx: VisionContext,
+    acc: UsageAccumulator,
+    allowSplit: boolean,
+  ): Promise<SpineReading[]> {
+    const content: BetaContentBlockParam[] = [{ type: 'text', text: spineBatchIntro(spines.length) }];
+    for (const spine of spines) {
+      for (const [v, view] of spine.views.entries()) {
+        const image = await prepareImage(view);
+        content.push({ type: 'text', text: spineViewLabel(spine.id, v + 1, spine.wide) });
+        content.push({ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } });
+      }
+    }
+    const ids = spines.map((s) => s.id);
+    content.push({ type: 'text', text: spineBatchOutro(ids) });
+    const logCtx = { videoId: ctx.videoId, batch: ctx.batchIndex, spines: spines.length, model: this.model };
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const outcome = await this.caller.call('readSpineImages', SPINE_READING_SYSTEM_PROMPT, content, SpineReadingOutputSchema);
+      acc.add(outcome.usage);
+      switch (outcome.kind) {
+        case 'ok':
+          return mapSpineReadingOutput(outcome.data, ids);
+        case 'refusal':
+          console.warn('[ai] anthropic refused a spine batch – skipping it', { ...logCtx, category: outcome.details?.category ?? null });
+          return [];
+        case 'truncated': {
+          if (!allowSplit || spines.length < 2) {
+            throw new AiOutputError(`anthropic readSpineImages: output truncated for ${spines.length} spines`, { provider: 'anthropic' });
+          }
+          console.warn('[ai] anthropic spine output truncated – splitting the batch', logCtx);
+          const [a, b] = halves(spines);
+          return [...(await this.readSpineBatch(a, ctx, acc, false)), ...(await this.readSpineBatch(b, ctx, acc, false))];
+        }
+        case 'invalid':
+          console.warn('[ai] anthropic spine output did not match the schema', { ...logCtx, attempt, stopReason: outcome.stopReason });
+          break;
+      }
+    }
+    throw new AiOutputError('anthropic readSpineImages: invalid structured output twice', { provider: 'anthropic' });
   }
 }
 

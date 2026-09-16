@@ -28,6 +28,8 @@
  * 100 % and recall 156/158 = 98.7 % – the two ground-truth spines with only an author legible
  * (empty title) are dropped by merge by design. Reference run with deepseek-flash (2026-09-13, all
  * five clips, 5 min 15 s): precision 54.4 %, recall 70.3 % (clear spines 79.0 %), exact titles 88.3 %.
+ * With spine recognition (SPINE_RECOGNITION=auto, 2026-09-16, deepseek-flash, 2 min 50 s): precision 77.7 %,
+ * recall 68.4 % (clear spines 81.5 %), exact titles 93.5 % – compare with SPINE_RECOGNITION=off.
  *
  * Needs the database (DATABASE_URL, migrations applied) and ffmpeg/ffprobe; the sample clips are
  * copied into STORAGE_DIR for processing. Temporary collections (ids 900000000–999999999, owner

@@ -16,6 +16,7 @@ import { books, frames } from '@/db/schema';
 import { describeError } from '@/lib/jobs/errors';
 import { abs, ensureDirFor, rel } from '@/lib/storage';
 import type { BBox } from '@/lib/types';
+import { cutUpright } from './spines/strips';
 
 export const CROP_EXPAND = 0.06;
 export const CROP_MIN_PX = 12;
@@ -181,24 +182,54 @@ export async function cropSpines(
     const fw = row.frameWidth && row.frameWidth > 0 ? row.frameWidth : meta.width;
     const fh = row.frameHeight && row.frameHeight > 0 ? row.frameHeight : meta.height;
     const scale = { scaleX: meta.width / fw, scaleY: meta.height / fh };
-    const rect = cropRect(row.bestBbox, meta.width, meta.height, scale);
-    if (!rect) return 'skipped';
+    const tilted = row.bestBbox.rect;
+    const rect = tilted ? null : cropRect(row.bestBbox, meta.width, meta.height, scale);
+    if (!tilted && !rect) return 'skipped';
     try {
-      const image = sharp(framePath);
-      const crop = await image
-        .clone()
-        .extract(rect)
-        .resize({ width: CROP_MAX_EDGE, height: CROP_MAX_EDGE, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: CROP_JPEG_QUALITY, mozjpeg: true })
-        .toBuffer();
-      const sampleRect =
-        cropRect(row.bestBbox, meta.width, meta.height, {
-          ...scale,
-          expandX: COLOR_SAMPLE_SHRINK_X,
-          expandY: COLOR_SAMPLE_SHRINK_Y,
-          minPx: 2,
-        }) ?? rect;
-      const spineColor = await dominantSpineColor(image, sampleRect);
+      let crop: Buffer;
+      let spineColor: string;
+      if (tilted) {
+        // spine recognition knows the exact (tilted) spine: cut it upright, without its neighbours
+        const upright = await cutUpright(framePath, {
+          cx: tilted.cx * scale.scaleX,
+          cy: tilted.cy * scale.scaleY,
+          width: tilted.width * scale.scaleX,
+          height: tilted.height * scale.scaleY,
+          deg: tilted.deg,
+        });
+        const uprightImage = sharp(upright);
+        const um = await uprightImage.metadata();
+        crop = await uprightImage
+          .clone()
+          .resize({ width: CROP_MAX_EDGE, height: CROP_MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: CROP_JPEG_QUALITY, mozjpeg: true })
+          .toBuffer();
+        const uw = um.width ?? 1;
+        const uh = um.height ?? 1;
+        // the cut includes some shelf above and below the spine: sample the middle
+        spineColor = await dominantSpineColor(uprightImage, {
+          left: Math.floor(uw * 0.2),
+          top: Math.floor(uh * 0.3),
+          width: Math.max(1, Math.round(uw * 0.6)),
+          height: Math.max(1, Math.round(uh * 0.4)),
+        });
+      } else {
+        const image = sharp(framePath);
+        crop = await image
+          .clone()
+          .extract(rect!)
+          .resize({ width: CROP_MAX_EDGE, height: CROP_MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: CROP_JPEG_QUALITY, mozjpeg: true })
+          .toBuffer();
+        const sampleRect =
+          cropRect(row.bestBbox, meta.width, meta.height, {
+            ...scale,
+            expandX: COLOR_SAMPLE_SHRINK_X,
+            expandY: COLOR_SAMPLE_SHRINK_Y,
+            minPx: 2,
+          }) ?? rect!;
+        spineColor = await dominantSpineColor(image, sampleRect);
+      }
       const spinePath = rel.spine(row.collectionId, row.id);
       const target = await ensureDirFor(spinePath);
       const tmp = `${target}.tmp-${process.pid}`;

@@ -37,6 +37,22 @@ export interface BBox {
   y0: number;
   x1: number;
   y1: number;
+  /**
+   * The exact, possibly tilted spine rectangle (spine recognition only). x0..y1 is its axis-aligned
+   * bounding box; crops use `rect` to cut the spine upright without its neighbours.
+   */
+  rect?: RotatedRect;
+}
+
+/** A rectangle rotated around its centre: `deg` > 0 turns its vertical axis like "\" (top to the left). */
+export interface RotatedRect {
+  cx: number;
+  cy: number;
+  /** across the spine */
+  width: number;
+  /** along the spine */
+  height: number;
+  deg: number;
 }
 
 export interface UsageTotals {

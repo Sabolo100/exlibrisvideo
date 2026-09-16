@@ -90,6 +90,17 @@ export const KNOWN_PUBLISHER_MARKS: readonly string[] = [
  */
 export type BoxCoordinates = 'pixels' | 'per_mille';
 
+/** How printed spine text is transcribed (shared by the whole-frame and the cut-out spine prompts). */
+const TRANSCRIPTION_RULES = `- Transcribe letters, words and accents exactly as printed, including short words such as "a", "az", "és", "the", "of". Keep the language of the spine and never translate. Keep every Hungarian diacritic: á é í ó ö ő ú ü ű — ő and ű (double acute) are different letters from ö and ü.
+- Only normalise the capitalisation: spines are often set in capitals, but write the text the way a catalogue would. Hungarian titles use sentence case (only the first word and proper names capitalised, e.g. "Aki megszökik és aki marad"); English titles use title case ("The Beautiful and Damned"). Author names are capitalised as names ("MÓRICZ ZSIGMOND" becomes "Móricz Zsigmond").
+- Hungarian authors are printed family name first ("Esterházy Péter", "Szabó Magda"); foreign authors usually given name first ("Elena Ferrante", "John Grisham"). Keep the printed order; do not reorder names.
+- The author field contains only a name that is printed on this spine. Never fill it in from memory; if no name is legible, author is null.
+- The title field contains only words you can actually see on this spine. Do not complete a partly legible title from memory of the author's other books or of the neighbouring spines: a correct partial title is better than a wrong complete one (lower the confidence instead).
+- If the text is slightly blurred and you clearly recognise the book, you may fix obvious misreadings in author and title (e.g. "Esterhazy Peter" to "Esterházy Péter"). Otherwise write what you see.
+- Publisher names and logos are neither author nor title. Put them in "publisher". Typical marks: Park, Európa, Magvető, Móra, Gondolat, Kossuth, Corvina, Helikon, Szépirodalmi, JLX, Galaktika, Ulpius, Libri, Athenaeum, Alexandra, Agave, Jelenkor, Osiris, Penguin, Vintage, Faber (ff), Picador.
+- Series names such as "Galaktika Könyvek", "Európa Zsebkönyvek", "Olcsó Könyvtár" or "Penguin Classics" also go to "publisher" (together with the publisher name if both are printed, e.g. "Kozmosz Könyvek; Móra"). They never belong in the title.
+- Volume numbers that are part of the book ("I. kötet", "2") stay in the title.`;
+
 const VISION_INTRO = `You read book spines for Ex Libris Video, a service that turns a phone video of a home bookshelf into a book catalogue. The libraries are mostly Hungarian, usually mixed with English, German and other foreign-language books.
 
 ## Input
@@ -105,15 +116,7 @@ For every frame, list every book spine on which the author or the title is at le
 
 ## How to read the spines
 - Hungarian spines usually run bottom-to-top (read them with your head tilted to the left); English and American spines usually run top-to-bottom; some spines have short horizontal lines stacked on top of each other. Try both directions before giving up on a spine.
-- Transcribe letters, words and accents exactly as printed, including short words such as "a", "az", "és", "the", "of". Keep the language of the spine and never translate. Keep every Hungarian diacritic: á é í ó ö ő ú ü ű — ő and ű (double acute) are different letters from ö and ü.
-- Only normalise the capitalisation: spines are often set in capitals, but write the text the way a catalogue would. Hungarian titles use sentence case (only the first word and proper names capitalised, e.g. "Aki megszökik és aki marad"); English titles use title case ("The Beautiful and Damned"). Author names are capitalised as names ("MÓRICZ ZSIGMOND" becomes "Móricz Zsigmond").
-- Hungarian authors are printed family name first ("Esterházy Péter", "Szabó Magda"); foreign authors usually given name first ("Elena Ferrante", "John Grisham"). Keep the printed order; do not reorder names.
-- The author field contains only a name that is printed on this spine. Never fill it in from memory; if no name is legible, author is null.
-- The title field contains only words you can actually see on this spine. Do not complete a partly legible title from memory of the author's other books or of the neighbouring spines: a correct partial title is better than a wrong complete one (lower the confidence instead).
-- If the text is slightly blurred and you clearly recognise the book, you may fix obvious misreadings in author and title (e.g. "Esterhazy Peter" to "Esterházy Péter"). Otherwise write what you see.
-- Publisher names and logos are neither author nor title. Put them in "publisher". Typical marks: Park, Európa, Magvető, Móra, Gondolat, Kossuth, Corvina, Helikon, Szépirodalmi, JLX, Galaktika, Ulpius, Libri, Athenaeum, Alexandra, Agave, Jelenkor, Osiris, Penguin, Vintage, Faber (ff), Picador.
-- Series names such as "Galaktika Könyvek", "Európa Zsebkönyvek", "Olcsó Könyvtár" or "Penguin Classics" also go to "publisher" (together with the publisher name if both are printed, e.g. "Kozmosz Könyvek; Móra"). They never belong in the title.
-- Volume numbers that are part of the book ("I. kötet", "2") stay in the title.
+${TRANSCRIPTION_RULES}
 
 ## Fields of one observation
 - frame: the frame number k from the "Frame k" line of the image the spine is in.
@@ -184,6 +187,75 @@ export function visionBatchOutro(frameCount: number, coordinates: BoxCoordinates
   return coordinates === 'per_mille'
     ? `${list} Give every bbox in thousandths (0..1000) of the image width and height on both axes, not in pixels.`
     : list;
+}
+
+/* ------------------------------------------------------------------ */
+/* Vision: reading spines that were cut out of the frames              */
+/* ------------------------------------------------------------------ */
+
+const SPINE_READING_INTRO = `You read book spines for Ex Libris Video, a service that turns a phone video of a home bookshelf into a book catalogue. The libraries are mostly Hungarian, usually mixed with English, German and other foreign-language books.
+
+## Input
+Each request contains several numbered spines. Every spine was cut out of the video and is shown in 1 or 2 pictures – views of the same spine from different video frames – each labelled "Spine k, view v". In every picture the spine is turned on its side twice, one strip above the other: the upper strip is turned so that text printed top-to-bottom (usual on English and American books) reads from left to right, the lower strip is turned the other way, so that text printed bottom-to-top (usual on Hungarian books) reads from left to right. Read the strip in which the text stands upright. Wide spines are also shown standing upright, as on the shelf, to the right of the two strips – read horizontal lines of text there. Slivers of the neighbouring spines may show along the long edges: ignore them.
+
+## Task
+Return one entry per spine id, combining what its views show.
+- status "book": the author or the title is at least partly legible.
+- status "illegible": a book spine, but no text on it can be read.
+- status "not_book": no book spine at all (shelf board, wall, gap, object, or the page edges of a book standing the wrong way round).
+- A picture may show two or more separate books side by side (the gap between them was not found): you can tell by separate spines with different colours, designs and texts. Then return one entry for EVERY book in it, all with the same id and with part 1, 2, … in reading order – never only one of them. Pictures labelled "wide" usually show several books. Otherwise part is 1.
+- Never invent spines, words or books that are not visible. A title you only guess from the colour or the design does not count as legible.
+
+## How to read the spines
+${TRANSCRIPTION_RULES}
+
+## Fields of one entry
+- id: the spine number k.
+- part: 1, or the number of the book when one picture shows several books.
+- status: "book", "illegible" or "not_book".
+- author: the author as printed (normalised capitalisation), or null when no author is printed or legible. Several authors are separated by "; ".
+- title: the title as printed (normalised capitalisation), or "" when no title is legible.
+- canonical_author: only when you know this specific book and are sure who wrote it — the author's full name in its usual form (Hungarian authors family name first, e.g. "Móricz Zsigmond"; foreign authors given name first, e.g. "Isaac Asimov"). Otherwise null. Do not simply copy an uncertain reading.
+- canonical_title: only when you know this specific book — its complete, correctly spelled and accented title in the language printed on the spine (never a translation). Otherwise null.
+- publisher: publisher and/or series marks as printed, or null.
+- confidence: a number from 0 to 1 for how certain the reading is: 0.9 or more when author and title are sharp and fully legible; 0.6 to 0.9 when partly legible, blurred or cut off but you are fairly sure; below 0.6 when it is a guess.`;
+
+const SPINE_READING_JSON_SHAPE = `## Output format
+Reply with exactly one JSON object and nothing else (no markdown, no comments, no second object). Shape:
+{
+  "spines": [
+    {
+      "id": <integer, the spine number>,
+      "part": <integer, 1 unless the picture shows several books>,
+      "status": "book" | "illegible" | "not_book",
+      "author": <string or null>,
+      "title": <string>,
+      "canonical_author": <string or null>,
+      "canonical_title": <string or null>,
+      "publisher": <string or null>,
+      "confidence": <number between 0 and 1>
+    }
+  ]
+}
+Every key must be present in every entry; use null where a value is unknown. Include every spine of the request.`;
+
+/** Structured-output providers (Anthropic). */
+export const SPINE_READING_SYSTEM_PROMPT = SPINE_READING_INTRO;
+/** JSON-mode providers (DeepSeek). */
+export const SPINE_READING_SYSTEM_PROMPT_JSON = `${SPINE_READING_INTRO}\n\n${SPINE_READING_JSON_SHAPE}`;
+
+export function spineBatchIntro(spineCount: number): string {
+  return `The following pictures show ${spineCount === 1 ? '1 book spine' : `${spineCount} book spines`} cut out of one bookshelf video.`;
+}
+
+export function spineViewLabel(spineId: number, view: number, wide = false): string {
+  return `Spine ${spineId}, view ${view}${wide ? ' (wide: probably several books side by side)' : ''}`;
+}
+
+export function spineBatchOutro(spineIds: readonly number[]): string {
+  return spineIds.length === 1
+    ? `Return the entry for spine ${spineIds[0]}.`
+    : `Return one entry for each of the spines ${spineIds.join(', ')}.`;
 }
 
 /* ------------------------------------------------------------------ */

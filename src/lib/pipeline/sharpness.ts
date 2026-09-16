@@ -7,6 +7,7 @@
  *   frames where the camera did not move.
  */
 import sharp from 'sharp';
+import type { Profile } from './spines/motion';
 
 export type ImageInput = string | Buffer;
 
@@ -26,6 +27,8 @@ export interface GreySignature {
 export interface FrameQuality {
   sharpness: number;
   signature: GreySignature;
+  /** column profile of the middle rows (camera pan speed between candidates) */
+  profile: Profile;
 }
 
 function float32View(buf: Buffer): Float32Array {
@@ -113,11 +116,30 @@ export async function grayscaleSignature(input: ImageInput): Promise<GreySignatu
   return signatureOfGrey(await greyPreview(input));
 }
 
-/** Sharpness + signature with a single decode. */
+/**
+ * Mean grey level per column of the middle half of the rows, plus its derivative – enough to measure how
+ * far the camera panned between two candidates (spines/motion.ts estimateShift). The step is 1/width, so
+ * shifts come out as a share of the image width.
+ */
+export function columnProfileOfGrey(grey: { data: Buffer; width: number; height: number }): Profile {
+  const { width: w, height: h } = grey;
+  const r0 = Math.floor(h * 0.25);
+  const r1 = Math.max(r0 + 1, Math.ceil(h * 0.75));
+  const level = new Float32Array(w);
+  for (let y = r0; y < r1; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) level[x] += grey.data[row + x] / (r1 - r0);
+  }
+  const derivative = new Float32Array(w);
+  for (let x = 1; x < w - 1; x++) derivative[x] = (level[x + 1] - level[x - 1]) / 2;
+  return { length: w, step: 1 / Math.max(1, w), features: [level, derivative] };
+}
+
+/** Sharpness + signature + column profile with a single decode. */
 export async function analyzeFrame(input: ImageInput): Promise<FrameQuality> {
   const grey = await greyPreview(input);
   const [sharpness, signature] = await Promise.all([laplacianVarianceOfGrey(grey), signatureOfGrey(grey)]);
-  return { sharpness, signature };
+  return { sharpness, signature, profile: columnProfileOfGrey(grey) };
 }
 
 /**

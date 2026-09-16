@@ -274,6 +274,8 @@ alapértelmezés érvényes (forrás: `.env.example` és `src/lib/env.ts`).
 | `FRAME_MAX_EDGE` | `1920` | nem | Az elemzett kockák hosszabbik oldala pixelben. |
 | `VISION_BATCH_SIZE` | `4` | nem | Ennyi kocka megy egy AI-kérésben (1 átfedéssel). |
 | `VISION_CONCURRENCY` | `2` | nem | Párhuzamos AI-kérések videónként. |
+| `SPINE_RECOGNITION` | `auto` | nem | `auto`: a program minden könyvgerincet kivág a kockákból és egyenként olvastat (kevesebb duplikátum és kitalált könyv); ha nem talál gerincet, egész kockákat küld. `off`: mindig egész kockák. |
+| `SPINE_BATCH_IMAGES` | `12` | nem | Ennyi gerinckép megy egy AI-kérésben (gerincenként 1–2 kép). |
 | `DELETE_SOURCE_AFTER_PROCESSING` | `true` | nem | Feldolgozás után törli az eredeti videót (a kockák, gerincfotók maradnak). |
 | `MAX_UPLOAD_MB` | `1024` | nem | Egy feltöltött fájl maximális mérete. |
 | `MAX_VIDEO_SECONDS` | `600` | nem | Maximális videóhossz. |

@@ -4,6 +4,7 @@ import {
   cleanText,
   coerceClassificationOutput,
   coerceDuplicateOutput,
+  coerceSpineReadingOutput,
   coerceVisionOutput,
   extractJson,
   isKnownPublisherMark,
@@ -11,6 +12,7 @@ import {
   mapClassification,
   mapClassificationOutput,
   mapDuplicateOutput,
+  mapSpineReadingOutput,
   mapVisionOutput,
   normalizeBBox,
   normalizeCountry,
@@ -220,6 +222,80 @@ describe('mapVisionOutput', () => {
       [11, 2, 'Right', 0.9],
       [12, 1, 'Other frame', 0.9],
     ]);
+  });
+});
+
+describe('spine readings', () => {
+  const wire = (over: Record<string, unknown> = {}) => ({
+    id: 1,
+    part: 1,
+    status: 'book' as const,
+    author: 'SZABÓ MAGDA',
+    title: 'Abigél',
+    canonical_author: 'Szabó Magda',
+    canonical_title: 'Abigél',
+    publisher: null,
+    confidence: 0.9,
+    ...over,
+  });
+
+  it('coerces lenient JSON: aliases, missing status and part, broken items dropped', () => {
+    const out = coerceSpineReadingOutput({
+      spines: [
+        { id: '2', status: 'Not book', title: '' },
+        { spine: 3, author: 'Rejtő Jenő', title: 'Piszkos Fred, a kapitány', confidence: '85' },
+        { id: 4, title: '' },
+        { title: 'no id' },
+        'garbage',
+      ],
+    })!;
+    expect(out.spines).toHaveLength(3);
+    expect(out.spines[0]).toMatchObject({ id: 2, part: 1, status: 'not_book' });
+    expect(out.spines[1]).toMatchObject({ id: 3, status: 'book', confidence: 85 });
+    expect(out.spines[2]).toMatchObject({ id: 4, status: 'illegible' });
+    expect(coerceSpineReadingOutput({ foo: 1 })).toBeNull();
+  });
+
+  it('keeps known ids, cleans text, moves publisher marks and scales percentages', () => {
+    const readings = mapSpineReadingOutput(
+      {
+        spines: [
+          wire({ confidence: 88, author: 'Magvető', canonical_author: null }),
+          wire({ id: 7 }),
+          wire({ id: 2, status: 'not_book', title: 'shelf', author: 'x' }),
+          wire({ id: 3, title: '', author: null, canonical_author: null, canonical_title: null }),
+        ],
+      },
+      [1, 2, 3],
+    );
+    expect(readings).toEqual([
+      expect.objectContaining({ id: 1, author: null, publisher: 'Magvető', title: 'Abigél', confidence: 0.88 }),
+      expect.objectContaining({ id: 2, status: 'not_book', author: null, title: '' }),
+      expect.objectContaining({ id: 3, status: 'illegible', title: '' }),
+    ]);
+  });
+
+  it('keeps one entry per spine part, preferring a legible book and then confidence', () => {
+    const readings = mapSpineReadingOutput(
+      {
+        spines: [
+          wire({ status: 'illegible', title: '', confidence: 0.9 }),
+          wire({ confidence: 0.6 }),
+          wire({ confidence: 0.7 }),
+          wire({ part: 2, title: 'Az ajtó', canonical_title: 'Az ajtó' }),
+        ],
+      },
+      [1],
+    );
+    expect(readings.map((r) => [r.part, r.status, r.confidence])).toEqual([
+      [1, 'book', 0.7],
+      [2, 'book', 0.9],
+    ]);
+  });
+
+  it('drops a canonical title that is not the printed book', () => {
+    const [r] = mapSpineReadingOutput({ spines: [wire({ title: 'Briliáns barátnőm', canonical_title: 'La brillante amica' })] }, [1]);
+    expect(r.canonicalTitle).toBeNull();
   });
 });
 
