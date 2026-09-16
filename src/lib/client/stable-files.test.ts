@@ -20,7 +20,7 @@ function unreadable(name = 'gone.mp4'): File {
 
 /** In-memory stand-in for the origin-private file system. */
 function fakeOpfs() {
-  const stored = new Map<string, Uint8Array>();
+  const stored = new Map<string, Uint8Array<ArrayBuffer>>();
   const folder = {
     async getFileHandle(name: string) {
       return {
