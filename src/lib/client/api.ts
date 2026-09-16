@@ -62,6 +62,10 @@ export interface UploadFailureReport {
   bytesSent: number;
   /** false when the browser reported no modification time for the picked file */
   lastModifiedKnown: boolean;
+  /** how the upload source was made from the picked file (see stable-files.ts) */
+  stableCopy?: 'opfs' | 'memory' | 'original';
+  /** why copying the picked file failed */
+  copyError?: string;
 }
 
 export const api = {

@@ -15,6 +15,8 @@ const reportSchema = z.object({
   sizeBytes: z.number().int().nonnegative(),
   bytesSent: z.number().int().nonnegative(),
   lastModifiedKnown: z.boolean(),
+  stableCopy: z.enum(['opfs', 'memory', 'original']).optional(),
+  copyError: z.string().max(300).optional(),
 });
 
 /**

@@ -10,6 +10,7 @@ import { Camera, CameraOff, Check, CircleAlert, RotateCcw, ShieldAlert, Video, V
 import { useEffect, useId, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useI18n } from '@/i18n/client';
+import { copyPickedFiles } from '@/lib/client/stable-files';
 import { canRetry, type CameraProblem, type Platform } from './camera';
 import { CameraButton } from './CameraControls';
 
@@ -130,9 +131,14 @@ export function CameraFallback({
           tabIndex={-1}
           aria-hidden="true"
           onChange={(e) => {
-            const files = Array.from(e.target.files ?? []);
-            e.target.value = '';
-            if (files.length > 0) onNativeFiles(files);
+            const input = e.currentTarget;
+            const files = Array.from(input.files ?? []);
+            if (files.length === 0) return;
+            // open the files right now: Chrome on Android drops access to picked files after a moment
+            void copyPickedFiles(files).then((ready) => {
+              input.value = '';
+              onNativeFiles(ready);
+            });
           }}
         />
       </div>

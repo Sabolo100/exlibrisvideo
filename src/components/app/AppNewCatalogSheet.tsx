@@ -5,6 +5,7 @@
  * the collection on the first file); the optional title, name and e-mail sit below; "start processing"
  * navigates to the new catalogue while the uploads continue in the background.
  */
+import { Loader2 } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Uploader, type UploaderHandle } from '@/components/upload/Uploader';
 import type { UploadLimits } from '@/components/upload/limits';
@@ -16,11 +17,13 @@ export interface AppNewCatalogSheetProps {
   onClose: () => void;
   /** files to add when the sheet opens (each batch is added once) */
   files: readonly File[];
+  /** picked files still being prepared (copied) before they can be added */
+  preparing?: number;
   limits?: UploadLimits;
   onRecordMore?: () => void;
 }
 
-export function AppNewCatalogSheet({ open, onClose, files, limits, onRecordMore }: AppNewCatalogSheetProps) {
+export function AppNewCatalogSheet({ open, onClose, files, preparing = 0, limits, onRecordMore }: AppNewCatalogSheetProps) {
   const { t } = useI18n();
   const uploaderRef = useRef<UploaderHandle>(null);
   const added = useRef(new WeakSet<File>());
@@ -39,6 +42,12 @@ export function AppNewCatalogSheet({ open, onClose, files, limits, onRecordMore 
 
   return (
     <Drawer open={open} onClose={onClose} title={t('app.new.title')} description={t('app.new.description')} size="md">
+      {preparing > 0 ? (
+        <p role="status" className="mb-3 flex items-center gap-2 text-sm text-muted">
+          <Loader2 aria-hidden="true" className="size-4 animate-spin text-accent" />
+          {t('app.new.preparing')}
+        </p>
+      ) : null}
       <Uploader ref={uploaderRef} variant="app" limits={limits} onRecordMore={onRecordMore} className="pb-2" />
     </Drawer>
   );

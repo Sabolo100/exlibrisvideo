@@ -6,6 +6,7 @@
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CameraRecorder } from '@/components/camera/CameraRecorder';
+import { copyPickedFiles } from '@/lib/client/stable-files';
 import type { UploadLimits } from '@/components/upload/limits';
 import { AppNewCatalogSheet } from './AppNewCatalogSheet';
 
@@ -24,6 +25,8 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
   const [cameraOpen, setCameraOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  /** picked files still being copied (see stable-files.ts) */
+  const [preparing, setPreparing] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addFiles = useCallback((next: File[]) => {
@@ -49,8 +52,18 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
         tabIndex={-1}
         aria-hidden="true"
         onChange={(e) => {
-          addFiles(Array.from(e.target.files ?? []));
-          e.target.value = '';
+          const input = e.currentTarget;
+          const picked = Array.from(input.files ?? []);
+          if (picked.length === 0) return;
+          // open the files right now: Chrome on Android drops access to picked files after a moment
+          const copies = copyPickedFiles(picked);
+          setPreparing((n) => n + picked.length);
+          setSheetOpen(true);
+          void copies.then((ready) => {
+            input.value = '';
+            setPreparing((n) => Math.max(0, n - picked.length));
+            addFiles(ready);
+          });
         }}
       />
       <CameraRecorder
@@ -65,6 +78,7 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
       <AppNewCatalogSheet
         open={sheetOpen}
         files={files}
+        preparing={preparing}
         limits={limits}
         onClose={() => setSheetOpen(false)}
         onRecordMore={() => setCameraOpen(true)}

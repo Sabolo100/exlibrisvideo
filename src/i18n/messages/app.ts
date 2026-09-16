@@ -33,6 +33,7 @@ export const app = defineMessages({
 
     'new.title': 'Új katalógus',
     'new.description': 'A feltöltés már elindult – közben megadhatod a részleteket.',
+    'new.preparing': 'A videó előkészítése…',
 
     'open.title': 'Katalógus megnyitása',
     'open.label': 'Katalógusszám',
@@ -115,6 +116,7 @@ export const app = defineMessages({
 
     'new.title': 'New catalogue',
     'new.description': 'Uploading has started – add the details meanwhile.',
+    'new.preparing': 'Preparing the video…',
 
     'open.title': 'Open a catalogue',
     'open.label': 'Catalogue number',

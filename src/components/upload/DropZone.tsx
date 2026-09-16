@@ -5,6 +5,7 @@ import { useId, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { useI18n } from '@/i18n/client';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/components/ui/cn';
+import { copyPickedFiles } from '@/lib/client/stable-files';
 import { CAPTURE_ACCEPT, PICK_ACCEPT } from './validate';
 
 export interface DropZoneProps {
@@ -51,9 +52,13 @@ export function DropZone({
   const hero = variant === 'hero';
   const Heading = headingLevel;
 
-  const take = (list: FileList | null) => {
+  const take = (list: FileList | null, input?: HTMLInputElement) => {
     if (disabled || !list || list.length === 0) return;
-    onFiles(Array.from(list));
+    // open the files right now (copyPickedFiles): Chrome on Android drops access to picked files after a moment
+    void copyPickedFiles(Array.from(list)).then((ready) => {
+      if (input) input.value = '';
+      onFiles(ready);
+    });
   };
 
   const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
@@ -179,10 +184,7 @@ export function DropZone({
           aria-hidden="true"
           className="sr-only"
           disabled={disabled}
-          onChange={(e) => {
-            take(e.currentTarget.files);
-            e.currentTarget.value = '';
-          }}
+          onChange={(e) => take(e.currentTarget.files, e.currentTarget)}
         />
         <input
           ref={pickRef}
@@ -193,10 +195,7 @@ export function DropZone({
           aria-hidden="true"
           className="sr-only"
           disabled={disabled}
-          onChange={(e) => {
-            take(e.currentTarget.files);
-            e.currentTarget.value = '';
-          }}
+          onChange={(e) => take(e.currentTarget.files, e.currentTarget)}
         />
       </div>
     </div>

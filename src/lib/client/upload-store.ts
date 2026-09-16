@@ -16,6 +16,7 @@
  * The snapshot is immutable and only replaced when something changes.
  */
 import { api as defaultApi, ApiClientError } from '@/lib/client/api';
+import { releaseStableCopy, stableCopyError, stableCopyKind } from '@/lib/client/stable-files';
 import type { InitUploadResponse, SourceKind, VideoDTO } from '@/lib/types';
 
 /* ------------------------------------------------------------------ */
@@ -589,6 +590,11 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         sizeBytes: item.size,
         bytesSent: item.bytesSent,
         lastModifiedKnown: item.lastModified > 0,
+        ...(() => {
+          const file = files.get(localId);
+          const copyError = file ? stableCopyError(file) : undefined;
+          return { stableCopy: file ? stableCopyKind(file) : undefined, ...(copyError ? { copyError } : {}) };
+        })(),
       })
       .catch(() => {});
   }
@@ -927,11 +933,18 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
     if (!running) pump(item.collectionId);
   }
 
+  /** forgets the picked file of an item (and deletes its stable copy) */
+  function dropFile(localId: string) {
+    const file = files.get(localId);
+    files.delete(localId);
+    if (file) void releaseStableCopy(file).catch(() => undefined);
+  }
+
   async function remove(localId: string) {
     const item = getItem(localId);
     if (!item) return;
     if (item.status !== 'done' && item.status !== 'canceled') await cancel(localId);
-    files.delete(localId);
+    dropFile(localId);
     chunkSizes.delete(localId);
     stopReasons.delete(localId);
     setState({ ...state, items: state.items.filter((i) => i.localId !== localId) });
@@ -943,7 +956,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
       (i) => !(isFinishedStatus(i.status) && (collectionId === undefined || i.collectionId === collectionId)),
     );
     if (keep.length === state.items.length) return;
-    for (const i of state.items) if (!keep.includes(i)) files.delete(i.localId);
+    for (const i of state.items) if (!keep.includes(i)) dropFile(i.localId);
     setState({ ...state, items: keep });
   }
 
