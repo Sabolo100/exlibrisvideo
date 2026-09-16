@@ -17,6 +17,7 @@ import type { BookDTO, FrameDTO } from '@/lib/types';
 import { formatTimestamp, groupFramesByVideo, indexDetections, stepFrame, type FrameDetection } from './visual/frames-layout';
 import { FrameStage } from './visual/FrameStage';
 import { FrameStrip } from './visual/FrameStrip';
+import { ReanalyzeButton } from './visual/ReanalyzeButton';
 import { isBoolean, isEditableOrWidgetTarget, scrollBehavior, useLatest, useStoredState } from './visual/hooks';
 
 type LoadState =
@@ -318,6 +319,11 @@ export function FramesView() {
             selectedId={groupOfFrame.get(selected.id) === i ? selected.id : null}
             detectionCounts={detectionCounts}
             onSelect={onSelectFrame}
+            action={
+              collection.isOwner && group.video && group.frames.length > 0 && (group.video.status === 'done' || group.video.status === 'error') ? (
+                <ReanalyzeButton video={group.video} />
+              ) : undefined
+            }
           />
         ))}
       </div>

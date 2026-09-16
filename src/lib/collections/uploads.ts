@@ -16,7 +16,7 @@ import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import { and, count, eq, max, ne } from 'drizzle-orm';
 import { db } from '@/db';
-import { collections, videos, type VideoRow } from '@/db/schema';
+import { collections, frames, videos, type VideoRow } from '@/db/schema';
 import { env } from '@/lib/env';
 import { HttpError } from '@/lib/http';
 import { translate } from '@/i18n/index';
@@ -392,5 +392,34 @@ export async function completeUpload(videoId: string): Promise<VideoRow> {
 
   await enqueueJob('process_video', { videoId }, { dedupeKey: videoId });
   console.info('[api] upload completed', { collectionId: video.collectionId, videoId, kind: sniffed.kind, sizeBytes: size });
+  return updated;
+}
+
+/**
+ * Owner "reanalyse": queues the recognition of a finished (or failed) source again – from the stored key
+ * frames when the source file was already removed after processing. Books the owner added or confirmed
+ * stay; the other books that only this source showed are recognised anew.
+ * 409 `conflict` (details.reason) while the source is still uploading or processing, or when neither the
+ * source file nor key frames are left.
+ */
+export async function reanalyzeSource(video: VideoRow): Promise<VideoRow> {
+  if (video.uploadStatus !== 'uploaded') throw new HttpError(409, 'conflict', { reason: 'upload_incomplete' });
+  if (video.status === 'queued' || video.status === 'processing') throw new HttpError(409, 'conflict', { reason: 'processing' });
+  const [{ n }] = await db().select({ n: count() }).from(frames).where(eq(frames.videoId, video.id));
+  const fromFrames = Number(n) > 0;
+  if (!fromFrames && !video.storagePath) throw new HttpError(409, 'conflict', { reason: 'no_frames' });
+
+  const updated = await db().transaction(async (tx) => {
+    const [row] = await tx
+      .update(videos)
+      .set({ status: 'queued', stage: null, progress: 0, error: null })
+      .where(and(eq(videos.id, video.id), ne(videos.status, 'processing'), ne(videos.status, 'queued')))
+      .returning();
+    if (!row) throw new HttpError(409, 'conflict', { reason: 'processing' });
+    await tx.update(collections).set({ status: 'processing', updatedAt: new Date() }).where(eq(collections.id, video.collectionId));
+    return row;
+  });
+  await enqueueJob('process_video', { videoId: video.id, fromFrames }, { dedupeKey: video.id });
+  console.info('[api] source queued for reanalysis', { collectionId: video.collectionId, videoId: video.id, fromFrames });
   return updated;
 }

@@ -13,7 +13,8 @@ import type { EmailKind, ExportFormat, JobStatus, JobType, Locale } from '@/lib/
 import { describeError, isRetryable } from './errors';
 
 export interface JobPayloads {
-  process_video: { videoId: string };
+  /** fromFrames: recognise the books again from the stored key frames (owner "reanalyse") */
+  process_video: { videoId: string; fromFrames?: boolean };
   enrich_collection: { collectionId: string };
   finalize_collection: { collectionId: string };
   send_email: {

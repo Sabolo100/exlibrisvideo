@@ -5,7 +5,7 @@
  * counts. The selected thumbnail is kept in view inside the strip (without scrolling the page).
  */
 import { Camera, Film } from 'lucide-react';
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/components/ui/cn';
 import { useUiTranslator } from '@/components/ui/hooks';
 import type { FrameDTO } from '@/lib/types';
@@ -13,13 +13,15 @@ import { formatDuration, formatTimestamp, type FrameGroup } from './frames-layou
 import { scrollBehavior } from './hooks';
 
 export interface FrameStripProps {
+  /** extra control at the end of the header (e.g. the owner's "analyse again") */
+  action?: ReactNode;
   group: FrameGroup;
   selectedId: string | null;
   detectionCounts: ReadonlyMap<string, number>;
   onSelect: (frame: FrameDTO) => void;
 }
 
-export const FrameStrip = memo(function FrameStrip({ group, selectedId, detectionCounts, onSelect }: FrameStripProps) {
+export const FrameStrip = memo(function FrameStrip({ group, selectedId, detectionCounts, onSelect, action }: FrameStripProps) {
   const { t, tp, locale } = useUiTranslator();
   const stripRef = useRef<HTMLUListElement>(null);
   const containsSelected = selectedId !== null && group.frames.some((f) => f.id === selectedId);
@@ -58,6 +60,7 @@ export const FrameStrip = memo(function FrameStrip({ group, selectedId, detectio
             .filter(Boolean)
             .join(' · ')}
         </span>
+        {action}
       </header>
       <ul ref={stripRef} className="relative flex gap-2 overflow-x-auto overscroll-x-contain pt-1 pb-2.5 [scrollbar-width:thin]">
         {group.frames.map((frame) => {

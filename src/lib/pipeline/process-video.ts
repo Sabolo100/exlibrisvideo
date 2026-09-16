@@ -56,6 +56,11 @@ export interface ProcessVideoResult {
 export interface ProcessVideoOptions {
   /** aborts ffmpeg / vision scheduling (worker shutdown) */
   signal?: AbortSignal;
+  /**
+   * Recognise the books again (owner "reanalyse"): when the source file was already removed, the stored key
+   * frames are read again instead of extracting new ones.
+   */
+  fromFrames?: boolean;
 }
 
 /** relative directory holding the key frames of a source */
@@ -133,11 +138,14 @@ function progressWriter(videoId: string) {
 }
 
 /**
- * Removes the results of a previous run of this source: detections, frames (rows + files) and books whose
- * only evidence was this source (manual and reviewed books are kept; the others get their detection count
- * and evidence references re-derived).
+ * Removes the results of a previous run of this source: detections, frames (rows + files, unless
+ * `keepFrames`) and books whose only evidence was this source (manual and reviewed books are kept; the
+ * others get their detection count and evidence references re-derived).
  */
-export async function resetVideoResults(video: Pick<VideoRow, 'id' | 'collectionId'>): Promise<{ deletedBooks: number }> {
+export async function resetVideoResults(
+  video: Pick<VideoRow, 'id' | 'collectionId'>,
+  opts: { keepFrames?: boolean } = {},
+): Promise<{ deletedBooks: number }> {
   const deleted = await db().transaction(async (tx) => {
     const affected = await tx.execute<{
       id: string;
@@ -171,10 +179,11 @@ export async function resetVideoResults(video: Pick<VideoRow, 'id' | 'collection
       `);
     }
     await tx.delete(detections).where(eq(detections.videoId, video.id));
-    await tx.delete(frames).where(eq(frames.videoId, video.id));
+    if (opts.keepFrames) await tx.update(frames).set({ analyzed: false }).where(eq(frames.videoId, video.id));
+    else await tx.delete(frames).where(eq(frames.videoId, video.id));
     return toDelete;
   });
-  await fs.rm(abs(frameDirRel(video.collectionId, video.id)), { recursive: true, force: true });
+  if (!opts.keepFrames) await fs.rm(abs(frameDirRel(video.collectionId, video.id)), { recursive: true, force: true });
   await Promise.all(
     deleted
       .flatMap((r) => [r.spine_path, r.cover_path])
@@ -215,7 +224,8 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
     console.info('[pipeline] process_video: source no longer exists', { videoId });
     return { status: 'gone' };
   }
-  if (video.status === 'done' && !video.storagePath) {
+  const useStoredFrames = opts.fromFrames === true && !video.storagePath;
+  if (video.status === 'done' && !video.storagePath && !useStoredFrames) {
     console.info('[pipeline] process_video: source already processed', { videoId });
     return { status: 'skipped' };
   }
@@ -238,11 +248,11 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
   try {
     await updateVideo(videoId, {
       status: 'processing',
-      stage: 'probe',
-      progress: 0,
+      stage: useStoredFrames ? 'vision' : 'probe',
+      progress: useStoredFrames ? STAGE_PROGRESS.vision[0] : 0,
       error: null,
       processedAt: null,
-      framesTotal: 0,
+      ...(useStoredFrames ? {} : { framesTotal: 0 }),
       framesAnalyzed: 0,
       booksFound: 0,
     });
@@ -252,68 +262,78 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
         .set({ status: 'processing', updatedAt: new Date() })
         .where(eq(collections.id, collection.id));
     }
-    await resetVideoResults(video);
-
-    /* ---------------- probe 0–5 ---------------- */
-    if (!video.storagePath) throw new PipelineError('unreadable', 'source file was already removed');
-    const sourceAbs = abs(video.storagePath);
-    try {
-      await fs.access(sourceAbs);
-    } catch (err) {
-      throw new PipelineError('unreadable', 'source file is missing', { cause: err });
-    }
-    const probe = await probeMedia(sourceAbs, { signal: opts.signal });
-    if (probe.kind === 'video' && probe.durationSec !== null && probe.durationSec > e.MAX_VIDEO_SECONDS + 0.5) {
-      throw new PipelineError('too_long', `video is ${Math.round(probe.durationSec)} s (max ${e.MAX_VIDEO_SECONDS} s)`);
-    }
-    const sourceSha1 = await sha1OfPrefix(sourceAbs);
-    await updateVideo(videoId, {
-      kind: probe.kind,
-      durationSec: probe.durationSec,
-      width: probe.width,
-      height: probe.height,
-      progress: STAGE_PROGRESS.probe[1],
-    });
-
-    /* ---------------- frames 5–20 ---------------- */
-    await stage('frames', STAGE_PROGRESS.frames[0]);
+    await resetVideoResults(video, { keepFrames: useStoredFrames });
     const progress = progressWriter(videoId);
-    const [fFrom, fTo] = STAGE_PROGRESS.frames;
-    const selection = await selectKeyFrames(sourceAbs, abs(frameDirRel(video.collectionId, videoId)), {
-      probe,
-      signal: opts.signal,
-      onProgress: (f) => progress.set(fFrom + (fTo - fFrom) * f),
-    });
-    if (selection.frames.length === 0) throw new PipelineError('no_frames', 'no key frames selected');
-    if (probe.kind === 'video' && selection.durationSec > e.MAX_VIDEO_SECONDS + 0.5) {
-      throw new PipelineError('too_long', `video is ${Math.round(selection.durationSec)} s (max ${e.MAX_VIDEO_SECONDS} s)`);
+    let frameRows: FrameRow[];
+    let sourceSha1: string | null = null;
+    let kind: string = video.kind;
+
+    if (useStoredFrames) {
+      frameRows = await db().select().from(frames).where(eq(frames.videoId, videoId)).orderBy(frames.idx);
+      if (frameRows.length === 0) throw new PipelineError('no_frames', 'no stored key frames to analyse again');
+      console.info('[pipeline] analysing the stored key frames again', { videoId, frames: frameRows.length });
+    } else {
+      /* ---------------- probe 0–5 ---------------- */
+      if (!video.storagePath) throw new PipelineError('unreadable', 'source file was already removed');
+      const sourceAbs = abs(video.storagePath);
+      try {
+        await fs.access(sourceAbs);
+      } catch (err) {
+        throw new PipelineError('unreadable', 'source file is missing', { cause: err });
+      }
+      const probe = await probeMedia(sourceAbs, { signal: opts.signal });
+      if (probe.kind === 'video' && probe.durationSec !== null && probe.durationSec > e.MAX_VIDEO_SECONDS + 0.5) {
+        throw new PipelineError('too_long', `video is ${Math.round(probe.durationSec)} s (max ${e.MAX_VIDEO_SECONDS} s)`);
+      }
+      sourceSha1 = await sha1OfPrefix(sourceAbs);
+      kind = probe.kind;
+      await updateVideo(videoId, {
+        kind: probe.kind,
+        durationSec: probe.durationSec,
+        width: probe.width,
+        height: probe.height,
+        progress: STAGE_PROGRESS.probe[1],
+      });
+
+      /* ---------------- frames 5–20 ---------------- */
+      await stage('frames', STAGE_PROGRESS.frames[0]);
+      const [fFrom, fTo] = STAGE_PROGRESS.frames;
+      const selection = await selectKeyFrames(sourceAbs, abs(frameDirRel(video.collectionId, videoId)), {
+        probe,
+        signal: opts.signal,
+        onProgress: (f) => progress.set(fFrom + (fTo - fFrom) * f),
+      });
+      if (selection.frames.length === 0) throw new PipelineError('no_frames', 'no key frames selected');
+      if (probe.kind === 'video' && selection.durationSec > e.MAX_VIDEO_SECONDS + 0.5) {
+        throw new PipelineError('too_long', `video is ${Math.round(selection.durationSec)} s (max ${e.MAX_VIDEO_SECONDS} s)`);
+      }
+      frameRows = await db()
+        .insert(frames)
+        .values(
+          selection.frames.map((f) => ({
+            videoId,
+            collectionId: video.collectionId,
+            idx: f.idx,
+            timeSec: f.timeSec,
+            sharpness: Number.isFinite(f.sharpness) ? f.sharpness : null,
+            storagePath: rel.frame(video.collectionId, videoId, f.idx),
+            thumbPath: rel.frameThumb(video.collectionId, videoId, f.idx),
+            width: f.width,
+            height: f.height,
+          })),
+        )
+        .returning();
+      await updateVideo(videoId, {
+        framesTotal: frameRows.length,
+        durationSec: probe.durationSec ?? selection.durationSec,
+        progress: fTo,
+      });
+      console.info('[pipeline] frames selected', {
+        videoId,
+        ...selection.stats,
+        durationSec: Math.round(selection.durationSec * 10) / 10,
+      });
     }
-    const frameRows: FrameRow[] = await db()
-      .insert(frames)
-      .values(
-        selection.frames.map((f) => ({
-          videoId,
-          collectionId: video.collectionId,
-          idx: f.idx,
-          timeSec: f.timeSec,
-          sharpness: Number.isFinite(f.sharpness) ? f.sharpness : null,
-          storagePath: rel.frame(video.collectionId, videoId, f.idx),
-          thumbPath: rel.frameThumb(video.collectionId, videoId, f.idx),
-          width: f.width,
-          height: f.height,
-        })),
-      )
-      .returning();
-    await updateVideo(videoId, {
-      framesTotal: frameRows.length,
-      durationSec: probe.durationSec ?? selection.durationSec,
-      progress: fTo,
-    });
-    console.info('[pipeline] frames selected', {
-      videoId,
-      ...selection.stats,
-      durationSec: Math.round(selection.durationSec * 10) / 10,
-    });
 
     /* ---------------- vision 20–85 ---------------- */
     await stage('vision', STAGE_PROGRESS.vision[0]);
@@ -356,8 +376,9 @@ export async function processVideo(videoId: string, opts: ProcessVideoOptions = 
     console.info('[pipeline] source processed', {
       videoId,
       collectionId: video.collectionId,
-      kind: probe.kind,
+      kind,
       frames: frameRows.length,
+      fromStoredFrames: useStoredFrames,
       recognition: spines ? 'spines' : 'frames',
       batches: vision.batches,
       failedBatches: vision.failedBatches,

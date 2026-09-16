@@ -103,6 +103,9 @@ export const api = {
 
   deleteUpload: (videoId: string) => request<void>(`/api/uploads/${enc(videoId)}`, { method: 'DELETE' }),
 
+  /** Owner: recognise the books of a finished source again (from its stored key frames). */
+  reanalyzeSource: (videoId: string) => request<{ video: VideoDTO }>(`/api/uploads/${enc(videoId)}/reanalyze`, { method: 'POST' }),
+
   /** Diagnostics of an upload that failed on this device – written to the server log, nothing else. */
   reportUploadFailure: (report: UploadFailureReport) =>
     request<void>('/api/client-log', { method: 'POST', json: { kind: 'upload_failed', ...report }, keepalive: true }),

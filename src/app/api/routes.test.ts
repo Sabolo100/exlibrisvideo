@@ -64,7 +64,7 @@ vi.mock('next/headers', () => ({
 }));
 
 import { db, pool } from '@/db';
-import { books, collections, jobs, videos } from '@/db/schema';
+import { books, collections, frames, jobs, videos } from '@/db/schema';
 import { buildExport } from '@/lib/export';
 import { getOgSummary, loadCollectionPage } from '@/lib/collections/queries';
 import { buildRecoveryUrl } from '@/lib/collections/access';
@@ -90,6 +90,7 @@ import { GET as mediaRoute } from '@/app/api/media/[...path]/route';
 import { POST as recoverRoute } from '@/app/api/recover/route';
 import { POST as clientLogRoute } from '@/app/api/client-log/route';
 import { POST as completeRoute } from '@/app/api/uploads/[videoId]/complete/route';
+import { POST as reanalyzeRoute } from '@/app/api/uploads/[videoId]/reanalyze/route';
 import { DELETE as deleteUploadRoute, GET as getUploadRoute, PUT as putChunkRoute } from '@/app/api/uploads/[videoId]/route';
 
 const dbAvailable = await pool()
@@ -734,6 +735,47 @@ describe.skipIf(!dbAvailable)('HTTP API routes (PostgreSQL + storage)', () => {
     expect(overview.counts.collections).toBeGreaterThanOrEqual(1);
     expect(overview.recentCollections.some((c: { id: string; hasEmail: boolean }) => c.id === id && c.hasEmail)).toBe(true);
     expect(overview.aiUsage).toMatchObject({ inputTokens: expect.any(Number), byModel: expect.any(Array) });
+  });
+
+  it('POST /api/uploads/:id/reanalyze queues a finished source again from its stored frames', async () => {
+    const videoId = crypto.randomUUID();
+    await db().insert(videos).values({
+      id: videoId,
+      collectionId: id,
+      originalFilename: 'polc.mp4',
+      mimeType: 'video/mp4',
+      sizeBytes: 1000,
+      bytesReceived: 1000,
+      uploadStatus: 'uploaded',
+      storagePath: null,
+      status: 'done',
+      stage: 'done',
+      progress: 100,
+    });
+    try {
+      const noFrames = await reanalyzeRoute(request('POST', `/api/uploads/${videoId}/reanalyze`, { cookies: ownerCookie }), ctx({ videoId }));
+      expect(noFrames.status).toBe(409);
+      expect(await noFrames.json()).toMatchObject({ details: { reason: 'no_frames' } });
+
+      await db().insert(frames).values({ videoId, collectionId: id, idx: 0, timeSec: 0, storagePath: `frames/${id}/${videoId}/0000.jpg`, width: 1080, height: 1920, analyzed: true });
+      const anon = await reanalyzeRoute(request('POST', `/api/uploads/${videoId}/reanalyze`), ctx({ videoId }));
+      expect(anon.status).toBe(403);
+
+      const res = await reanalyzeRoute(request('POST', `/api/uploads/${videoId}/reanalyze`, { cookies: ownerCookie }), ctx({ videoId }));
+      expect(res.status).toBe(202);
+      expect(((await res.json()) as { video: VideoDTO }).video).toMatchObject({ id: videoId, status: 'queued', progress: 0 });
+      const [col] = await db().select({ status: collections.status }).from(collections).where(eq(collections.id, id));
+      expect(col.status).toBe('processing');
+      const queued = await db().execute(sql`SELECT payload FROM jobs WHERE type = 'process_video' AND payload->>'videoId' = ${videoId}`);
+      expect(queued.rows).toEqual([{ payload: { videoId, fromFrames: true, _dedupe: videoId } }]);
+
+      const again = await reanalyzeRoute(request('POST', `/api/uploads/${videoId}/reanalyze`, { cookies: ownerCookie }), ctx({ videoId }));
+      expect(again.status).toBe(409);
+      expect(await again.json()).toMatchObject({ details: { reason: 'processing' } });
+    } finally {
+      await db().delete(videos).where(eq(videos.id, videoId));
+      await db().update(collections).set({ status: 'ready' }).where(eq(collections.id, id));
+    }
   });
 
   it('POST /api/client-log logs an upload failure without file names and rejects anything else', async () => {

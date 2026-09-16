@@ -195,6 +195,41 @@ describe.skipIf(!hasFfmpeg)('processVideo (integration)', () => {
     await db().delete(schema.jobs);
   });
 
+  it('analyses the stored key frames again after the source file was removed', async (ctx) => {
+    if (!iso) ctx.skip();
+    provider.impl = twoSpines;
+    const { collectionId, videoId } = await createSource({ seconds: 3 });
+    expect((await processVideo(videoId)).status).toBe('done');
+    await runEnrichmentJob(collectionId);
+    const [removed] = await db().select().from(schema.videos).where(eq(schema.videos.id, videoId));
+    expect(removed.storagePath).toBeNull();
+    const framesBefore = await db().select().from(schema.frames).where(eq(schema.frames.videoId, videoId));
+    const booksBefore = await db().select().from(schema.books).where(eq(schema.books.collectionId, collectionId));
+    const confirmed = booksBefore.find((b) => b.title === 'Első könyv')!;
+    await db().update(schema.books).set({ reviewed: true }).where(eq(schema.books.id, confirmed.id));
+    await db().delete(schema.jobs);
+
+    provider.impl = async (frames) =>
+      frames.map((f) => ({ frame: f.index, order: 1, author: null, title: 'Harmadik könyv', canonicalAuthor: null, canonicalTitle: null, publisher: null, confidence: 0.9, bbox: null }));
+    const res = await processVideo(videoId, { fromFrames: true });
+    expect(res.status).toBe('done');
+
+    const [video] = await db().select().from(schema.videos).where(eq(schema.videos.id, videoId));
+    expect(video).toMatchObject({ status: 'done', stage: 'done', error: null, framesTotal: framesBefore.length });
+    const framesAfter = await db().select().from(schema.frames).where(eq(schema.frames.videoId, videoId));
+    expect(framesAfter.map((f) => f.id).sort()).toEqual(framesBefore.map((f) => f.id).sort());
+    expect(framesAfter.every((f) => f.analyzed && existsSync(abs(f.storagePath)))).toBe(true);
+    const titles = (await db().select().from(schema.books).where(eq(schema.books.collectionId, collectionId))).map((b) => [b.title, b.id === confirmed.id]);
+    // the confirmed book stays, the other book of this source is recognised anew
+    expect(titles).toContainEqual(['Első könyv', true]);
+    expect(titles.some(([t]) => t === 'Második könyv')).toBe(false);
+    expect(titles.some(([t]) => t === 'Harmadik könyv')).toBe(true);
+    // without stored frames and without the file there is nothing to analyse
+    await db().delete(schema.frames).where(eq(schema.frames.videoId, videoId));
+    expect((await processVideo(videoId, { fromFrames: true })).status).toBe('error');
+    await db().delete(schema.jobs);
+  });
+
   it('is idempotent when re-run before finalize', async (ctx) => {
     if (!iso) ctx.skip();
     provider.impl = twoSpines;

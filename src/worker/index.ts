@@ -106,7 +106,7 @@ async function main(): Promise<void> {
   const dispatch = async (job: JobRow, signal: AbortSignal): Promise<unknown> => {
     switch (job.type) {
       case 'process_video':
-        return m.processVideo.processVideo(requireString(job, 'videoId'), { signal });
+        return m.processVideo.processVideo(requireString(job, 'videoId'), { signal, fromFrames: job.payload.fromFrames === true });
       case 'enrich_collection':
         return m.finalize.runEnrichmentJob(requireString(job, 'collectionId'));
       case 'finalize_collection':
