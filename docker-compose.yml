@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Ex Libris Video – local full stack that mirrors the Coolify production setup
+#
+#   postgres  PostgreSQL 16            (Coolify: PostgreSQL resource)
+#   web       Next.js, port 3000       (Coolify: application, Dockerfile, default target)
+#   worker    background jobs, no port (Coolify: application, "Docker build stage target" = worker)
+#   web + worker share ONE storage at /app/storage (Coolify: identical Directory Mount)
+#
+# Usage (PowerShell or bash, from the repository root):
+#   docker compose up -d --build        build + start everything → http://localhost:3000
+#   docker compose logs -f worker       follow the worker
+#   docker compose exec web npm run db:migrate
+#   docker compose down                 stop (data is kept in the named volumes)
+#   docker compose down -v              stop AND delete database + storage volumes
+#   docker compose up -d postgres       only the database, for `npm run dev` on the host
+#
+# Configuration: every documented default comes from .env.example, your own values
+# (e.g. DEEPSEEK_API_KEY / ANTHROPIC_API_KEY) from .env.local if it exists; the few
+# container-specific settings below always win. `docker compose config` prints the
+# resolved values INCLUDING secrets – use `docker compose config --quiet` to validate.
+#
+# Host ports (override when taken, e.g. by `npm run dev` or scripts/dev-db.ps1's
+# exlibris-pg container):   $env:WEB_PORT=3300; $env:PG_PORT=5433; docker compose up -d
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: exlibrisvideo
+
+x-app: &app
+  env_file:
+    - path: .env.example
+      required: true
+    - path: .env.local
+      required: false
+  environment: &app-environment
+    NODE_ENV: production
+    DATABASE_URL: postgres://postgres:postgres@postgres:5432/exlibris
+    APP_URL: http://localhost:${WEB_PORT:-3000}
+    STORAGE_DIR: /app/storage
+    PORT: "3000"
+    FFMPEG_PATH: ffmpeg
+    FFPROBE_PATH: ffprobe
+  volumes:
+    - storage:/app/storage
+  depends_on:
+    postgres:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: exlibris
+    ports:
+      - "127.0.0.1:${PG_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d exlibris"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    build:
+      context: .
+      target: web
+      args:
+        NEXT_PUBLIC_DEMO_COLLECTION_ID: ${NEXT_PUBLIC_DEMO_COLLECTION_ID:-}
+    image: exlibrisvideo-web:local
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    # the image HEALTHCHECK polls GET /api/health
+
+  worker:
+    <<: *app
+    build:
+      context: .
+      target: worker
+    image: exlibrisvideo-worker:local
+    # No `command:` override on purpose. The `worker` stage already runs exactly what
+    # `npm run worker` runs (tsx src/worker/index.ts) under tini; wrapping it in
+    # `npm run worker` would swallow SIGTERM, and `docker compose stop` would kill the
+    # worker in the middle of a job instead of letting it finish or re-queue it.
+    # The worker finishes running jobs for up to 60 s (+5 s abort) after SIGTERM.
+    stop_grace_period: 75s
+
+volumes:
+  pgdata:
+  storage:

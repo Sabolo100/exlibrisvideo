@@ -1,0 +1,28 @@
+{
+ "id": "5dd2584e-5a82-428f-bb4e-d02ee6c5b232",
+ "object": "chat.completion",
+ "created": 1789275709,
+ "model": "deepseek-flash",
+ "choices": [
+  {
+   "index": 0,
+   "message": {
+    "role": "assistant",
+    "content": "{\"observations\": [{\"frame\": 1, \"order\": 1, \"author\": \"Nicholas Christakis\", \"title\": \"Connected\", \"canonical_author\": \"Nicholas Christakis\", \"canonical_title\": null, \"publisher\": null, \"confidence\": 0.65, \"bbox\": {\"x0\": 0, \"y0\": 195, \"x1\": 113, \"y1\": 880}}, {\"frame\": 1, \"order\": 2, \"author\": \"Dave Eggers\", \"title\": \"The Circle\", \"canonical_author\": \"Dave Eggers\", \"canonical_title\": \"The Circle\", \"publisher\": null, \"confidence\": 0.85, \"bbox\": {\"x0\": 120, \"y0\": 262, \"x1\": 308, \"y1\": 862}}, {\"frame\": 1, \"order\": 3, \"author\": null, \"title\": \"Girls of Riyadh\", \"canonical_author\": \"Rajaa Alsanea\", \"canonical_title\": \"Girls of Riyadh\", \"publisher\": null, \"confidence\": 0.75, \"bbox\": {\"x0\": 310, \"y0\": 273, \"x1\": 447, \"y1\": 851}}, {\"frame\": 1, \"order\": 4, \"author\": null, \"title\": \"\", \"canonical_author\": null, \"canonical_title\": null, \"publisher\": null, \"confidence\": 0.25, \"bbox\": {\"x0\": 451, \"y0\": 260, \"x1\": 600, \"y1\": 864}}, {\"frame\": 1, \"order\": 5, \"author\": null, \"title\": \"The Hundred-Year-Old Man Who Climbed Out of the Window and Disappeared\", \"canonical_author\": \"Jonas Jonasson\", \"canonical_title\": \"The Hundred-Year-Old Man Who Climbed Out of the Window and Disappeared\", \"publisher\": null, \"confidence\": 0.8, \"bbox\": {\"x0\": 604, \"y0\": 258, \"x1\": 781, \"y1\": 867}}, {\"frame\": 1, \"order\": 6, \"author\": \"John Lanchester\", \"title\": \"Capital\", \"canonical_author\": \"John Lanchester\", \"canonical_title\": \"Capital\", \"publisher\": null, \"confidence\": 0.85, \"bbox\": {\"x0\": 781, \"y0\": 265, \"x1\": 1000, \"y1\": 858}}, {\"frame\": 2, \"order\": 1, \"author\": null, \"title\": \"Girls of Riyadh\", \"canonical_author\": \"Rajaa Alsanea\", \"canonical_title\": \"Girls of Riyadh\", \"publisher\": null, \"confidence\": 0.75, \"bbox\": {\"x0\": 0, \"y0\": 272, \"x1\": 103, \"y1\": 848}}, {\"frame\": 2, \"order\": 2, \"author\": null, \"title\": \"\", \"canonical_author\": null, \"canonical_title\": null, \"publisher\": null, \"confidence\": 0.25, \"bbox\": {\"x0\": 105, \"y0\": 262, \"x1\": 252, \"y1\": 856}}, {\"frame\": 2, \"order\": 3, \"author\": null, \"title\": \"The Hundred-Year-Old Man Who Climbed Out of the Window and Disappeared\", \"canonical_author\": \"Jonas Jonasson\", \"canonical_title\": \"The Hundred-Year-Old Man Who Climbed Out of the Window and Disappeared\", \"publisher\": null, \"confidence\": 0.8, \"bbox\": {\"x0\": 253, \"y0\": 257, \"x1\": 447, \"y1\": 857}}, {\"frame\": 2, \"order\": 4, \"author\": \"John Lanchester\", \"title\": \"Capital\", \"canonical_author\": \"John Lanchester\", \"canonical_title\": \"Capital\", \"publisher\": null, \"confidence\": 0.85, \"bbox\": {\"x0\": 445, \"y0\": 260, \"x1\": 677, \"y1\": 852}}, {\"frame\": 2, \"order\": 5, \"author\": \"John Grisham\", \"title\": \"The Whistler\", \"canonical_author\": \"John Grisham\", \"canonical_title\": \"The Whistler\", \"publisher\": null, \"confidence\": 0.85, \"bbox\": {\"x0\": 680, \"y0\": 271, \"x1\": 851, \"y1\": 855}}, {\"frame\": 2, \"order\": 6, \"author\": \"F. Scott Fitzgerald\", \"title\": \"The Beautiful and Damned\", \"canonical_author\": \"F. Scott Fitzgerald\", \"canonical_title\": \"The Beautiful and Damned\", \"publisher\": null, \"confidence\": 0.8, \"bbox\": {\"x0\": 852, \"y0\": 273, \"x1\": 1000, \"y1\": 855}}]}"
+   },
+   "logprobs": null,
+   "finish_reason": "stop"
+  }
+ ],
+ "usage": {
+  "prompt_tokens": 3645,
+  "completion_tokens": 1193,
+  "total_tokens": 4838,
+  "prompt_tokens_details": {
+   "cached_tokens": 1408
+  },
+  "prompt_cache_hit_tokens": 1408,
+  "prompt_cache_miss_tokens": 2237
+ },
+ "system_fingerprint": "aeb56401ca74e127821c4f9126dcb669"
+}

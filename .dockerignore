@@ -1,0 +1,14 @@
+AIApi.txt
+AIAPI.txt
+[Aa][Ii][Aa][Pp][Ii].txt
+*.key
+.env
+.env.*
+!.env.example
+Mintavideok
+node_modules
+.next
+storage
+coverage
+.git
+*.log

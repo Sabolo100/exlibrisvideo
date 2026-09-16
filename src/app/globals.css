@@ -1,0 +1,137 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/fraunces';
+@import '@fontsource-variable/inter';
+
+/*
+ * Ex Libris Video design tokens.
+ * Direction: a classic bookplate ("ex libris") — warm paper, bottle-green ink,
+ * gold-foil accents, walnut shelves. Dark mode is a lamp-lit night library.
+ *
+ * Use the semantic utilities: bg-bg, bg-surface, bg-surface-2, text-ink, text-muted,
+ * border-line, bg-primary text-primary-ink, text-accent, bg-accent-soft, text-danger …
+ * Display type: font-display (Fraunces). UI type: font-sans (Inter).
+ */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  --bg: #f6efe2;
+  --surface: #fffaf1;
+  --surface-2: #efe5d3;
+  --ink: #1e1914;
+  --muted: #6d6152;
+  --line: #e2d5c0;
+  --primary: #1f4d3a;
+  --primary-hover: #173b2c;
+  --primary-ink: #fbf6ec;
+  --accent: #a87a2e;
+  --accent-soft: #f1e3c4;
+  --burgundy: #7a2e3a;
+  --danger: #b3261e;
+  --success: #2f7d4f;
+  --warning: #b7791f;
+  --wood-light: #9a6a42;
+  --wood: #6f4527;
+  --wood-dark: #3f2615;
+  --shadow-color: 40 25% 20%;
+  --focus: #c9973f;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #13100c;
+  --surface: #1c1813;
+  --surface-2: #26201a;
+  --ink: #f0e7d7;
+  --muted: #a6988a;
+  --line: #372d23;
+  --primary: #86c0a1;
+  --primary-hover: #a1d3b8;
+  --primary-ink: #10231a;
+  --accent: #dcb068;
+  --accent-soft: #3a2f1f;
+  --burgundy: #d27f8c;
+  --danger: #ef7a72;
+  --success: #74c795;
+  --warning: #e7b35c;
+  --wood-light: #7c5534;
+  --wood: #54341d;
+  --wood-dark: #2a190c;
+  --shadow-color: 30 40% 2%;
+  --focus: #dcb068;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-burgundy: var(--burgundy);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-wood-light: var(--wood-light);
+  --color-wood: var(--wood);
+  --color-wood-dark: var(--wood-dark);
+
+  --font-display: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-soft: 0 1px 2px hsl(var(--shadow-color) / 0.06), 0 4px 16px hsl(var(--shadow-color) / 0.08);
+  --shadow-lift: 0 2px 4px hsl(var(--shadow-color) / 0.1), 0 12px 32px hsl(var(--shadow-color) / 0.16);
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply font-sans antialiased;
+    min-height: 100dvh;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Subtle paper grain for large surfaces: add class "paper" */
+.paper {
+  background-color: var(--bg);
+  background-image: radial-gradient(hsl(var(--shadow-color) / 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}

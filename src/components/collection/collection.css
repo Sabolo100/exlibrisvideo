@@ -1,0 +1,123 @@
+/*
+ * Collection page styles that utilities cannot express (owner: collection-shell):
+ * the PIN gate shake and the print stylesheet of the catalogue.
+ */
+
+@keyframes exl-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm;
+  }
+
+  /* only the catalogue: no site header / footer, portals (dialogs, drawer, toasts), skip links */
+  html:has(.exl-catalogue),
+  html:has(.exl-catalogue) body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body:has(.exl-catalogue) > *:not(main) {
+    display: none !important;
+  }
+  body:has(.exl-catalogue) main {
+    display: block !important;
+  }
+  .exl-catalogue {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    --ink: #000;
+    --muted: #444;
+    --line: #bbb;
+    --surface: #fff;
+    --bg: #fff;
+    --accent: #7a5a1e;
+  }
+  .exl-catalogue * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .exl-print-catalogue {
+    margin-top: 6mm;
+    font-family: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    font-size: 10pt;
+    line-height: 1.35;
+    color: #000;
+  }
+  .exl-print-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2mm 6mm;
+    padding: 2mm 0;
+    border-top: 0.6pt solid #000;
+    border-bottom: 0.3pt solid #999;
+    font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 8pt;
+    letter-spacing: 0.02em;
+    color: #333;
+  }
+  .exl-print-summary {
+    margin: 3mm 0 5mm;
+    font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 8.5pt;
+    color: #333;
+  }
+  .exl-print-groups {
+    column-count: 2;
+    column-gap: 9mm;
+    column-rule: 0.3pt solid #ccc;
+  }
+  .exl-print-group {
+    break-inside: avoid-column;
+    page-break-inside: avoid;
+    margin: 0 0 3.2mm;
+  }
+  .exl-print-author {
+    margin: 0 0 0.8mm;
+    font-family: 'Fraunces Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    font-size: 10.5pt;
+    font-weight: 650;
+    letter-spacing: 0;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .exl-print-books {
+    margin: 0;
+    padding: 0 0 0 3.5mm;
+    list-style: none;
+  }
+  .exl-print-books li {
+    text-indent: -2.5mm;
+    padding-left: 2.5mm;
+    orphans: 2;
+    widows: 2;
+  }
+  .exl-print-title {
+    font-style: italic;
+  }
+  .exl-print-details {
+    font-family: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 7.5pt;
+    color: #555;
+  }
+}
