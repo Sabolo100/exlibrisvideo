@@ -15,6 +15,7 @@ import type {
   FrameDTO,
   InitUploadResponse,
   Locale,
+  ResolveUnreadSpineInput,
   VideoDTO,
   BBox,
 } from '@/lib/types';
@@ -121,6 +122,14 @@ export const api = {
     request<BookDTO>(`/api/books/${enc(bookId)}`, { method: 'PATCH', json: patch }),
 
   deleteBook: (bookId: string) => request<void>(`/api/books/${enc(bookId)}`, { method: 'DELETE' }),
+
+  /** owner names the book on an unread spine → the new book */
+  resolveUnreadSpine: (collectionId: string, spineId: string, body: ResolveUnreadSpineInput) =>
+    request<BookDTO>(`/api/collections/${enc(collectionId)}/unread-spines/${enc(spineId)}`, { method: 'POST', json: body }),
+
+  /** owner discards an unread spine (not a book, or already in the catalogue) */
+  dismissUnreadSpine: (collectionId: string, spineId: string) =>
+    request<void>(`/api/collections/${enc(collectionId)}/unread-spines/${enc(spineId)}`, { method: 'DELETE' }),
 
   mergeBooks: (collectionId: string, keepId: string, mergeIds: string[]) =>
     request<BookDTO>(`/api/collections/${enc(collectionId)}/books/merge`, { method: 'POST', json: { keepId, mergeIds } }),

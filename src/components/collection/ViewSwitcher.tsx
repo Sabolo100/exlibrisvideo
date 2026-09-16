@@ -25,7 +25,8 @@ export function viewTabId(view: ViewKey): string {
 export function ViewSwitcher({ views, className }: ViewSwitcherProps) {
   const { t, tp, n } = useI18n();
   const { view, setView } = useCollection();
-  const { pendingReview } = useCollectionShell();
+  const { pendingReview, unreadSpineCount } = useCollectionShell();
+  const reviewBadge = pendingReview + unreadSpineCount;
   const listRef = useRef<HTMLDivElement>(null);
   const active = views.includes(view) ? view : views[0];
 
@@ -94,7 +95,7 @@ export function ViewSwitcher({ views, className }: ViewSwitcherProps) {
           const meta = VIEW_META[key];
           const Icon = meta.icon;
           const selected = key === active;
-          const badge = key === 'review' && pendingReview > 0 ? pendingReview : null;
+          const badge = key === 'review' && reviewBadge > 0 ? reviewBadge : null;
           return (
             <button
               key={key}

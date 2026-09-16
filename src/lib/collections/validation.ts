@@ -107,6 +107,12 @@ export const newBookSchema = bookPatchSchema.extend({
   title: z.string().trim().min(1).max(LIMITS.title),
 });
 
+/** POST /api/collections/:id/unread-spines/:spineId – the book the owner recognised on an unread spine. */
+export const resolveUnreadSpineSchema = z.object({
+  title: z.string().trim().min(1).max(LIMITS.title),
+  author: nullableText(LIMITS.author),
+});
+
 /** POST /api/collections */
 export const createCollectionSchema = z.object({
   title: nullableText(LIMITS.collectionTitle),

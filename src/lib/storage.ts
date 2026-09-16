@@ -5,6 +5,7 @@
  *   frames/<collectionId>/<videoId>/<idx>.jpg       analysed key frame (full res, long edge FRAME_MAX_EDGE)
  *   frames/<collectionId>/<videoId>/<idx>_t.jpg     thumbnail (long edge 480)
  *   spines/<collectionId>/<bookId>.jpg              cropped spine photo
+ *   spines/<collectionId>/unread/<id>.jpg           photo of a spine that could not be read (owner review)
  *   covers/<collectionId>/<bookId>.jpg              cached cover image
  *   exports/<collectionId>/<name>                   temporary export files for e-mail attachments
  *
@@ -22,6 +23,7 @@ export const rel = {
   frameThumb: (collectionId: string, videoId: string, idx: number) =>
     `frames/${collectionId}/${videoId}/${String(idx).padStart(4, '0')}_t.jpg`,
   spine: (collectionId: string, bookId: string) => `spines/${collectionId}/${bookId}.jpg`,
+  unreadSpine: (collectionId: string, id: string) => `spines/${collectionId}/unread/${id}.jpg`,
   cover: (collectionId: string, bookId: string) => `covers/${collectionId}/${bookId}.jpg`,
   exportFile: (collectionId: string, name: string) => `exports/${collectionId}/${name}`,
   collectionDirs: (collectionId: string) =>

@@ -172,6 +172,37 @@ export interface CollectionDTO {
 
 export interface CollectionWithBooksDTO extends CollectionDTO {
   books: BookDTO[];
+  /** owner only (absent for visitors): spines of the recordings that could not be read, in shelf order */
+  unreadSpines?: UnreadSpineDTO[];
+}
+
+/**
+ * Why a spine is waiting for the owner: nothing legible on it, a guess that an independent second look
+ * could not confirm, or the reading request itself failed.
+ */
+export type UnreadSpineReason = 'illegible' | 'unconfirmed' | 'unread';
+export const UNREAD_SPINE_REASONS: UnreadSpineReason[] = ['illegible', 'unconfirmed', 'unread'];
+
+/** A spine found in a recording that could not be turned into a book: the owner names it or discards it. */
+export interface UnreadSpineDTO {
+  id: string;
+  videoId: string;
+  /** the frame the photo was cut from (with `bbox`, in its pixels) */
+  frameId: string | null;
+  bbox: BBox | null;
+  /** /api/media/... URL of the upright spine photo */
+  spineImage: string | null;
+  spineColor: string | null;
+  reason: UnreadSpineReason;
+  /** what could still be made out: an author without a title, or the unconfirmed first reading */
+  guessAuthor: string | null;
+  guessTitle: string | null;
+}
+
+/** POST /api/collections/:id/unread-spines/:spineId – the book the owner recognised on the spine. */
+export interface ResolveUnreadSpineInput {
+  title: string;
+  author?: string | null;
 }
 
 export interface CollectionStatusDTO {

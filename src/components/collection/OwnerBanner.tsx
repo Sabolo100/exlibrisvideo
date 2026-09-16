@@ -40,7 +40,8 @@ function writeDismissed(id: string) {
 export function OwnerBanner({ onReview }: { onReview?: () => void }) {
   const { t, tp } = useI18n();
   const { collection, isOwner, setView } = useCollection();
-  const { ownerToken, pendingReview } = useCollectionShell();
+  const { ownerToken, pendingReview, unreadSpineCount } = useCollectionShell();
+  const toReview = pendingReview + unreadSpineCount;
   // null until mounted (localStorage is client-only)
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -114,9 +115,17 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2 pl-12 lg:pl-0">
-                  {pendingReview > 0 ? (
+                  {toReview > 0 ? (
                     <Button variant="gold" leftIcon={<ClipboardCheck className="size-4" />} onClick={startReview}>
-                      <span className="sr-only">{tp('collection.banner.review', pendingReview)} – </span>
+                      <span className="sr-only">
+                        {[
+                          pendingReview > 0 ? tp('collection.banner.review', pendingReview) : null,
+                          unreadSpineCount > 0 ? tp('collection.banner.spines', unreadSpineCount) : null,
+                        ]
+                          .filter(Boolean)
+                          .join('; ')}{' '}
+                        –{' '}
+                      </span>
                       {t('collection.banner.reviewCta')}
                     </Button>
                   ) : null}
@@ -126,10 +135,11 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
                 </div>
               </div>
 
-              {pendingReview > 0 ? (
-                <p aria-hidden="true" className="relative mt-3 border-t border-accent/25 pt-2.5 pl-12 text-[0.8125rem] font-medium text-ink/80">
-                  {tp('collection.banner.review', pendingReview)}
-                </p>
+              {toReview > 0 ? (
+                <div aria-hidden="true" className="relative mt-3 flex flex-col gap-0.5 border-t border-accent/25 pt-2.5 pl-12 text-[0.8125rem] font-medium text-ink/80">
+                  {pendingReview > 0 ? <p>{tp('collection.banner.review', pendingReview)}</p> : null}
+                  {unreadSpineCount > 0 ? <p>{tp('collection.banner.spines', unreadSpineCount)}</p> : null}
+                </div>
               ) : null}
             </aside>
           </motion.div>

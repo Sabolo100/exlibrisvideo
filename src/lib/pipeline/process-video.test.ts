@@ -208,11 +208,18 @@ describe.skipIf(!hasFfmpeg)('processVideo (integration)', () => {
     const confirmed = booksBefore.find((b) => b.title === 'Első könyv')!;
     await db().update(schema.books).set({ reviewed: true }).where(eq(schema.books.id, confirmed.id));
     await db().delete(schema.jobs);
+    // a spine left unread by the first run goes, photo and all
+    const unreadPath = `spines/${collectionId}/unread/first-run.jpg`;
+    await (await import('node:fs/promises')).mkdir(path.dirname(abs(unreadPath)), { recursive: true });
+    await (await import('node:fs/promises')).writeFile(abs(unreadPath), 'jpg');
+    await db().insert(schema.unreadSpines).values({ collectionId, videoId, frameId: framesBefore[0].id, spinePath: unreadPath });
 
     provider.impl = async (frames) =>
       frames.map((f) => ({ frame: f.index, order: 1, author: null, title: 'Harmadik könyv', canonicalAuthor: null, canonicalTitle: null, publisher: null, confidence: 0.9, bbox: null }));
     const res = await processVideo(videoId, { fromFrames: true });
     expect(res.status).toBe('done');
+    expect(await db().select().from(schema.unreadSpines).where(eq(schema.unreadSpines.videoId, videoId))).toHaveLength(0);
+    expect(existsSync(abs(unreadPath))).toBe(false);
 
     const [video] = await db().select().from(schema.videos).where(eq(schema.videos.id, videoId));
     expect(video).toMatchObject({ status: 'done', stage: 'done', error: null, framesTotal: framesBefore.length });

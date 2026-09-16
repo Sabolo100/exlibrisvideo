@@ -64,7 +64,7 @@ vi.mock('next/headers', () => ({
 }));
 
 import { db, pool } from '@/db';
-import { books, collections, frames, jobs, videos } from '@/db/schema';
+import { books, collections, frames, jobs, unreadSpines, videos } from '@/db/schema';
 import { buildExport } from '@/lib/export';
 import { getOgSummary, loadCollectionPage } from '@/lib/collections/queries';
 import { buildRecoveryUrl } from '@/lib/collections/access';
@@ -83,6 +83,7 @@ import { GET as framesRoute } from '@/app/api/collections/[id]/frames/route';
 import { DELETE as deleteCollectionRoute, GET as getCollectionRoute, PATCH as patchCollectionRoute } from '@/app/api/collections/[id]/route';
 import { GET as statusRoute } from '@/app/api/collections/[id]/status/route';
 import { POST as unlockRoute } from '@/app/api/collections/[id]/unlock/route';
+import { DELETE as dismissSpineRoute, POST as nameSpineRoute } from '@/app/api/collections/[id]/unread-spines/[spineId]/route';
 import { POST as initUploadRoute } from '@/app/api/collections/[id]/uploads/route';
 import { POST as createCollectionRoute } from '@/app/api/collections/route';
 import { GET as healthRoute } from '@/app/api/health/route';
@@ -775,6 +776,75 @@ describe.skipIf(!dbAvailable)('HTTP API routes (PostgreSQL + storage)', () => {
     } finally {
       await db().delete(videos).where(eq(videos.id, videoId));
       await db().update(collections).set({ status: 'ready' }).where(eq(collections.id, id));
+    }
+  });
+
+  it('unread spines: only the owner sees them, names them (a new book) or discards them', async () => {
+    const videoId = crypto.randomUUID();
+    await db().insert(videos).values({
+      id: videoId,
+      collectionId: id,
+      originalFilename: 'sotet-polc.mp4',
+      mimeType: 'video/mp4',
+      sizeBytes: 1000,
+      bytesReceived: 1000,
+      uploadStatus: 'uploaded',
+      status: 'done',
+      stage: 'done',
+      progress: 100,
+    });
+    let bookId: string | null = null;
+    try {
+      const [named, discarded] = await db()
+        .insert(unreadSpines)
+        .values([
+          { collectionId: id, videoId, reason: 'illegible', guessAuthor: 'Szerb Antal', shelfOrder: 0, bbox: { x0: 1, y0: 2, x1: 30, y1: 400 } },
+          { collectionId: id, videoId, reason: 'unconfirmed', guessTitle: 'Tipp', shelfOrder: 1 },
+        ])
+        .returning();
+
+      const visitor = await getCollectionRoute(request('GET', `/api/collections/${id}`, { cookies: { [`exl_seen_${id}`]: '1' } }), ctx({ id }));
+      expect(((await visitor.json()) as CollectionWithBooksDTO).unreadSpines).toBeUndefined();
+      const owner = await getCollectionRoute(request('GET', `/api/collections/${id}`, { cookies: ownerCookie }), ctx({ id }));
+      expect(((await owner.json()) as CollectionWithBooksDTO).unreadSpines).toEqual([
+        {
+          id: named.id,
+          videoId,
+          frameId: null,
+          bbox: { x0: 1, y0: 2, x1: 30, y1: 400 },
+          spineImage: null,
+          spineColor: null,
+          reason: 'illegible',
+          guessAuthor: 'Szerb Antal',
+          guessTitle: null,
+        },
+        expect.objectContaining({ id: discarded.id, reason: 'unconfirmed', guessTitle: 'Tipp' }),
+      ]);
+
+      const url = (spineId: string) => `/api/collections/${id}/unread-spines/${spineId}`;
+      const anonName = await nameSpineRoute(request('POST', url(named.id), { body: { title: 'Utas és holdvilág' } }), ctx({ id, spineId: named.id }));
+      expect(anonName.status).toBe(403);
+      const empty = await nameSpineRoute(request('POST', url(named.id), { body: { title: ' ' }, cookies: ownerCookie }), ctx({ id, spineId: named.id }));
+      expect(empty.status).toBe(400);
+      const res = await nameSpineRoute(
+        request('POST', url(named.id), { body: { title: 'Utas és holdvilág', author: 'Szerb Antal' }, cookies: ownerCookie }),
+        ctx({ id, spineId: named.id }),
+      );
+      expect(res.status).toBe(201);
+      const book = (await res.json()) as BookDTO;
+      bookId = book.id;
+      expect(book).toMatchObject({ title: 'Utas és holdvilág', author: 'Szerb Antal', reviewed: true, needsReview: false, source: 'video', firstVideoId: videoId });
+
+      const anonDismiss = await dismissSpineRoute(request('DELETE', url(discarded.id)), ctx({ id, spineId: discarded.id }));
+      expect(anonDismiss.status).toBe(403);
+      const dismissed = await dismissSpineRoute(request('DELETE', url(discarded.id), { cookies: ownerCookie }), ctx({ id, spineId: discarded.id }));
+      expect(dismissed.status).toBe(204);
+      const again = await dismissSpineRoute(request('DELETE', url(discarded.id), { cookies: ownerCookie }), ctx({ id, spineId: discarded.id }));
+      expect(again.status).toBe(404);
+      expect(await db().select().from(unreadSpines).where(eq(unreadSpines.videoId, videoId))).toHaveLength(0);
+    } finally {
+      if (bookId) await db().delete(books).where(eq(books.id, bookId));
+      await db().delete(videos).where(eq(videos.id, videoId));
     }
   });
 

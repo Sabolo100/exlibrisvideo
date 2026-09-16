@@ -6,6 +6,7 @@ import {
   illegibleRuns,
   joinCandidates,
   needsSecondChance,
+  pickUnreadSpines,
   planSpineBatches,
   readCandidates,
   readingsAgree,
@@ -210,5 +211,77 @@ describe('readCandidates', () => {
       throw Object.assign(new Error('key rejected'), { name: 'AiConfigError' });
     });
     await expect(readCandidates([chosen(1), chosen(1)], p, CTX, { batchImages: 1, retryDelayMs: () => 0 })).rejects.toMatchObject({ code: 'ai_failed' });
+  });
+});
+
+describe('pickUnreadSpines', () => {
+  const at = (position: number, left: number, right: number, chain = 0): ChosenCandidate => ({
+    candidate: candidate(position, [view(position, left, right)], chain),
+    read: [{ view: view(position, left, right), upright: Buffer.alloc(0), sharpness: 1, reading: { jpeg: Buffer.from([0xff, 0xd8]), width: 10, height: 10 } }],
+    wide: false,
+  });
+  const illegible = (over: Partial<SpineReading> = {}) => reading({ status: 'illegible', title: '', author: null, ...over });
+  const medians = new Map([
+    [0, 40],
+    [1, 40],
+  ]);
+
+  it('asks about illegible, unread and dropped spines, never about books or non-books', () => {
+    const list = [at(0, 0, 40), at(1, 40, 80), at(2, 80, 120), at(3, 120, 160), at(4, 160, 200), at(5, 200, 240), at(6, 240, 280)];
+    const readings = new Map<number, SpineReading[]>([
+      [0, [reading()]],
+      [1, [illegible()]],
+      [2, [reading({ status: 'not_book', title: '' })]],
+      // 3: its batch failed
+      [4, [illegible({ author: 'Rejtő Jenő' })]],
+      [5, [illegible({ author: 'Kertész Imre' })]],
+      // an author without a title is not a book reading
+      [6, [reading({ title: '', author: 'Örkény István' })]],
+    ]);
+    const unconfirmed = new Map([[5, reading({ author: 'Kertész Imre', title: 'Sorstalanság', confidence: 0.5 })]]);
+    const picks = pickUnreadSpines({ chosen: list, readings, absorbed: new Set(), unconfirmed, unreadJoins: [] }, medians);
+    expect(picks.map((p) => [p.index, p.reason, p.guessAuthor, p.guessTitle])).toEqual([
+      [1, 'illegible', null, null],
+      [3, 'unread', null, null],
+      [4, 'illegible', 'Rejtő Jenő', null],
+      [5, 'unconfirmed', 'Kertész Imre', 'Sorstalanság'],
+      [6, 'illegible', 'Örkény István', null],
+    ]);
+  });
+
+  it('skips slivers and absorbed slices, and shows slices of one spine once', () => {
+    const list = [at(0, 0, 10), at(1, 10, 30), at(2, 30, 60), at(3, 60, 100), at(4, 100, 108)];
+    const readings = new Map<number, SpineReading[]>([
+      [0, [illegible()]],
+      [1, [illegible()]],
+      [2, [illegible({ author: 'Szerb Antal' })]],
+      [3, [illegible()]],
+      // a sliver with something legible on it is still asked about
+      [4, [illegible({ author: 'Márai Sándor' })]],
+    ]);
+    const joined = at(1, 10, 60);
+    const picks = pickUnreadSpines(
+      { chosen: list, readings, absorbed: new Set([3]), unconfirmed: new Map(), unreadJoins: [{ run: [1, 2], chosen: joined, notBook: false }] },
+      medians,
+    );
+    expect(picks.map((p) => p.index)).toEqual([1, 4]);
+    expect(picks[0]).toMatchObject({ chosen: joined, reason: 'illegible', guessAuthor: 'Szerb Antal' });
+  });
+
+  it('asks about the slices of a wide run one by one, drops runs of non-books, keeps shelf order and the limit', () => {
+    const list = [at(0, 0, 40, 1), at(1, 40, 80, 1), at(0, 0, 40, 0), at(1, 40, 80, 0), at(2, 80, 120, 0)];
+    const readings = new Map<number, SpineReading[]>(list.map((_, i) => [i, [illegible()]]));
+    const read = {
+      chosen: list,
+      readings,
+      absorbed: new Set<number>(),
+      unconfirmed: new Map<number, SpineReading>(),
+      unreadJoins: [
+        { run: [2, 3, 4], chosen: at(0, 0, 120, 0), notBook: false },
+        { run: [0, 1], chosen: at(0, 0, 80, 1), notBook: true },
+      ],
+    };
+    expect(pickUnreadSpines(read, medians).map((p) => p.index)).toEqual([2, 3, 4]);
+    expect(pickUnreadSpines(read, medians, 2).map((p) => p.index)).toEqual([2, 3]);
   });
 });

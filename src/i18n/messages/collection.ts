@@ -157,6 +157,8 @@ export const collection = defineMessages({
     'banner.review': '{count} könyvet érdemes átnézned',
     'banner.review_one': '{count} könyvet érdemes átnézned',
     'banner.reviewCta': 'Ellenőrzés indítása',
+    'banner.spines': '{count} gerincet nem tudtunk elolvasni – ha felismered a könyveket, add hozzá őket',
+    'banner.spines_one': '{count} gerincet nem tudtunk elolvasni – ha felismered a könyvet, add hozzá',
     'banner.dismiss': 'Tudnivalók elrejtése',
     'banner.error': 'Egyik feltöltött felvételt sem sikerült feldolgozni. Próbáld újra egy új videóval.',
 
@@ -263,6 +265,7 @@ export const collection = defineMessages({
     'toast.bulkFailed_one': 'Egy könyvet nem sikerült módosítani',
     'toast.added': 'Felvéve: „{title}”',
     'toast.addFailed': 'Nem sikerült felvenni a könyvet',
+    'toast.spineDismissFailed': 'Nem sikerült elvetni a gerincet',
     'toast.merged': 'Összevonva: „{title}”',
     'toast.mergeFailed': 'Nem sikerült összevonni a könyveket',
     'toast.collectionFailed': 'Nem sikerült menteni a beállításokat',
@@ -466,6 +469,8 @@ export const collection = defineMessages({
     'banner.review': '{count} books are worth a second look',
     'banner.review_one': '{count} book is worth a second look',
     'banner.reviewCta': 'Start reviewing',
+    'banner.spines': 'We couldn’t read {count} spines – add the books if you recognise them',
+    'banner.spines_one': 'We couldn’t read {count} spine – add the book if you recognise it',
     'banner.dismiss': 'Hide these notes',
     'banner.error': 'None of the uploaded footage could be processed. Please try again with a new video.',
 
@@ -572,6 +577,7 @@ export const collection = defineMessages({
     'toast.bulkFailed_one': 'Couldn’t update one book',
     'toast.added': 'Added “{title}”',
     'toast.addFailed': 'Couldn’t add the book',
+    'toast.spineDismissFailed': 'Couldn’t discard the spine',
     'toast.merged': 'Merged into “{title}”',
     'toast.mergeFailed': 'Couldn’t merge the books',
     'toast.collectionFailed': 'Couldn’t save the settings',

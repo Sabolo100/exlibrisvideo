@@ -10,17 +10,20 @@
  * neighbouring spine. Returns null when the geometry finds no spine or the provider cannot read cut-out
  * spines – the caller then runs the whole-frame vision step.
  */
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
 import { eq, inArray } from 'drizzle-orm';
 import sharp from 'sharp';
 import { db } from '@/db';
-import { detections, frames as framesTable, videos, type FrameRow, type VideoRow } from '@/db/schema';
+import { detections, frames as framesTable, unreadSpines, videos, type FrameRow, type NewUnreadSpineRow, type VideoRow } from '@/db/schema';
 import { getVisionProvider } from '@/lib/ai';
 import type { AiUsage, SpineReading, SpineToRead, SpineViewImage, VisionContext, VisionProvider } from '@/lib/ai/types';
 import { recordUsage } from '@/lib/ai/usage';
 import { env } from '@/lib/env';
 import { PipelineError, VideoGoneError, describeError } from '@/lib/jobs/errors';
-import { abs } from '@/lib/storage';
-import type { Locale } from '@/lib/types';
+import { abs, ensureDirFor, rel } from '@/lib/storage';
+import type { Locale, UnreadSpineReason } from '@/lib/types';
+import { CROP_JPEG_QUALITY, CROP_MAX_EDGE, dominantSpineColor } from '../crops';
 import { authorsCompatible, normalizeTitle, titleContainment, titleNumbersConflict, titleSimilarityNormalized } from '../text';
 import type { CanonicalHint } from '../vision-step';
 import { analyzeVideoGeometry, type VideoGeometry } from './geometry';
@@ -312,6 +315,19 @@ export interface SpineReadOutcome {
   /** pictures of several books that were cut at their gaps and read piece by piece */
   splitSpines: number;
   verification: VerificationStats;
+  /** first readings that the independent second look could not see at all (index → dropped reading) */
+  unconfirmed: Map<number, SpineReading>;
+  /** runs of illegible slices that stayed illegible when read as one spine */
+  unreadJoins: UnreadJoin[];
+}
+
+export interface UnreadJoin {
+  /** indices into `chosen`, left to right */
+  run: number[];
+  /** the whole run as one spine */
+  chosen: ChosenCandidate;
+  /** the joined picture was judged not to show a book */
+  notBook: boolean;
 }
 
 /** a joined run of slices may cover at most this share of the frame width */
@@ -507,6 +523,7 @@ export async function readSpineCandidates(
 
   // slices that all stayed illegible: read each run once more as one spine
   const absorbed = new Set<number>();
+  const unreadJoins: UnreadJoin[] = [];
   let joinedRuns = 0;
   const runs = illegibleRuns(
     chosen.map((c) => c.candidate),
@@ -526,7 +543,11 @@ export async function readSpineCandidates(
       joinedChosen.forEach((jc, j) => {
         const entry = joined.find((x) => x.candidate === jc.candidate);
         const list = read.readings.get(j);
-        if (!entry || bookReadings(list).length === 0) return;
+        if (!entry) return;
+        if (bookReadings(list).length === 0) {
+          unreadJoins.push({ run: entry.run, chosen: jc, notBook: (list ?? []).some((r) => r.status === 'not_book') });
+          return;
+        }
         const [head, ...rest] = entry.run;
         chosen[head] = jc;
         readings.set(head, list!);
@@ -541,6 +562,7 @@ export async function readSpineCandidates(
 
   // independent second reading of uncertain single books
   const verification: VerificationStats = { checked: 0, confirmed: 0, disputed: 0, dropped: 0 };
+  const unconfirmed = new Map<number, SpineReading>();
   const uncertain = chosen
     .map((c, i) => ({ c, i, books: bookReadings(readings.get(i)) }))
     .filter((x) => x.books.length === 1 && x.books[0].confidence < VERIFY_BELOW);
@@ -558,6 +580,7 @@ export async function readSpineCandidates(
       verification.checked++;
       const { reading, outcome } = settleReading(x.books[0], check.readings.get(j));
       verification[outcome]++;
+      if (!reading) unconfirmed.set(x.i, x.books[0]);
       readings.set(x.i, reading ? [reading] : [{ ...x.books[0], status: 'illegible', title: '', canonicalTitle: null, canonicalAuthor: null }]);
     });
   }
@@ -571,7 +594,7 @@ export async function readSpineCandidates(
     }),
     { provider: provider.name, model: provider.model, inputTokens: 0, outputTokens: 0, estCostUsd: 0 },
   );
-  return { chosen, readings, absorbed, usages, usage, batches, failedBatches, secondChance, joinedRuns, splitSpines, verification };
+  return { chosen, readings, absorbed, usages, usage, batches, failedBatches, secondChance, joinedRuns, splitSpines, verification, unconfirmed, unreadJoins };
 }
 
 /** Readings that describe a book with a usable title, in part order. */
@@ -611,6 +634,121 @@ export function duplicateNeighbours(candidates: readonly SpineCandidate[], readi
   return drop;
 }
 
+/** at most this many unread spines are kept per video (a hopeless recording must not flood the review) */
+export const MAX_UNREAD_SPINES_PER_VIDEO = 60;
+/** an illegible spine narrower than this share of its shelf's median spine is a sliver (gap, slice, shadow) */
+export const SLIVER_SHARE = 0.35;
+
+export interface UnreadSpinePick {
+  /** index into `chosen` (the first slice of a joined run) */
+  index: number;
+  /** the picture shown to the owner (and the view it was cut from) */
+  chosen: ChosenCandidate;
+  reason: UnreadSpineReason;
+  guessAuthor: string | null;
+  guessTitle: string | null;
+}
+
+function pictureWidth(c: ChosenCandidate): number {
+  const view = c.read[0]?.view;
+  return view ? view.right.xc - view.left.xc : 0;
+}
+
+/**
+ * The spines the owner is asked about: illegible and unread spines, author-only readings and guesses that
+ * the second look dropped. Pictures of non-books, slices absorbed by a neighbour and narrow slivers with
+ * nothing legible on them are left out; a run of illegible slices about one spine wide is shown as one
+ * spine. Shelf order (chain, then position).
+ */
+export function pickUnreadSpines(
+  read: Pick<SpineReadOutcome, 'chosen' | 'readings' | 'absorbed' | 'unconfirmed' | 'unreadJoins'>,
+  medians: ReadonlyMap<number, number>,
+  max = MAX_UNREAD_SPINES_PER_VIDEO,
+): UnreadSpinePick[] {
+  const authorOf = (list: readonly SpineReading[]) => list.map((r) => r.author || r.canonicalAuthor).find(Boolean) ?? null;
+  const picks: UnreadSpinePick[] = [];
+  const handled = new Set<number>();
+  for (const join of read.unreadJoins) {
+    const median = medians.get(join.chosen.candidate.chain);
+    const oneSpine = median !== undefined && median > 0 && pictureWidth(join.chosen) <= WIDE_FACTOR * median;
+    // wider runs are several books: their slices are asked about one by one
+    if (!join.notBook && !oneSpine) continue;
+    for (const i of join.run) handled.add(i);
+    if (join.notBook) continue;
+    const author = authorOf(join.run.flatMap((i) => read.readings.get(i) ?? []));
+    picks.push({ index: join.run[0], chosen: join.chosen, reason: 'illegible', guessAuthor: author, guessTitle: null });
+  }
+  read.chosen.forEach((c, i) => {
+    if (handled.has(i) || read.absorbed.has(i)) return;
+    const list = read.readings.get(i) ?? [];
+    if (bookReadings(list).length > 0 || list.some((r) => r.status === 'not_book')) return;
+    const dropped = read.unconfirmed.get(i);
+    const guessAuthor = dropped ? dropped.author || dropped.canonicalAuthor || null : authorOf(list);
+    const guessTitle = dropped ? titleOf(dropped) || null : null;
+    const median = medians.get(c.candidate.chain);
+    if (!guessAuthor && !guessTitle && median !== undefined && median > 0 && pictureWidth(c) < SLIVER_SHARE * median) return;
+    const reason: UnreadSpineReason = dropped ? 'unconfirmed' : list.length === 0 ? 'unread' : 'illegible';
+    picks.push({ index: i, chosen: c, reason, guessAuthor, guessTitle });
+  });
+  return picks
+    .sort((a, b) => a.chosen.candidate.chain - b.chosen.candidate.chain || a.chosen.candidate.position - b.chosen.candidate.position)
+    .slice(0, max);
+}
+
+const clip = (value: string | null, max: number): string | null => (value ? value.slice(0, max) : null);
+
+/** Writes the photo of every picked spine and returns the rows to insert (a failed photo skips its spine). */
+async function unreadSpineRows(
+  video: Pick<VideoRow, 'id' | 'collectionId'>,
+  picks: readonly UnreadSpinePick[],
+  geometry: VideoGeometry,
+  ordered: readonly FrameRow[],
+): Promise<NewUnreadSpineRow[]> {
+  const rows = await mapLimit(picks, CUT_CONCURRENCY, async (pick, k): Promise<NewUnreadSpineRow | null> => {
+    const best = pick.chosen.read[0];
+    if (!best) return null;
+    const frame = geometry.frames[best.view.frame];
+    const id = randomUUID();
+    const spinePath = rel.unreadSpine(video.collectionId, id);
+    try {
+      const image = sharp(best.upright);
+      const meta = await image.metadata();
+      const w = meta.width ?? 1;
+      const h = meta.height ?? 1;
+      const photo = await image
+        .clone()
+        .resize({ width: CROP_MAX_EDGE, height: CROP_MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: CROP_JPEG_QUALITY, mozjpeg: true })
+        .toBuffer();
+      // the cut includes some shelf above and below the spine: sample the middle
+      const spineColor = await dominantSpineColor(image, {
+        left: Math.floor(w * 0.2),
+        top: Math.floor(h * 0.3),
+        width: Math.max(1, Math.round(w * 0.6)),
+        height: Math.max(1, Math.round(h * 0.4)),
+      }).catch(() => null);
+      await fs.writeFile(await ensureDirFor(spinePath), photo);
+      return {
+        id,
+        collectionId: video.collectionId,
+        videoId: video.id,
+        frameId: ordered[best.view.frame].id,
+        bbox: rectBoundingBox(spineRect(best.view, frame.height), frame.width, frame.height),
+        spinePath,
+        spineColor,
+        reason: pick.reason,
+        guessAuthor: clip(pick.guessAuthor, 300),
+        guessTitle: clip(pick.guessTitle, 500),
+        shelfOrder: k,
+      };
+    } catch (err) {
+      console.warn('[spines] unread spine photo failed', { videoId: video.id, error: describeError(err, 200) });
+      return null;
+    }
+  });
+  return rows.filter((r): r is NewUnreadSpineRow => r !== null);
+}
+
 export interface RecognizeSpinesContext {
   sourceSha1: string | null;
   locale: Locale;
@@ -631,6 +769,8 @@ export interface RecognizeSpinesResult {
   batches: number;
   failedBatches: number;
   detections: number;
+  /** spines saved for the owner to name (see pickUnreadSpines) */
+  unreadSpines: number;
   framesAnalyzed: number;
   /** canonical_author / canonical_title per detection id, for the merge */
   hints: Map<string, CanonicalHint>;
@@ -780,6 +920,8 @@ export async function recognizeSpines(video: VideoRow, frameRows: FrameRow[], ct
     });
   }
 
+  const unreadRows = await unreadSpineRows(video, pickUnreadSpines(read, medianWidths(geometry.candidates)), geometry, ordered);
+
   const hints = new Map<string, CanonicalHint>();
   try {
     await db().transaction(async (tx) => {
@@ -791,12 +933,14 @@ export async function recognizeSpines(video: VideoRow, frameRows: FrameRow[], ct
           if (h.canonicalAuthor || h.canonicalTitle) hints.set(row.id, h);
         });
       }
+      if (unreadRows.length) await tx.insert(unreadSpines).values(unreadRows);
       await tx
         .update(framesTable)
         .set({ analyzed: true })
         .where(inArray(framesTable.id, ordered.map((f) => f.id)));
     });
   } catch (err) {
+    await Promise.all(unreadRows.map((r) => (r.spinePath ? fs.rm(abs(r.spinePath), { force: true }).catch(() => {}) : null)));
     if (isForeignKeyViolation(err)) throw new VideoGoneError(video.id);
     throw err;
   }
@@ -811,6 +955,7 @@ export async function recognizeSpines(video: VideoRow, frameRows: FrameRow[], ct
     batches: read.batches,
     failedBatches: read.failedBatches,
     detections: drafts.length,
+    unreadSpines: unreadRows.length,
     framesAnalyzed: ordered.length,
     hints,
   };
@@ -830,6 +975,7 @@ export async function recognizeSpines(video: VideoRow, frameRows: FrameRow[], ct
     batches: read.batches,
     failedBatches: read.failedBatches,
     detections: drafts.length,
+    unreadSpines: unreadRows.length,
     geometryMs,
     ms: Date.now() - started,
     inputTokens: read.usage.inputTokens,

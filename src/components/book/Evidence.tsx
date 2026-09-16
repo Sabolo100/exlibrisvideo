@@ -226,25 +226,28 @@ function useRotatedImage(src: string | null, turn: SpineTurn): RotatedImage {
 }
 
 export interface SpineStripProps {
-  book: BookDTO;
+  /** a book, or anything with a spine photo (e.g. an unread spine: `title` is then only the alt text) */
+  book: Pick<BookDTO, 'id' | 'title' | 'spineImage' | 'language'>;
   /** max rendered height of the strip (CSS length) */
   maxHeight?: string;
   className?: string;
   /** shown when the book has no spine photo (or it fails to load) */
   fallback?: ReactNode;
+  /** alt text of the photo (default: "spine of <title>") */
+  alt?: string;
 }
 
 /**
  * The spine photo turned on its side so the lettering reads left to right (direction guessed from the
  * book's language, flippable), full width, zoomable. Non-upright crops are shown as they are.
  */
-export function SpineStrip({ book, maxHeight = '6rem', className, fallback = null }: SpineStripProps) {
+export function SpineStrip({ book, maxHeight = '6rem', className, fallback = null, alt: altText }: SpineStripProps) {
   const { t } = useI18n();
   const [turnState, setTurnState] = useState<{ bookId: string; turn: SpineTurn }>(() => ({ bookId: book.id, turn: defaultSpineTurn(book) }));
   const turn = turnState.bookId === book.id ? turnState.turn : defaultSpineTurn(book);
   const image = useRotatedImage(book.spineImage, turn);
   const [open, setOpen] = useState(false);
-  const alt = t('book.evidence.spineAlt', { title: book.title });
+  const alt = altText ?? t('book.evidence.spineAlt', { title: book.title });
 
   if (!book.spineImage || image.status === 'error') return <>{fallback}</>;
 

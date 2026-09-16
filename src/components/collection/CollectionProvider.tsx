@@ -18,7 +18,7 @@ import { useI18n } from '@/i18n/client';
 import { applyFilters, countActiveFilters, sortBooks } from '@/lib/book-utils';
 import { api, ApiClientError } from '@/lib/client/api';
 import { getOwnerToken } from '@/lib/client/my-collections';
-import type { BookDTO, BookPatch, CollectionDTO, CollectionPatch, CollectionWithBooksDTO, ViewKey } from '@/lib/types';
+import type { BookDTO, BookPatch, CollectionDTO, CollectionPatch, CollectionWithBooksDTO, UnreadSpineDTO, ViewKey } from '@/lib/types';
 import { CollectionContext, EMPTY_FILTERS, type BookFilters, type CollectionContextValue, type SortKey } from './context';
 import { apiErrorMessage, isAbortError, isApiError } from './errors';
 import { computeFacets, headerCounts } from './facets';
@@ -42,6 +42,7 @@ const SEARCH_DEBOUNCE_MS = 150;
 const MUTATION_CONCURRENCY = 4;
 /** background refresh when the tab becomes visible again after this long */
 const STALE_AFTER_MS = 3 * 60 * 1000;
+const NO_UNREAD_SPINES: UnreadSpineDTO[] = [];
 
 export interface CollectionProviderProps {
   initial: CollectionWithBooksDTO;
@@ -96,6 +97,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
   const isOwnerRef = useRef(isOwner);
   isOwnerRef.current = isOwner;
   const books = collection.books;
+  const unreadSpines = collection.unreadSpines ?? NO_UNREAD_SPINES;
 
   /* ------------------------------------------------------------------ */
   /* URL-synced UI state                                                 */
@@ -530,6 +532,88 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
     [collectionId, commit, handleLostOwnership, requireOwner, setOpenBookId, toast, t],
   );
 
+  /* ------------------------------------------------------------------ */
+  /* unread spines                                                       */
+  /* ------------------------------------------------------------------ */
+
+  /** Removes an unread spine from the list, remembering where it was. */
+  const takeUnreadSpine = useCallback(
+    (id: string): { spine: UnreadSpineDTO; index: number } | null => {
+      let taken: { spine: UnreadSpineDTO; index: number } | null = null;
+      commit((c) => {
+        const list = c.unreadSpines ?? [];
+        const index = list.findIndex((s) => s.id === id);
+        if (index < 0) return c;
+        taken = { spine: list[index], index };
+        return { ...c, unreadSpines: [...list.slice(0, index), ...list.slice(index + 1)] };
+      });
+      return taken;
+    },
+    [commit],
+  );
+
+  const putBackUnreadSpine = useCallback(
+    (taken: { spine: UnreadSpineDTO; index: number }) => {
+      commit((c) => {
+        const list = c.unreadSpines ?? [];
+        if (list.some((s) => s.id === taken.spine.id)) return c;
+        const next = [...list];
+        next.splice(Math.min(taken.index, next.length), 0, taken.spine);
+        return { ...c, unreadSpines: next };
+      });
+    },
+    [commit],
+  );
+
+  const resolveUnreadSpine = useCallback<CollectionContextValue['resolveUnreadSpine']>(
+    async (id, input) => {
+      if (!requireOwner()) return null;
+      const taken = takeUnreadSpine(id);
+      if (!taken) return null;
+      try {
+        const created = await api.resolveUnreadSpine(collectionId, id, input);
+        commit((c) => {
+          const next = upsertBook(c.books, created);
+          return { ...c, books: next, bookCount: next.length };
+        });
+        toast({ title: t('collection.toast.added', { title: created.title }), tone: 'success' });
+        return created;
+      } catch (err) {
+        // named or discarded in another tab meanwhile: it stays gone
+        if (isApiError(err, 'not_found')) return null;
+        putBackUnreadSpine(taken);
+        toast({ id: `spine-add-failed-${id}`, title: t('collection.toast.addFailed'), description: apiErrorMessage(err, t), tone: 'error' });
+        handleLostOwnership(err);
+        return null;
+      }
+    },
+    [collectionId, commit, handleLostOwnership, putBackUnreadSpine, requireOwner, takeUnreadSpine, toast, t],
+  );
+
+  const dismissUnreadSpine = useCallback<CollectionContextValue['dismissUnreadSpine']>(
+    async (id) => {
+      if (!requireOwner()) return false;
+      const taken = takeUnreadSpine(id);
+      if (!taken) return false;
+      try {
+        await api.dismissUnreadSpine(collectionId, id);
+        return true;
+      } catch (err) {
+        if (isApiError(err, 'not_found')) return true;
+        putBackUnreadSpine(taken);
+        toast({
+          id: `spine-dismiss-failed-${id}`,
+          title: t('collection.toast.spineDismissFailed'),
+          description: apiErrorMessage(err, t),
+          tone: 'error',
+        });
+        handleLostOwnership(err);
+        return false;
+      }
+    },
+    [collectionId, handleLostOwnership, putBackUnreadSpine, requireOwner, takeUnreadSpine, toast, t],
+  );
+
   const bulkUpdate = useCallback<CollectionShellValue['bulkUpdate']>(
     async (ids, patchOrFn) => {
       if (!requireOwner()) return { ok: 0, failed: 0 };
@@ -711,6 +795,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
     () => ({
       collection,
       books,
+      unreadSpines,
       visibleBooks,
       isOwner,
       locale,
@@ -732,12 +817,15 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       deleteBooks,
       addBook,
       mergeBooks,
+      resolveUnreadSpine,
+      dismissUnreadSpine,
       updateCollection,
       refresh,
     }),
     [
       collection,
       books,
+      unreadSpines,
       visibleBooks,
       isOwner,
       locale,
@@ -759,6 +847,8 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       deleteBooks,
       addBook,
       mergeBooks,
+      resolveUnreadSpine,
+      dismissUnreadSpine,
       updateCollection,
       refresh,
     ],
@@ -770,6 +860,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       facets,
       counts,
       pendingReview: facets.pendingReview,
+      unreadSpineCount: isOwner ? unreadSpines.length : 0,
       refreshing,
       ownerToken,
       refreshSilently,
@@ -778,7 +869,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       setCollectionEmail,
       focusSearch,
     }),
-    [appliedQuery, facets, counts, refreshing, ownerToken, refreshSilently, saveCollection, bulkUpdate, setCollectionEmail, focusSearch],
+    [appliedQuery, facets, counts, isOwner, unreadSpines.length, refreshing, ownerToken, refreshSilently, saveCollection, bulkUpdate, setCollectionEmail, focusSearch],
   );
 
   return (

@@ -42,7 +42,7 @@ function scrollPanelIntoView() {
 }
 
 function Catalogue() {
-  const { collection, books, view } = useCollection();
+  const { collection, books, unreadSpines, view } = useCollection();
   const views = useMemo(
     () => availableViews({ isOwner: collection.isOwner, videos: collection.videos }),
     [collection.isOwner, collection.videos],
@@ -62,7 +62,10 @@ function Catalogue() {
       <CollectionHeader />
       <OwnerBanner onReview={() => requestAnimationFrame(scrollPanelIntoView)} />
 
-      {books.length === 0 ? (
+      {books.length === 0 && collection.isOwner && unreadSpines.length > 0 ? (
+        // nothing could be read yet, but the owner can still name the spines
+        <ViewPanel view="review" className="mt-6 min-h-[40vh] print:hidden" />
+      ) : books.length === 0 ? (
         <CatalogueEmpty />
       ) : (
         <>

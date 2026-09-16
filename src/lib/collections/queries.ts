@@ -15,7 +15,8 @@ import type {
   FrameDTO,
 } from '@/lib/types';
 import { getViewerForPage } from './access';
-import { sortVideos, toBBox, toBookDTO, toCollectionDTO, toFrameDTO, toVideoDTO } from './dto';
+import { sortVideos, toBBox, toBookDTO, toCollectionDTO, toFrameDTO, toUnreadSpineDTO, toVideoDTO } from './dto';
+import { listUnreadSpines } from './unread-spines';
 import { countCollectionView, viewerFingerprint } from './views';
 
 export type CollectionPageResult =
@@ -32,17 +33,19 @@ export async function findCollectionRow(id: string): Promise<CollectionRow | nul
 
 /** Builds the full DTO for an already loaded (and access-checked) collection row. */
 export async function buildCollectionWithBooks(row: CollectionRow, isOwner: boolean): Promise<CollectionWithBooksDTO> {
-  const [videoRows, bookRows] = await Promise.all([
+  const [videoRows, bookRows, unreadRows] = await Promise.all([
     db().select().from(videos).where(eq(videos.collectionId, row.id)).orderBy(asc(videos.sortOrder), asc(videos.createdAt)),
     db()
       .select()
       .from(books)
       .where(eq(books.collectionId, row.id))
       .orderBy(asc(books.shelfPosition), asc(books.createdAt), asc(books.id)),
+    isOwner ? listUnreadSpines(row.id) : Promise.resolve(null),
   ]);
   return {
     ...toCollectionDTO(row, { isOwner, bookCount: bookRows.length, videos: videoRows }),
     books: bookRows.map((b) => toBookDTO(b, { isOwner })),
+    ...(unreadRows ? { unreadSpines: unreadRows.map(toUnreadSpineDTO) } : {}),
   };
 }
 

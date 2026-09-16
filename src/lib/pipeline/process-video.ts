@@ -16,7 +16,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { books, collections, detections, frames, videos, type FrameRow, type VideoRow } from '@/db/schema';
+import { books, collections, detections, frames, unreadSpines, videos, type FrameRow, type VideoRow } from '@/db/schema';
 import { env } from '@/lib/env';
 import {
   PipelineError,
@@ -179,18 +179,18 @@ export async function resetVideoResults(
       `);
     }
     await tx.delete(detections).where(eq(detections.videoId, video.id));
+    const unread = await tx.delete(unreadSpines).where(eq(unreadSpines.videoId, video.id)).returning({ spinePath: unreadSpines.spinePath });
     if (opts.keepFrames) await tx.update(frames).set({ analyzed: false }).where(eq(frames.videoId, video.id));
     else await tx.delete(frames).where(eq(frames.videoId, video.id));
-    return toDelete;
+    return { toDelete, unreadPaths: unread.map((u) => u.spinePath) };
   });
   if (!opts.keepFrames) await fs.rm(abs(frameDirRel(video.collectionId, video.id)), { recursive: true, force: true });
   await Promise.all(
-    deleted
-      .flatMap((r) => [r.spine_path, r.cover_path])
+    [...deleted.toDelete.flatMap((r) => [r.spine_path, r.cover_path]), ...deleted.unreadPaths]
       .filter((p): p is string => Boolean(p))
       .map((p) => fs.rm(abs(p), { force: true }).catch(() => {})),
   );
-  return { deletedBooks: deleted.length };
+  return { deletedBooks: deleted.toDelete.length };
 }
 
 /**

@@ -13,6 +13,8 @@ import type {
   CollectionWithBooksDTO,
   Locale,
   ReadingStatus,
+  ResolveUnreadSpineInput,
+  UnreadSpineDTO,
   ViewKey,
 } from '@/lib/types';
 
@@ -50,6 +52,8 @@ export interface CollectionContextValue {
   collection: CollectionWithBooksDTO;
   /** all books (unfiltered) */
   books: BookDTO[];
+  /** owner only: spines of the recordings that could not be read, in shelf order (empty for visitors) */
+  unreadSpines: UnreadSpineDTO[];
   /** filtered + sorted */
   visibleBooks: BookDTO[];
   isOwner: boolean;
@@ -81,6 +85,10 @@ export interface CollectionContextValue {
   deleteBooks: (ids: string[]) => Promise<void>;
   addBook: (input: BookPatch & { title: string }) => Promise<BookDTO | null>;
   mergeBooks: (keepId: string, mergeIds: string[]) => Promise<BookDTO | null>;
+  /** the owner named the book on an unread spine: the spine leaves the list at once, the book joins the shelf */
+  resolveUnreadSpine: (id: string, input: ResolveUnreadSpineInput) => Promise<BookDTO | null>;
+  /** the owner discarded an unread spine; false when it could not be discarded (it is back in the list) */
+  dismissUnreadSpine: (id: string) => Promise<boolean>;
   updateCollection: (patch: CollectionPatch) => Promise<void>;
   /** re-fetch collection + books from the API */
   refresh: () => Promise<void>;

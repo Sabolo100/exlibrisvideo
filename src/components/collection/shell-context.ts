@@ -27,6 +27,8 @@ export interface CollectionShellValue {
   counts: HeaderCounts;
   /** books waiting for review (needsReview && !reviewed) */
   pendingReview: number;
+  /** owner only: spines that could not be read and wait for the owner to name them */
+  unreadSpineCount: number;
   /** a refresh request is in flight */
   refreshing: boolean;
   /** raw owner token remembered on this device (null when unknown / not the owner) */

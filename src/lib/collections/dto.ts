@@ -2,11 +2,12 @@
  * Row → DTO mappers (dates → ISO strings, storage paths → /api/media URLs, owner-only fields nulled).
  * Owner: api. Pure functions (no DB access).
  */
-import type { BookRow, CollectionRow, FrameRow, VideoRow } from '@/db/schema';
+import type { BookRow, CollectionRow, FrameRow, UnreadSpineRow, VideoRow } from '@/db/schema';
 import { publicCollectionUrl } from '@/lib/env';
 import { mediaUrl } from '@/lib/storage';
 import {
   READING_STATUSES,
+  UNREAD_SPINE_REASONS,
   VIDEO_STAGES,
   type BBox,
   type BookDTO,
@@ -17,6 +18,7 @@ import {
   type Locale,
   type ReadingStatus,
   type SourceKind,
+  type UnreadSpineDTO,
   type UploadStatus,
   type VideoDTO,
   type VideoStage,
@@ -157,6 +159,21 @@ export function toFrameDTO(row: FrameRow): FrameDTO {
     height: row.height,
     image: mediaUrl(row.storagePath) ?? '',
     thumb: mediaUrl(row.thumbPath),
+  };
+}
+
+/** Owner only: a spine that could not be read (the owner names the book or discards it). */
+export function toUnreadSpineDTO(row: UnreadSpineRow): UnreadSpineDTO {
+  return {
+    id: row.id,
+    videoId: row.videoId,
+    frameId: row.frameId,
+    bbox: toBBox(row.bbox),
+    spineImage: mediaUrl(row.spinePath),
+    spineColor: row.spineColor,
+    reason: oneOf(row.reason, UNREAD_SPINE_REASONS, 'illegible'),
+    guessAuthor: row.guessAuthor,
+    guessTitle: row.guessTitle,
   };
 }
 

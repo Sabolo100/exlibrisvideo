@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import { count, eq, inArray, max, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db, type DB } from '@/db';
-import { books, collections, detections, videos, type BookRow, type CollectionRow, type NewBookRow } from '@/db/schema';
+import { books, collections, detections, unreadSpines, videos, type BookRow, type CollectionRow, type NewBookRow } from '@/db/schema';
 import { env } from '@/lib/env';
 import { HttpError, zodIssues } from '@/lib/http';
 import { enqueueJob } from '@/lib/jobs/queue';
@@ -33,7 +33,7 @@ type Executor = DB | Tx;
 /* helpers                                                              */
 /* ------------------------------------------------------------------ */
 
-function parseOr400<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
+export function parseOr400<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
   const parsed = schema.safeParse(input ?? {});
   if (!parsed.success) throw new HttpError(400, 'invalid', { issues: zodIssues(parsed.error) });
   return parsed.data;
@@ -578,18 +578,20 @@ export async function deleteSource(videoId: string): Promise<{ collectionId: str
     await tx.execute(sql`
       DELETE FROM jobs WHERE type = 'process_video' AND status = 'queued' AND payload->>'videoId' = ${videoId}
     `);
+    const unread = await tx.delete(unreadSpines).where(eq(unreadSpines.videoId, videoId)).returning({ spinePath: unreadSpines.spinePath });
     await tx.delete(videos).where(eq(videos.id, videoId));
     const recomputed = await recomputeCollectionStatus(video.collectionId, tx);
     await tx.update(collections).set({ updatedAt: new Date() }).where(eq(collections.id, video.collectionId));
 
-    return { video, toDelete, recomputed };
+    return { video, toDelete, recomputed, unreadPaths: unread.map((u) => u.spinePath) };
   });
 
-  const { video, toDelete, recomputed } = outcome;
+  const { video, toDelete, recomputed, unreadPaths } = outcome;
   await removeStoredFiles([
     video.storagePath,
     `frames/${video.collectionId}/${video.id}`,
     ...toDelete.flatMap((r) => [r.spine_path, r.cover_path]),
+    ...unreadPaths,
   ]);
   if (recomputed.needsEnrichment) {
     await enqueueJob('enrich_collection', { collectionId: video.collectionId }, { dedupeKey: video.collectionId });

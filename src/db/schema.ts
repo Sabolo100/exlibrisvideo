@@ -32,6 +32,7 @@ import type {
   JobType,
   ReadingStatus,
   SourceKind,
+  UnreadSpineReason,
   UploadStatus,
   UsageTotals,
   VideoStage,
@@ -241,6 +242,38 @@ export const detections = pgTable(
   (t) => [index('detections_video_idx').on(t.videoId), index('detections_book_idx').on(t.bookId)],
 );
 
+/**
+ * A spine the recognition found but could not turn into a book (illegible, unconfirmed guess, failed read).
+ * Waits for the owner, who names the book (→ a new book, the row is deleted) or discards it (row deleted).
+ * Rebuilt whenever the video is analysed again.
+ */
+export const unreadSpines = pgTable(
+  'unread_spines',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    collectionId: varchar('collection_id', { length: 12 })
+      .notNull()
+      .references(() => collections.id, { onDelete: 'cascade' }),
+    videoId: uuid('video_id')
+      .notNull()
+      .references(() => videos.id, { onDelete: 'cascade' }),
+    /** the frame the photo was cut from; `bbox` is the spine in it (with the exact tilted `rect`) */
+    frameId: uuid('frame_id').references(() => frames.id, { onDelete: 'set null' }),
+    bbox: jsonb('bbox').$type<BBox>(),
+    /** upright spine photo (relative to STORAGE_DIR): spines/<collectionId>/unread/<id>.jpg */
+    spinePath: text('spine_path'),
+    spineColor: varchar('spine_color', { length: 9 }),
+    reason: varchar('reason', { length: 16 }).$type<UnreadSpineReason>().notNull().default('illegible'),
+    /** an author read without a title, or the first reading that a second look did not confirm */
+    guessAuthor: text('guess_author'),
+    guessTitle: text('guess_title'),
+    /** left→right order along the shelves of its video */
+    shelfOrder: integer('shelf_order').notNull().default(0),
+    createdAt: ts('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('unread_spines_collection_idx').on(t.collectionId), index('unread_spines_video_idx').on(t.videoId, t.shelfOrder)],
+);
+
 /** Postgres-backed job queue (SELECT … FOR UPDATE SKIP LOCKED). */
 export const jobs = pgTable(
   'jobs',
@@ -288,4 +321,6 @@ export type FrameRow = typeof frames.$inferSelect;
 export type BookRow = typeof books.$inferSelect;
 export type NewBookRow = typeof books.$inferInsert;
 export type DetectionRow = typeof detections.$inferSelect;
+export type UnreadSpineRow = typeof unreadSpines.$inferSelect;
+export type NewUnreadSpineRow = typeof unreadSpines.$inferInsert;
 export type JobRow = typeof jobs.$inferSelect;

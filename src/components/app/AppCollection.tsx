@@ -108,7 +108,9 @@ export function AppCollection() {
   const { toast } = useToast();
   const { collection, books, view, setView, filters, setFilters, activeFilterCount, sort, setSort, isOwner, refresh, visibleBooks } =
     useCollection();
-  const { counts, pendingReview } = useCollectionShell();
+  const { counts, pendingReview, unreadSpineCount } = useCollectionShell();
+  const reviewBadge = pendingReview + unreadSpineCount;
+  const onlyUnreadSpines = books.length === 0 && isOwner && unreadSpineCount > 0;
   const { claiming, processing } = useCollectionPageLifecycle();
   const mainRef = useRef<HTMLElement>(null);
 
@@ -170,7 +172,7 @@ export function AppCollection() {
       label: t('app.collection.more'),
       icon: <Ellipsis />,
       active: !PRIMARY_VIEWS.includes(activeView) || moreOpen,
-      badge: isOwner && pendingReview > 0 ? pendingReview : undefined,
+      badge: isOwner && reviewBadge > 0 ? reviewBadge : undefined,
       onClick: () => setMoreOpen(true),
     },
   ];
@@ -242,6 +244,11 @@ export function AppCollection() {
 
       {processing ? (
         <ProcessingPanel initial={collection} isOwner={isOwner} onReady={() => void refresh()} />
+      ) : onlyUnreadSpines ? (
+        // nothing could be read yet, but the owner can still name the spines
+        <div className="app-screen-in">
+          <ViewPanel view="review" className="px-3 pt-3" />
+        </div>
       ) : books.length === 0 ? (
         <div className="px-3 pt-3">
           <CatalogueEmpty />
@@ -266,7 +273,7 @@ export function AppCollection() {
                   icon={<Icon />}
                   label={t(VIEW_META[v].labelKey)}
                   active={activeView === v}
-                  badge={v === 'review' && pendingReview > 0 ? pendingReview : undefined}
+                  badge={v === 'review' && reviewBadge > 0 ? reviewBadge : undefined}
                   onClick={() => pickView(v)}
                 />
               );

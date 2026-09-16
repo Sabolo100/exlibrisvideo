@@ -1,8 +1,8 @@
 'use client';
 
-import { Check, ChevronLeft, Combine, Library, Lock, PanelRightOpen, RotateCcw, Search, SkipForward, Sparkles, Trash2 } from 'lucide-react';
+import { BookOpenCheck, Check, ChevronLeft, ClipboardCheck, Combine, Library, Lock, PanelRightOpen, RotateCcw, ScanText, Search, SkipForward, Sparkles, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { BookSpine, ConfidenceMeter, confidenceLevel, spineLabel } from '@/components/books';
 import { DeleteBookDialog } from '@/components/book/DeleteBookDialog';
 import { BookFrameEvidence, SpineStrip, useEvidenceFrame } from '@/components/book/Evidence';
@@ -11,12 +11,18 @@ import { cleanText, isTypingTarget, mergeCandidates, reviewQueue } from '@/compo
 import { framesVersion } from '@/components/book/frames-store';
 import { useCollection } from '@/components/collection/context';
 import { TOOLBAR_ID } from '@/components/collection/Toolbar';
-import { Button, Card, Dialog, EmptyState, Field, Input, Kbd, ProgressBar, useMounted, cn } from '@/components/ui';
+import { Button, Card, Dialog, EmptyState, Field, Input, Kbd, ProgressBar, SegmentedControl, useMounted, cn } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
 import { SPINE_PALETTE, hash01 } from '@/lib/book-utils';
 import type { BookDTO, BookPatch } from '@/lib/types';
+import { UnreadSpineReview } from './UnreadSpineReview';
 
-/** Owner-only, card-by-card review of books that need a human look (needsReview && !reviewed). */
+type ReviewMode = 'books' | 'spines';
+
+/**
+ * Owner-only review: card by card, the books that need a human look (needsReview && !reviewed) and the
+ * spines that could not be read at all (named or discarded by the owner).
+ */
 export function ReviewView() {
   const { isOwner } = useCollection();
   const { t } = useI18n();
@@ -27,7 +33,58 @@ export function ReviewView() {
       </Card>
     );
   }
-  return <ReviewSession />;
+  return <ReviewModes />;
+}
+
+function ReviewModes() {
+  const { t, n } = useI18n();
+  const { books, unreadSpines } = useCollection();
+  const pendingBooks = useMemo(() => reviewQueue(books).length, [books]);
+  const spineCount = unreadSpines.length;
+  // the spines first only when no book is waiting
+  const [mode, setMode] = useState<ReviewMode>(() => (pendingBooks === 0 && spineCount > 0 ? 'spines' : 'books'));
+  const showSwitch = spineCount > 0 || mode === 'spines';
+
+  const label = (long: string, short: string, count: number) => (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span className="truncate sm:hidden">{short}</span>
+      <span className="truncate max-sm:hidden">{long}</span>
+      {count > 0 ? <span className="rounded-full bg-accent-soft px-1.5 text-xs leading-5 font-semibold text-ink tabular-nums">{n(count)}</span> : null}
+    </span>
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      {showSwitch ? (
+        <SegmentedControl<ReviewMode>
+          aria-label={t('book.review.kind.label')}
+          value={mode}
+          onChange={setMode}
+          fullWidth
+          className="w-full sm:mx-auto sm:max-w-xl"
+          options={[
+            {
+              value: 'books',
+              icon: <BookOpenCheck />,
+              title: t('book.review.kind.books'),
+              label: label(t('book.review.kind.books'), t('book.review.kind.booksShort'), pendingBooks),
+            },
+            {
+              value: 'spines',
+              icon: <ScanText />,
+              title: t('book.review.kind.spines'),
+              label: label(t('book.review.kind.spines'), t('book.review.kind.spinesShort'), spineCount),
+            },
+          ]}
+        />
+      ) : null}
+      {mode === 'spines' ? (
+        <UnreadSpineReview pendingBooks={pendingBooks} onOpenBooks={() => setMode('books')} />
+      ) : (
+        <ReviewSession unreadSpines={spineCount} onOpenSpines={() => setMode('spines')} />
+      )}
+    </div>
+  );
 }
 
 const LEVEL_DOT = { high: 'bg-success', medium: 'bg-warning', low: 'bg-danger' } as const;
@@ -64,7 +121,7 @@ function useIsMac(): boolean {
   return /mac|iphone|ipad|ipod/i.test(nav.userAgentData?.platform ?? nav.platform ?? nav.userAgent);
 }
 
-export function ReviewSession() {
+export function ReviewSession({ unreadSpines = 0, onOpenSpines }: { unreadSpines?: number; onOpenSpines?: () => void } = {}) {
   const { t, tp, n } = useI18n();
   const { books, updateBook, collection, openBook, setView } = useCollection();
   const isMac = useIsMac();
@@ -248,7 +305,9 @@ export function ReviewSession() {
       }
       if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
       // Del / arrows only act on the review itself (focus on it or nowhere), not on e.g. the page toolbar
-      const onReview = !target || target === document.body || Boolean(target.closest?.('[data-review-root]'));
+      // (clicking the card's empty space focuses the view panel around it)
+      const root = document.querySelector('[data-review-root]');
+      const onReview = !target || target === document.body || Boolean(target.closest?.('[data-review-root]')) || Boolean(root && target.contains?.(root));
       if (!onReview) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
@@ -272,13 +331,19 @@ export function ReviewSession() {
 
   /* ---------------- finished / empty ---------------- */
   if (!current) {
+    const nextSpines =
+      unreadSpines > 0 && onOpenSpines ? (
+        <Button variant="gold" leftIcon={<ClipboardCheck />} onClick={onOpenSpines}>
+          {t('book.review.spines.next', { count: n(unreadSpines) })}
+        </Button>
+      ) : null;
     return (
       <div className="mx-auto max-w-3xl">
         <p className="sr-only" aria-live="polite">
           {announcement}
         </p>
         {doneCount > 0 || done.length > 0 ? (
-          <ReviewFinished books={done} count={Math.max(doneCount, done.length)} onBack={() => setView('shelf')} headingRef={focusOnMount} />
+          <ReviewFinished books={done} count={Math.max(doneCount, done.length)} onBack={() => setView('shelf')} headingRef={focusOnMount} next={nextSpines} />
         ) : (
           <Card variant="plain">
             <EmptyState
@@ -286,9 +351,12 @@ export function ReviewSession() {
               title={t('book.review.empty.title')}
               description={t('book.review.empty.body')}
               action={
-                <Button variant="primary" leftIcon={<Library />} onClick={() => setView('shelf')}>
-                  {t('book.review.backToShelf')}
-                </Button>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {nextSpines}
+                  <Button variant={nextSpines ? 'secondary' : 'primary'} leftIcon={<Library />} onClick={() => setView('shelf')}>
+                    {t('book.review.backToShelf')}
+                  </Button>
+                </div>
               }
             />
           </Card>
@@ -667,11 +735,14 @@ function ReviewFinished({
   count,
   onBack,
   headingRef,
+  next,
 }: {
   books: BookDTO[];
   count: number;
   onBack: () => void;
   headingRef?: Ref<HTMLHeadingElement>;
+  /** the next thing to review (e.g. the unreadable spines) */
+  next?: ReactNode;
 }) {
   const { tp, t } = useI18n();
   const shelf = books.slice(-16);
@@ -740,8 +811,9 @@ function ReviewFinished({
         </div>
       ) : null}
 
-      <div className="relative mt-8 flex justify-center">
-        <Button variant="primary" size="lg" leftIcon={<Library />} onClick={onBack}>
+      <div className="relative mt-8 flex flex-wrap justify-center gap-2">
+        {next}
+        <Button variant={next ? 'secondary' : 'primary'} size="lg" leftIcon={<Library />} onClick={onBack}>
           {t('book.review.backToShelf')}
         </Button>
       </div>
