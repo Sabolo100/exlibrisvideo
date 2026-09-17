@@ -24,6 +24,7 @@ import {
   sniffContainer,
   videoConstraints,
 } from './camera';
+import { setTorch, trackMayHaveTorch } from './media';
 
 describe('pickRecorderMimeType', () => {
   it('prefers H.264 MP4 (iOS Safari, recent Chrome)', () => {
@@ -263,5 +264,43 @@ describe('device helpers', () => {
     expect(iosSettingsApp('Mozilla/5.0 (iPhone) Version/18.0 Mobile/15E148 Safari/604.1')).toBe('Safari');
     expect(iosSettingsApp('Mozilla/5.0 (iPhone) CriOS/140.0 Mobile/15E148 Safari/604.1')).toBe('Chrome');
     expect(iosSettingsApp('Mozilla/5.0 (iPhone) FxiOS/140.0 Mobile/15E148 Safari/605.1.15')).toBe('Firefox');
+  });
+});
+
+describe('torch', () => {
+  const fakeTrack = (over: Record<string, unknown> = {}) =>
+    ({ applyConstraints: async () => {}, getCapabilities: () => ({}), getSettings: () => ({}), ...over }) as unknown as MediaStreamTrack;
+
+  it('is offered when the camera lists it, or for an Android back camera that may have one', () => {
+    expect(trackMayHaveTorch(fakeTrack({ getCapabilities: () => ({ torch: true }) }), 'ios', 'environment')).toBe(true);
+    expect(trackMayHaveTorch(fakeTrack(), 'android', 'environment')).toBe(true);
+    expect(trackMayHaveTorch(fakeTrack(), 'android', 'user')).toBe(false);
+    expect(trackMayHaveTorch(fakeTrack(), 'ios', 'environment')).toBe(false);
+    expect(trackMayHaveTorch(null, 'android', 'environment')).toBe(false);
+  });
+
+  it('checks that the torch really changed', async () => {
+    let torch = false;
+    const working = fakeTrack({
+      getCapabilities: () => ({ torch: true }),
+      applyConstraints: async (c: { advanced: { torch: boolean }[] }) => {
+        torch = c.advanced[0].torch;
+      },
+      getSettings: () => ({ torch }),
+    });
+    expect(await setTorch(working, true)).toBe(true);
+    expect(torch).toBe(true);
+    expect(await setTorch(working, false)).toBe(true);
+    // no torch anywhere: the advanced constraint is skipped without an error
+    const withoutTorch = fakeTrack();
+    expect(await setTorch(withoutTorch, true)).toBe(false);
+    expect(await setTorch(withoutTorch, false)).toBe(true);
+    const refusing = fakeTrack({
+      applyConstraints: async () => {
+        throw new Error('OverconstrainedError');
+      },
+    });
+    expect(await setTorch(refusing, true)).toBe(false);
+    expect(await setTorch(null, true)).toBe(false);
   });
 });

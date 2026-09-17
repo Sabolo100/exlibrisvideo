@@ -246,9 +246,11 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
     [setOpenBookId, writeUrl],
   );
 
-  // a book that disappeared (deleted, merged away, refreshed) closes the drawer
+  // a book that disappeared (deleted, merged away, refreshed) closes the drawer – unless the drawer has
+  // already moved on to another book in this commit (deleting from the drawer shows the next one)
   useEffect(() => {
-    if (openBookId && !books.some((b) => b.id === openBookId)) openBook(null);
+    const current = openBookRef.current;
+    if (current && !books.some((b) => b.id === current)) openBook(null);
   }, [books, openBookId, openBook]);
 
   /* ------------------------------------------------------------------ */

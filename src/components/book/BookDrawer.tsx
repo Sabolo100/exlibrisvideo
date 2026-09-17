@@ -72,6 +72,8 @@ export function BookDrawer() {
   }, []);
   const [pendingNav, setPendingNav] = useState<PendingNav | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  /** the book being deleted from the drawer and the one to show after it (browsing on through the list) */
+  const afterDeleteRef = useRef<{ id: string; next: string | null } | null>(null);
   const [marking, setMarking] = useState(false);
   const [shownId, setShownId] = useState(openBookId);
   if (shownId !== openBookId) {
@@ -82,9 +84,14 @@ export function BookDrawer() {
     setPendingNav(null);
   }
 
-  // the open book disappeared (deleted, merged away, removed with its source): close
+  // the open book disappeared (deleted, merged away, removed with its source): show the next one when it was
+  // deleted from here, otherwise close
   useEffect(() => {
-    if (openBookId && !books.some((b) => b.id === openBookId)) openBook(null);
+    if (!openBookId || books.some((b) => b.id === openBookId)) return;
+    const pending = afterDeleteRef.current;
+    afterDeleteRef.current = null;
+    const next = pending?.id === openBookId && pending.next && books.some((b) => b.id === pending.next) ? pending.next : null;
+    openBook(next);
   }, [openBookId, books, openBook]);
 
   // prev / next over the list the user is looking at (all books in shelf order when the book is filtered out)
@@ -156,6 +163,12 @@ export function BookDrawer() {
   const pending = pendingReview;
   const editing = mode === 'edit' && Boolean(book) && isOwner;
 
+  const askDelete = () => {
+    if (!book) return;
+    afterDeleteRef.current = { id: book.id, next: nav.next ?? nav.prev };
+    setDeleteOpen(true);
+  };
+
   const headerActions =
     book && !editing && nav.index >= 0 && nav.total > 1 ? (
       <div className="mr-1 flex items-center gap-0.5" title={t('book.drawer.navHint')}>
@@ -184,13 +197,15 @@ export function BookDrawer() {
   const footer =
     book && isOwner && !editing ? (
       <>
-        {/* icon-only on phones so the three actions fit one row */}
+        {/* icon-only on phones when three actions have to fit one row */}
         <span className="mr-auto">
-          <span className="sm:hidden">
-            <IconButton aria-label={t('common.action.delete')} icon={<Trash2 className="text-danger" />} size="sm" onClick={() => setDeleteOpen(true)} />
-          </span>
-          <span className="max-sm:hidden">
-            <Button variant="ghost" tone="danger" size="sm" leftIcon={<Trash2 />} onClick={() => setDeleteOpen(true)}>
+          {pending ? (
+            <span className="sm:hidden">
+              <IconButton aria-label={t('common.action.delete')} icon={<Trash2 className="text-danger" />} size="sm" onClick={askDelete} />
+            </span>
+          ) : null}
+          <span className={pending ? 'max-sm:hidden' : undefined}>
+            <Button variant="ghost" tone="danger" size="sm" leftIcon={<Trash2 />} onClick={askDelete}>
               {t('common.action.delete')}
             </Button>
           </span>
@@ -238,7 +253,8 @@ export function BookDrawer() {
         ) : null}
       </Drawer>
 
-      <DeleteBookDialog book={book} open={deleteOpen} onClose={() => setDeleteOpen(false)} onDeleted={() => openBook(null)} />
+      {/* after the delete the drawer moves on to the next book of the list (see the effect above) */}
+      <DeleteBookDialog book={book} open={deleteOpen} onClose={() => setDeleteOpen(false)} />
 
       <Dialog
         open={pendingNav !== null}

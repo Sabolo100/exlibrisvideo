@@ -101,6 +101,12 @@ const NEIGHBOUR_CLUSTERS = 3;
 const NEIGHBOUR_BOOKS = 4;
 /** existing-book matching: clusters / books this close to the edge of their video may continue each other */
 const EDGE_SPAN = 1;
+/** existing-book matching: an identical title this long (letters) counts as a strong reading without authors */
+const STRONG_TITLE_LETTERS = 18;
+/** existing-book matching: other clusters of the video matching books of the same earlier source (a re-filmed shelf) */
+const REFILM_MIN_MATCHES = 2;
+/** existing-book matching: a partial title with compatible authors on both sides may cover this little of the full title */
+const PARTIAL_WITH_AUTHOR_COVERAGE = 0.25;
 /** phantom twin: the twin must also be seen in this many other frames without the phantom */
 const PHANTOM_MIN_OTHER_FRAMES = 2;
 /** phantom twin: title similarity to its twin */
@@ -808,11 +814,17 @@ function alignFrames(scores: number[][], m: number, n: number): AlignedPair[] {
  * - output order = shelf order: first appearance (frameOrder, then orderInFrame). When the pan goes
  *   right→left (detected from the alignment) books are ordered by their last appearance instead, so
  *   the result is always the physical left→right order;
- * - clusters are matched one-to-one against `existing` books with the same rule (`matchedBookId`), but
- *   only when the shelf context agrees: a neighbouring cluster (±3) also matches a book near the
- *   existing one (same source video, ±4 positions), or the cluster is the first/last book of this video
- *   and the existing book the last/first of its video (a clip continuing the previous one), or the source has ≤ 3 books (a photo). A lone title match elsewhere on
- *   the shelf is a second physical copy, not a duplicate;
+ * - clusters are matched against `existing` books (`matchedBookId`): the same rule, a partial title reading
+ *   (coverage ≥ 0.4, ≥ 0.25 with compatible authors on both sides) or author and title read the other way
+ *   round. A match counts when the shelf context agrees: a neighbouring cluster (±3) also matches a book
+ *   near the existing one (same source video, ±4 positions), or the cluster is the first/last book of this
+ *   video and the existing book the last/first of its video (a clip continuing the previous one), or the
+ *   source has ≤ 3 books (a photo). A strong reading (compatible authors read on both sides, an identical
+ *   title of ≥ 18 letters, or the swapped pair) also counts when ≥ 2 other clusters match books of the same
+ *   earlier source – that shelf is being filmed again, its neighbours may just be misread. A lone title
+ *   match elsewhere on the shelf is a second physical copy, not a duplicate. Matching is one-to-one, except
+ *   that another strong reading of an already matched book joins it when the two were never seen in the
+ *   same frame;
  * - `ambiguousWith` lists clusters never seen in the same frame whose titles are near-duplicates
  *   (similarity ≥ 0.6, authors compatible) – candidates for the LLM duplicate judge;
  * - phantom twins: a reading seen in a single frame that duplicates (title ≥ 0.9) a spine of the same
@@ -1154,7 +1166,7 @@ export function clusterObservations(
     }
   }
 
-  /* ---- 8. match existing books (one-to-one) ---- */
+  /* ---- 8. match existing books ---- */
   if (existing.length) {
     const exTitles: string[] = [];
     const exOwner: number[] = [];
@@ -1169,23 +1181,50 @@ export function clusterObservations(
     });
     const exAuthors = existing.map((b) => [cleanStr(b.author), cleanStr(b.spineAuthor)].filter((a): a is string => !!a));
     const exNumbers = existing.map((b) => numbersKey(b.title) || numbersKey(b.spineTitle));
-    const candidates: { ci: number; bi: number; score: number }[] = [];
+
+    // strong: author-backed (or long identical / swapped) readings; weak: needs the neighbours' shelf context
+    type Candidate = { ci: number; bi: number; score: number; strong: boolean };
+    const found = new Map<string, Candidate>();
+    const offer = (c: Candidate) => {
+      const k = `${c.ci}:${c.bi}`;
+      const prev = found.get(k);
+      if (!prev || (c.strong && !prev.strong) || (c.strong === prev.strong && c.score > prev.score)) found.set(k, c);
+    };
     builds.forEach((cb, ci) => {
-      const best = new Map<number, number>();
       for (const t of cb.titleNorms) {
         for (const ti of exIndex.candidates(t, 0.3)) {
-          const s = sims.title(t, exTitles[ti]);
-          if (s < SAME_TITLE_THRESHOLD) continue;
           const bi = exOwner[ti];
-          if ((best.get(bi) ?? 0) < s) best.set(bi, s);
+          if (numbersConflict(cb.numbers, exNumbers[bi])) continue;
+          if (!sims.authorLists(cb.authorReadings, exAuthors[bi])) continue;
+          // compatible authors read on both sides are evidence, not just the absence of a contradiction
+          const authorEvidence = cb.authorReadings.length > 0 && exAuthors[bi].length > 0;
+          const s = sims.title(t, exTitles[ti]);
+          if (s >= SAME_TITLE_THRESHOLD) {
+            const longIdentical = s >= 0.95 && t.replace(/ /g, '').length >= STRONG_TITLE_LETTERS;
+            offer({ ci, bi, score: s, strong: authorEvidence || longIdentical });
+            continue;
+          }
+          // a partial reading of the title ("The Hundred Year Old Man" of the full title)
+          const coverage = sims.coverage(t, exTitles[ti]);
+          if (coverage >= (authorEvidence ? PARTIAL_WITH_AUTHOR_COVERAGE : MIN_PARTIAL_COVERAGE)) {
+            offer({ ci, bi, score: 0.5 + 0.3 * coverage, strong: false });
+          }
         }
       }
-      for (const [bi, s] of best) {
-        if (numbersConflict(cb.numbers, exNumbers[bi])) continue;
-        if (!sims.authorLists(cb.authorReadings, exAuthors[bi])) continue;
-        candidates.push({ ci, bi, score: s });
+      // author and title read the other way round ("Elon Musk – Ashlee Vance" for "Ashlee Vance – Elon Musk")
+      const clusterTitles = [cb.cluster.title, cb.cluster.spineTitle].map((x) => normalizeTitle(x)).filter(Boolean);
+      for (const a of cb.authorReadings) {
+        const an = normalizeTitle(a);
+        if (!an) continue;
+        for (const ti of exIndex.candidates(an, 0.3)) {
+          const bi = exOwner[ti];
+          if (!exAuthors[bi].length || sims.title(an, exTitles[ti]) < SAME_TITLE_THRESHOLD) continue;
+          const titleIsTheAuthor = clusterTitles.some((ct) => exAuthors[bi].some((ea) => sims.title(ct, normalizeTitle(ea)) >= SAME_TITLE_THRESHOLD));
+          if (titleIsTheAuthor) offer({ ci, bi, score: SAME_TITLE_THRESHOLD, strong: true });
+        }
       }
     });
+    const candidates = [...found.values()];
 
     // shelf context of existing books: block (source video) + rank inside the block
     const hasPositions = existing.some((b) => typeof b.shelfPosition === 'number' && Number.isFinite(b.shelfPosition));
@@ -1232,14 +1271,32 @@ export function clusterObservations(
       const atBookEdge = rankInBlock[bi] < EDGE_SPAN || rankInBlock[bi] >= size - EDGE_SPAN;
       return atClusterEdge && atBookEdge;
     };
-    const supportedCandidates = candidates.filter((c) => supported(c.ci, c.bi));
-    supportedCandidates.sort((x, y) => y.score - x.score || x.ci - y.ci || x.bi - y.bi);
+    // this video films an earlier source again when other clusters match books of that source too; a book
+    // there with a strong reading is the same book even if its neighbours were misread this time. A lone
+    // match (nothing else of that source in this video) stays a second copy on another shelf.
+    const clustersInBlock = new Map<number, Set<number>>();
+    for (const c of candidates) {
+      if (c.score < SAME_TITLE_THRESHOLD) continue; // partial readings do not show an overlap
+      const set = clustersInBlock.get(block[c.bi]) ?? new Set<number>();
+      set.add(c.ci);
+      clustersInBlock.set(block[c.bi], set);
+    }
+    const refilmed = (ci: number, bi: number): boolean => {
+      const set = clustersInBlock.get(block[bi]);
+      return !!set && set.size - (set.has(ci) ? 1 : 0) >= REFILM_MIN_MATCHES;
+    };
+    const accepted = candidates.filter((c) => supported(c.ci, c.bi) || (c.strong && refilmed(c.ci, c.bi)));
+    accepted.sort((x, y) => Number(y.strong) - Number(x.strong) || y.score - x.score || x.ci - y.ci || x.bi - y.bi);
+    const shareFrame = (a: ClusterBuild, b: ClusterBuild) => [...a.vframes].some((v) => b.vframes.has(v));
     const usedC = new Set<number>();
-    const usedB = new Set<number>();
-    for (const c of supportedCandidates) {
-      if (usedC.has(c.ci) || usedB.has(c.bi)) continue;
+    const takenBy = new Map<number, number[]>();
+    for (const c of accepted) {
+      if (usedC.has(c.ci)) continue;
+      const taken = takenBy.get(c.bi);
+      // another reading of the same book in this video joins it too – never a second spine seen beside it
+      if (taken && (!c.strong || taken.some((other) => shareFrame(builds[other], builds[c.ci])))) continue;
       usedC.add(c.ci);
-      usedB.add(c.bi);
+      takenBy.set(c.bi, [...(taken ?? []), c.ci]);
       builds[c.ci].cluster.matchedBookId = existing[c.bi].id;
     }
   }
@@ -1669,6 +1726,8 @@ export async function mergeVideoDetections(
           if (can('publisher') && !book.publisher && c.publisher) patch.publisher = c.publisher;
           if (!guard.reviewed && book.needsReview && !c.needsReview) patch.needsReview = false;
           await tx.update(books).set(patch).where(eq(books.id, book.id));
+          // a second reading of the same book in this video builds on the counts just written
+          Object.assign(book, patch);
           updatedBookIds.push(book.id);
           assignments.push({ bookId: book.id, detectionIds: c.observationKeys });
         }

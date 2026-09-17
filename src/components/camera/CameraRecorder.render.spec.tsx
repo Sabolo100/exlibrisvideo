@@ -233,7 +233,7 @@ describe('CameraScreen', () => {
     expect(text(calm)).toContain('00:42');
     expect(calm).not.toContain('data-warning');
     expect(calm).toContain('aria-label="Felvétel leállítása"');
-    expect(calm).toContain('aria-label="Zseblámpa bekapcsolása"');
+    expect(calm).toContain('aria-label="Vaku bekapcsolása"');
     expect(calm).not.toContain('aria-label="Váltás a másik kamerára"');
     expect(text(calm)).not.toContain(messages.hu['guide.title']);
     expect(calm).not.toContain('left-1/3');
@@ -266,7 +266,7 @@ describe('CameraScreen', () => {
 
   it('marks the torch as pressed when it is on', () => {
     const html = renderScreen({ torchSupported: true, torchOn: true });
-    expect(html).toMatch(/aria-label="Zseblámpa kikapcsolása"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Zseblámpa kikapcsolása"/);
+    expect(html).toMatch(/aria-label="Vaku kikapcsolása"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*aria-label="Vaku kikapcsolása"/);
   });
 
   it('switches to the fallback screen when the camera failed', () => {

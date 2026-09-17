@@ -17,6 +17,7 @@ import {
   classifyMediaError,
   extensionForMime,
   isRetryableOnReturn,
+  detectPlatform,
   isUsableClip,
   mediaStreamConstraints,
   mimeForContainer,
@@ -29,6 +30,7 @@ import {
   VIDEO_BITS_PER_SECOND,
   type CameraFacing,
   type CameraProblem,
+  type Platform,
 } from './camera';
 import {
   captureVideoFrame,
@@ -39,12 +41,13 @@ import {
   setTorch,
   stopStream,
   tick,
+  trackMayHaveTorch,
   trackSupportsTorch,
 } from './media';
 
 export type CameraStatus = 'starting' | 'live' | 'suspended' | 'failed' | 'closed';
 export type RecorderPhase = 'idle' | 'recording' | 'finalizing';
-export type NoticeKind = 'tooShort' | 'limit' | 'interrupted' | 'failed';
+export type NoticeKind = 'tooShort' | 'limit' | 'interrupted' | 'failed' | 'torchUnavailable';
 /** why a recording ended */
 export type StopReason = 'user' | 'limit' | 'hidden' | 'interrupted' | 'failed' | 'close' | 'done';
 
@@ -140,6 +143,13 @@ const STOP_SAFETY_MS = 3000;
 const AUTO_RESTART_WINDOW_MS = 5000;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** the torch capability is looked at again this long after the camera started (some phones report it late) */
+const TORCH_RECHECK_MS = [600, 2000];
+
+function currentPlatform(): Platform {
+  return typeof navigator === 'undefined' ? 'other' : detectPlatform(navigator.userAgent, navigator.maxTouchPoints ?? 0);
+}
 
 export function useCameraSession({ maxDurationSec }: { maxDurationSec: number }): CameraSession {
   const [state, setState] = useState<CameraSessionState>(INITIAL_STATE);
@@ -253,10 +263,17 @@ export function useCameraSession({ maxDurationSec }: { maxDurationSec: number })
         status: 'live',
         problem: null,
         mirrored: settings.facingMode === 'user' || (!settings.facingMode && request.facing === 'user' && !request.deviceId),
-        torchSupported: trackSupportsTorch(track),
+        torchSupported: trackMayHaveTorch(track, currentPlatform(), request.facing),
         torchOn: false,
       });
       void refreshDevices();
+      for (const delay of TORCH_RECHECK_MS) {
+        window.setTimeout(() => {
+          if (gen !== genRef.current || !mountedRef.current || stateRef.current.status !== 'live') return;
+          const may = trackMayHaveTorch(firstVideoTrack(streamRef.current), currentPlatform(), facingRef.current);
+          if (may !== stateRef.current.torchSupported) update({ torchSupported: may });
+        }, delay);
+      }
       return true;
     },
     [refreshDevices, releaseStream, update],
@@ -265,7 +282,7 @@ export function useCameraSession({ maxDurationSec }: { maxDurationSec: number })
   const onVideoReady = useCallback(() => {
     if (stateRef.current.status !== 'live') return;
     // some Android builds report the torch only once frames flow
-    const torchSupported = trackSupportsTorch(firstVideoTrack(streamRef.current));
+    const torchSupported = trackMayHaveTorch(firstVideoTrack(streamRef.current), currentPlatform(), facingRef.current);
     const s = stateRef.current;
     if (!s.videoReady || s.freezeFrame || s.torchSupported !== torchSupported) {
       update({ videoReady: true, freezeFrame: null, torchSupported });
@@ -474,8 +491,15 @@ export function useCameraSession({ maxDurationSec }: { maxDurationSec: number })
     const next = !s.torchOn;
     const gen = genRef.current;
     update({ torchOn: next });
-    void setTorch(firstVideoTrack(streamRef.current), next).then((ok) => {
-      if (!ok && gen === genRef.current && mountedRef.current) update({ torchOn: !next });
+    const track = firstVideoTrack(streamRef.current);
+    void setTorch(track, next).then((ok) => {
+      if (ok || gen !== genRef.current || !mountedRef.current) return;
+      if (next && !trackSupportsTorch(track)) {
+        // the camera does not have a torch after all: say so and stop offering it
+        update({ torchOn: false, torchSupported: false, notice: { id: nextId(), kind: 'torchUnavailable' } });
+      } else {
+        update({ torchOn: !next });
+      }
     });
   }, [update]);
 

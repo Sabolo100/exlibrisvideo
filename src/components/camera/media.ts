@@ -4,7 +4,7 @@
  * Small imperative browser helpers of the recorder (camera tracks, frames, haptics, wake lock).
  * Every function tolerates missing APIs – they are feature-detected, never assumed.
  */
-import { isTorchSupported } from './camera';
+import { isTorchSupported, type CameraFacing, type Platform } from './camera';
 
 /** MediaTrackConstraintSet with the Image Capture `torch` member (not in lib.dom yet). */
 interface TorchConstraintSet extends MediaTrackConstraintSet {
@@ -35,16 +35,28 @@ export function trackSupportsTorch(track: MediaStreamTrack | null): boolean {
   }
 }
 
-/** Switches the torch; resolves false when the camera refused. */
+/**
+ * Whether to offer the torch button: the camera says it has a torch, or – on Android, back camera – it may
+ * still have one (Chrome on some phones lists the torch late or not at all; `setTorch` then tells).
+ */
+export function trackMayHaveTorch(track: MediaStreamTrack | null, platform: Platform, facing: CameraFacing): boolean {
+  if (trackSupportsTorch(track)) return true;
+  return platform === 'android' && facing === 'environment' && !!track && typeof track.applyConstraints === 'function';
+}
+
+/** Switches the torch; resolves false when the camera refused it or silently ignored it. */
 export async function setTorch(track: MediaStreamTrack | null, on: boolean): Promise<boolean> {
   if (!track || typeof track.applyConstraints !== 'function') return false;
   const torch: TorchConstraintSet = { torch: on };
   try {
     await track.applyConstraints({ advanced: [torch] });
-    return true;
   } catch {
     return false;
   }
+  // an advanced constraint the camera cannot meet is skipped without an error: check what really happened
+  const settings = (typeof track.getSettings === 'function' ? track.getSettings() : {}) as MediaTrackSettings & { torch?: unknown };
+  if (typeof settings.torch === 'boolean') return settings.torch === on;
+  return !on || trackSupportsTorch(track);
 }
 
 /** Ids of the video inputs ('' ids before permission is granted are kept – only the count matters then). */

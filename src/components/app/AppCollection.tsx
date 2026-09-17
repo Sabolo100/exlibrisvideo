@@ -201,6 +201,10 @@ export function AppCollection() {
                   }}
                 />
               ) : null}
+              {isOwner && !processing ? (
+                // a missed book on the shelf: film it again right from here (the merge skips the books already in)
+                <AppBarButton label={t('app.collection.addVideo')} icon={<Camera />} onClick={() => setCameraOpen(true)} />
+              ) : null}
               <AppBarButton label={t('app.collection.share')} icon={<Share2 />} onClick={() => void share()} />
             </>
           }

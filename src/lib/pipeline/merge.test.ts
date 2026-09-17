@@ -466,6 +466,76 @@ describe('clusterObservations – existing books', () => {
     expect(cs.slice(1).every((c) => c.matchedBookId === null)).toBe(true);
   });
 
+  describe('a shelf filmed again (a second video to catch missed books)', () => {
+    const firstVideo: ExistingBookRef[] = [
+      ['Charles Nicholl', 'Leonardo da Vinci'],
+      ['Brian Aldiss', 'A Science Fiction Omnibus'],
+      ['Dave Eggers', 'The Circle'],
+      ['Jonas Jonasson', 'The Hundred-Year-Old Man Who Climbed Out of the Window and Disappeared'],
+      ['John Lanchester', 'Capital'],
+      ['Bill Bryson', 'Down Under'],
+      [null, 'Second World'],
+      ['Ashlee Vance', 'Elon Musk'],
+      ['Robert Winston', 'The Human Mind'],
+      ['Simon Baron-Cohen', 'The Essential Difference'],
+    ].map(([author, title], i) => ({ id: `e${i}`, author, title: title!, spineAuthor: null, spineTitle: null, shelfPosition: i }));
+
+    it('matches partial, swapped and author-backed readings even where the neighbours are misread', () => {
+      const J: [string, string] = ['The Hundred Year Old Man', 'Jonas Jonasson'];
+      const C: [string, string] = ['Capital', 'John Lanchester'];
+      const D: [string, string] = ['Down Under', 'Bill Bryson'];
+      const SW: [string] = ['The Second World War'];
+      const R: [string, string] = ['The Road to Little Dribbling', 'Bill Bryson'];
+      const G: [string] = ['The Girl Who Saved the King of Sweden'];
+      const F: [string, string] = ['The Fountains of Paradise', 'Arthur C. Clarke'];
+      const E: [string, string] = ['Elon Musk', 'Ashlee Vance'];
+      const S: [string, string] = ['Ashlee Vance', 'Elon Musk'];
+      const B: [string, string] = ['Games People Play', 'Eric Berne'];
+      const W: [string, string] = ['The Swerve', 'Stephen Greenblatt'];
+      const cs = clusterObservations(
+        framesToObs([
+          [J, C, D],
+          [C, D, SW],
+          [D, SW, R],
+          [SW, R, G],
+          [R, G, F],
+          [G, F, E],
+          [F, S, B],
+          [S, B, W],
+        ]),
+        firstVideo,
+      );
+      const byTitle = Object.fromEntries(cs.map((c) => [`${c.author ?? '–'} – ${c.title}`, c.matchedBookId]));
+      expect(byTitle).toEqual({
+        'Jonas Jonasson – The Hundred Year Old Man': 'e3',
+        'John Lanchester – Capital': 'e4',
+        'Bill Bryson – Down Under': 'e5',
+        '– – The Second World War': 'e6',
+        'Bill Bryson – The Road to Little Dribbling': null,
+        '– – The Girl Who Saved the King of Sweden': null,
+        'Arthur C. Clarke – The Fountains of Paradise': null,
+        // no matching neighbour around it this time, but the video films the first video's shelf again
+        'Ashlee Vance – Elon Musk': 'e7',
+        // the same spine read the other way round in later frames joins the same book
+        'Elon Musk – Ashlee Vance': 'e7',
+        'Eric Berne – Games People Play': null,
+        'Stephen Greenblatt – The Swerve': null,
+      });
+    });
+
+    it('a partial title on another shelf is not enough', () => {
+      const cs = clusterObservations(
+        framesToObs([
+          [['A holtak küldöttei', 'Adam-Troy Castro'], ['The Hundred Year Old Man', 'Jonas Jonasson'], ['Az ellopott futár', 'Rejtő Jenő']],
+          [['The Hundred Year Old Man', 'Jonas Jonasson'], ['Az ellopott futár', 'Rejtő Jenő'], ['A harcos', 'Stephen King']],
+          [['Az ellopott futár', 'Rejtő Jenő'], ['A harcos', 'Stephen King'], ['A vád tanúja', 'Agatha Christie']],
+        ]),
+        firstVideo,
+      );
+      expect(cs.every((c) => c.matchedBookId === null)).toBe(true);
+    });
+  });
+
   it('matching is one-to-one and respects authors and volume numbers', () => {
     const existing: ExistingBookRef[] = [
       { id: 'v1', author: 'Tolsztoj', title: 'Háború és béke I.', spineAuthor: null, spineTitle: null },

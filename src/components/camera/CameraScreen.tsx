@@ -48,6 +48,7 @@ const NOTICE_ICON: Record<NoticeKind, typeof Info> = {
   limit: Info,
   interrupted: Info,
   failed: CircleAlert,
+  torchUnavailable: Info,
 };
 
 function StartingIndicator() {
