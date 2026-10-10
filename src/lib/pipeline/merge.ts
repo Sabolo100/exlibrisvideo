@@ -14,6 +14,7 @@ import { db, type DB } from '@/db';
 import { books, collections, detections, frames, videos, type BookRow, type NewBookRow } from '@/db/schema';
 import { env } from '@/lib/env';
 import type { BBox } from '@/lib/types';
+import { applyTagChange } from '@/lib/collections/tags';
 import {
   authorSortKey,
   authorsCompatible,
@@ -1646,6 +1647,8 @@ export async function mergeVideoDetections(
       const clusters = clusterObservations(observations, existing, { extraLinks });
       const rowById = new Map(rows.map((r) => [r.id, r]));
       const source = video.kind === 'image' ? 'image' : 'video';
+      // the owner's tags of this recording (whose shelf, which room …) go to every book found in it
+      const sourceTags = video.tags ?? [];
 
       const [{ n: bookCount }] = await tx
         .select({ n: sql<number>`count(*)::int` })
@@ -1687,6 +1690,7 @@ export async function mergeVideoDetections(
           shelfPosition: video.sortOrder * 100000 + clusterIndex,
           detectionCount: c.observationKeys.length,
           duplicateOfId: c.possibleDuplicateOf ?? null,
+          tags: sourceTags,
           createdAt: now,
           updatedAt: now,
         });
@@ -1740,6 +1744,10 @@ export async function mergeVideoDetections(
           if (can('spineTitle') && !book.spineTitle && c.spineTitle) patch.spineTitle = c.spineTitle;
           if (can('publisher') && !book.publisher && c.publisher) patch.publisher = c.publisher;
           if (!guard.reviewed && book.needsReview && !c.needsReview) patch.needsReview = false;
+          if (sourceTags.length) {
+            const tags = applyTagChange(book.tags ?? [], sourceTags);
+            if (tags.length !== (book.tags ?? []).length) patch.tags = tags;
+          }
           await tx.update(books).set(patch).where(eq(books.id, book.id));
           // a second reading of the same book in this video builds on the counts just written
           Object.assign(book, patch);

@@ -16,6 +16,7 @@ import {
   TriangleAlert,
   Trash2,
   Undo2,
+  Tag,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -32,6 +33,7 @@ import { useCollection, type BookFilters, type CollectionContextValue } from '@/
 import { FILTERED_VIEWS } from '@/components/collection/view-meta';
 import {
   Badge,
+  Chip,
   Button,
   Dialog,
   Drawer,
@@ -331,6 +333,7 @@ export function BookDetails({ book, ctx, onEdit, onMarkReviewed, marking }: Book
   };
   const filterAuthor = (author: string) => showFiltered({ authors: [author] });
   const filterTopic = (topic: string) => showFiltered({ topics: [topic] });
+  const filterTag = (tag: string) => showFiltered({ tags: [tag] });
 
   const facts = [
     book.firstPublishedYear ? (
@@ -447,9 +450,9 @@ export function BookDetails({ book, ctx, onEdit, onMarkReviewed, marking }: Book
               />
             ))}
             {book.tags.map((tag) => (
-              <Badge key={tag} tone="neutral">
-                #{tag}
-              </Badge>
+              <Chip key={tag} size="sm" icon={<Tag />} onClick={() => filterTag(tag)} title={t('book.drawer.filterTag', { tag })}>
+                {tag}
+              </Chip>
             ))}
           </div>
         ) : null}

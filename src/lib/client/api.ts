@@ -89,7 +89,7 @@ export const api = {
 
   getStatus: (id: string) => request<CollectionStatusDTO>(`/api/collections/${enc(id)}/status`),
 
-  initUpload: (collectionId: string, body: { filename: string; size: number; mimeType: string }) =>
+  initUpload: (collectionId: string, body: { filename: string; size: number; mimeType: string; tags?: string[] }) =>
     request<InitUploadResponse>(`/api/collections/${enc(collectionId)}/uploads`, { method: 'POST', json: body }),
 
   getUpload: (videoId: string) =>
@@ -106,6 +106,10 @@ export const api = {
 
   completeUpload: (videoId: string) =>
     request<{ video: VideoDTO }>(`/api/uploads/${enc(videoId)}/complete`, { method: 'POST' }),
+
+  /** Owner: the recording's tags (its books get / lose them too). */
+  setSourceTags: (videoId: string, tags: string[]) =>
+    request<{ video: VideoDTO }>(`/api/uploads/${enc(videoId)}`, { method: 'PATCH', json: { tags } }),
 
   deleteUpload: (videoId: string) => request<void>(`/api/uploads/${enc(videoId)}`, { method: 'DELETE' }),
 

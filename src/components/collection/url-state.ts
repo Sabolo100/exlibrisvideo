@@ -26,6 +26,7 @@ export const URL_KEYS = {
   topics: 'topic',
   statuses: 'status',
   authors: 'author',
+  tags: 'tag',
   languages: 'lang',
   decades: 'decade',
   needsReview: 'review',
@@ -116,6 +117,7 @@ export function parseUrlState(params: SearchParamsLike, opts: { isOwner?: boolea
   const topics = uniq(listValues(params, URL_KEYS.topics, true).filter(isTopicKey));
   const statuses = uniq(listValues(params, URL_KEYS.statuses, true).filter(isReadingStatus));
   const authors = uniq(listValues(params, URL_KEYS.authors, false).map((a) => a.slice(0, 200)));
+  const tags = uniq(listValues(params, URL_KEYS.tags, false).map((a) => a.slice(0, 60)));
   const languages = uniq(
     listValues(params, URL_KEYS.languages, true)
       .filter((l) => LANGUAGE_RE.test(l))
@@ -139,6 +141,7 @@ export function parseUrlState(params: SearchParamsLike, opts: { isOwner?: boolea
       topics,
       statuses,
       authors,
+      tags,
       languages,
       decades,
       needsReview: flag(params, URL_KEYS.needsReview),
@@ -168,6 +171,7 @@ export function buildSearch(current: SearchParamsLike | null, state: CollectionU
   if (f.topics.length) out.set(URL_KEYS.topics, uniq(f.topics).join(','));
   if (f.statuses.length) out.set(URL_KEYS.statuses, uniq(f.statuses).join(','));
   for (const a of uniq(f.authors)) out.append(URL_KEYS.authors, a);
+  for (const tag of uniq(f.tags)) out.append(URL_KEYS.tags, tag);
   if (f.languages.length) out.set(URL_KEYS.languages, uniq(f.languages).join(','));
   if (f.decades.length) out.set(URL_KEYS.decades, uniq([...f.decades].sort((a, b) => a - b)).join(','));
   if (f.needsReview) out.set(URL_KEYS.needsReview, '1');
@@ -202,6 +206,7 @@ export function filtersEqual(a: BookFilters, b: BookFilters): boolean {
     sameList(a.topics, b.topics) &&
     sameList(a.statuses, b.statuses) &&
     sameList(a.authors, b.authors) &&
+    sameList(a.tags, b.tags) &&
     sameList(a.languages, b.languages) &&
     sameList(a.decades, b.decades)
   );

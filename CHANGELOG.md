@@ -4,6 +4,17 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.2.0 – 2026-10-10
+
+### Added
+- **Tags for recordings**: before uploading (web uploader, phone app right after recording) the owner can
+  tag the recording – whose shelf, which room, a genre; earlier tags are offered as one-tap chips and a short
+  hint explains what tags are for. Every book found in the recording gets its tags (new and already known
+  books, named unread spines too). Tags can be changed later per recording in the frames view; removed tags
+  leave its books unless another recording of the book still has them.
+- **Filter by tag** (filters panel, active filter chips, `?tag=` in the URL); tags on the book card filter
+  with one tap; Excel and CSV exports have a Tags column.
+
 ## 1.1.0 – 2026-10-10
 
 ### Added

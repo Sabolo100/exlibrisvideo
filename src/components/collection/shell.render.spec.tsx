@@ -93,6 +93,7 @@ function makeCollection(overrides: Partial<CollectionWithBooksDTO> = {}): Collec
         framesTotal: 24,
         framesAnalyzed: 24,
         booksFound: books.length,
+        tags: [],
         error: null,
         createdAt: '2026-09-12T20:00:00.000Z',
         processedAt: '2026-09-12T20:05:00.000Z',

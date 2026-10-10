@@ -4,7 +4,7 @@
  * Filter controls (topics, reading status, authors, languages, decades, flags) and the button that
  * opens them: a Popover on desktop, a bottom-sheet Drawer on phones.
  */
-import { Bookmark, ChevronDown, Handshake, Heart, ScanEye, Search, SlidersHorizontal } from 'lucide-react';
+import { Bookmark, ChevronDown, Handshake, Heart, ScanEye, Search, SlidersHorizontal, Tag } from 'lucide-react';
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { READING_STATUS_META, TopicChip } from '@/components/books';
 import { Button, Checkbox, Chip, Drawer, Input, Popover, cn, useMediaQuery } from '@/components/ui';
@@ -75,6 +75,25 @@ export function FiltersPanel({ onDone, className }: { onDone?: () => void; class
 
   return (
     <div className={cn('flex flex-col', className)}>
+      {facets.tags.length > 0 ? (
+        <Section title={t('collection.filter.tags')}>
+          <div className="flex flex-wrap gap-1.5">
+            {facets.tags.map((f) => (
+              <Chip
+                key={f.key}
+                size="sm"
+                icon={<Tag className="size-3.5" />}
+                count={f.count}
+                selected={filters.tags.includes(f.key)}
+                onSelectedChange={(on) => setFilters({ tags: toggleValue(filters.tags, f.key, on) })}
+              >
+                {f.key}
+              </Chip>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
       {facets.topics.length > 0 ? (
         <Section
           title={t('collection.filter.topics')}

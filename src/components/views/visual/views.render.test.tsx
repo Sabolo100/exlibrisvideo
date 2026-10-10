@@ -64,6 +64,7 @@ const VIDEO: VideoDTO = {
   framesTotal: 3,
   framesAnalyzed: 3,
   booksFound: 3,
+  tags: [],
   error: null,
   createdAt: '2026-09-12T20:00:00.000Z',
   processedAt: '2026-09-12T20:05:00.000Z',

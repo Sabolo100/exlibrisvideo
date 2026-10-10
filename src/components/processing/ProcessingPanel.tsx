@@ -44,6 +44,7 @@ import { SourceCard } from './SourceCard';
 import { TipsCarousel } from './TipsCarousel';
 import { usePolling } from './usePolling';
 import { ownerLibraryLabel } from '@/components/collection/labels';
+import { tagSuggestions } from '@/components/tags/tag-utils';
 
 export interface ProcessingPanelProps {
   initial: CollectionWithBooksDTO;
@@ -315,6 +316,8 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
         existingSourceCount={status.videos.length}
         resumableUploads={resumable}
         showFileList={false}
+        withTags
+        tagSuggestions={tagSuggestions(books, status.videos)}
         onAllComplete={() => pollStatusNow()}
       />
     </Card>

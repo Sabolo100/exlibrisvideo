@@ -1,7 +1,7 @@
 'use client';
 
 /** Removable chips for every active filter value, plus "clear all". */
-import { Handshake, Heart, ScanEye, Search } from 'lucide-react';
+import { Handshake, Heart, ScanEye, Search, Tag } from 'lucide-react';
 import { READING_STATUS_META, TopicChip } from '@/components/books';
 import { Button, Chip, cn } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
@@ -43,6 +43,17 @@ export function ActiveFilters({ className }: { className?: string }) {
           </Chip>
         );
       })}
+      {filters.tags.map((tag) => (
+        <Chip
+          key={`t-${tag}`}
+          size="sm"
+          icon={<Tag className="size-3.5" />}
+          onRemove={() => setFilters({ tags: without(filters.tags, tag) })}
+          removeLabel={t('common.aria.remove', { label: tag })}
+        >
+          {tag}
+        </Chip>
+      ))}
       {filters.authors.map((author) => (
         <Chip
           key={`a-${author}`}

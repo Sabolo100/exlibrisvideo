@@ -25,6 +25,7 @@ const video = (id: string, sortOrder: number, createdAt = '2026-09-01T10:00:00Z'
   framesTotal: 3,
   framesAnalyzed: 3,
   booksFound: 5,
+  tags: [],
   error: null,
   createdAt,
   processedAt: null,

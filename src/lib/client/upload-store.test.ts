@@ -46,6 +46,7 @@ function makeVideo(id: string, u: FakeUpload): VideoDTO {
     framesTotal: 0,
     framesAnalyzed: 0,
     booksFound: 0,
+    tags: [],
     error: null,
     createdAt: new Date(0).toISOString(),
     processedAt: null,

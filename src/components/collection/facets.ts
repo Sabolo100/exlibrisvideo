@@ -3,6 +3,7 @@
  */
 import { READING_STATUSES, type BookDTO, type Locale, type ReadingStatus } from '@/lib/types';
 import { decadeOf, isLent, isPendingReview, splitAuthors, foldForSearch, topicCounts, uniqueAuthors } from '@/lib/book-utils';
+import { libraryTags } from '@/components/tags/tag-utils';
 import { estimatePages } from '@/components/views/data/stats';
 
 export interface FacetCount<K> {
@@ -14,6 +15,8 @@ export interface CollectionFacets {
   topics: FacetCount<string>[];
   statuses: FacetCount<ReadingStatus>[];
   authors: FacetCount<string>[];
+  /** owner's tags, most used first */
+  tags: FacetCount<string>[];
   /** ISO 639-1 codes, lower-case, by count desc */
   languages: FacetCount<string>[];
   /** decade start years, ascending */
@@ -46,6 +49,7 @@ export function computeFacets(books: readonly BookDTO[], locale: Locale): Collec
     topics: topicCounts(books),
     statuses: READING_STATUSES.filter((s) => statusMap.has(s)).map((s) => ({ key: s, count: statusMap.get(s) ?? 0 })),
     authors: uniqueAuthors(books, locale).map((a) => ({ key: a.author, count: a.count })),
+    tags: libraryTags(books).map((e) => ({ key: e.tag, count: e.count })),
     languages: [...languageMap.entries()]
       .map(([key, count]) => ({ key, count }))
       .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)),

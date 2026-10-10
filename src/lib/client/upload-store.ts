@@ -61,6 +61,8 @@ export interface UploadItem {
   finishedAt?: number;
   /** VideoDTO returned by the complete call */
   video?: VideoDTO;
+  /** owner's tags of the recording */
+  tags?: string[];
 }
 
 /** A draft collection created by the landing-page uploader (kept here so it survives navigation). */
@@ -77,6 +79,12 @@ export interface UploadDraft {
 export interface UploadStoreState {
   items: readonly UploadItem[];
   draft: UploadDraft | null;
+}
+
+export interface EnqueueOptions {
+  resumable?: readonly ResumableUpload[];
+  /** owner's tags for the new recordings (sent when the upload is created) */
+  tags?: readonly string[];
 }
 
 /** An unfinished server-side upload that a re-selected file (same name + size) may continue. */
@@ -118,7 +126,7 @@ export interface UploadStore {
   getSnapshot(): UploadStoreState;
   getServerSnapshot(): UploadStoreState;
   /** adds files to the collection's queue and starts uploading; returns the created items */
-  enqueue(collectionId: string, files: readonly File[], opts?: { resumable?: readonly ResumableUpload[] }): UploadItem[];
+  enqueue(collectionId: string, files: readonly File[], opts?: EnqueueOptions): UploadItem[];
   pause(localId: string): void;
   /** paused or failed item → back into the queue (continues where the server left off) */
   resume(localId: string): void;
@@ -652,7 +660,12 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         localId,
         ctl,
         async () => {
-          created = await api.initUpload(item.collectionId, { filename: item.name, size: item.size, mimeType: item.mimeType });
+          created = await api.initUpload(item.collectionId, {
+            filename: item.name,
+            size: item.size,
+            mimeType: item.mimeType,
+            ...(item.tags?.length ? { tags: item.tags } : {}),
+          });
           return created;
         },
         () => 'rethrow',
@@ -856,7 +869,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
 
   /* ---------------- public API ---------------- */
 
-  function enqueue(collectionId: string, picked: readonly File[], opts?: { resumable?: readonly ResumableUpload[] }): UploadItem[] {
+  function enqueue(collectionId: string, picked: readonly File[], opts?: EnqueueOptions): UploadItem[] {
     bindEnvironment();
     const now = env.now();
     const claimed = new Set(state.items.map((i) => i.videoId).filter(Boolean) as string[]);
@@ -882,6 +895,7 @@ export function createUploadStore(options: UploadStoreOptions = {}): UploadStore
         inFlight: null,
         retry: null,
         addedAt: now,
+        ...(opts?.tags?.length ? { tags: [...opts.tags] } : {}),
       };
       files.set(item.localId, file);
       created.push(item);

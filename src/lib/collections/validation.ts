@@ -20,6 +20,19 @@ const year = z.number().int().min(1000).max(2100).nullable().optional();
 
 const topicKey = z.string().refine((k) => isTopicKey(k), { message: 'Unknown taxonomy key' });
 
+/** First spelling wins: "Anna" and "anna" are one tag. */
+export function dedupeTags(tags: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const tag of tags) {
+    const key = tag.toLocaleLowerCase('hu');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(tag);
+  }
+  return out;
+}
+
 function dedupe<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
@@ -49,6 +62,12 @@ export const LIMITS = {
 } as const;
 
 /** Editable book fields (PATCH /api/books/:id). Unknown keys are ignored. */
+/** Owner's tags (book or recording): trimmed, empty ones dropped, de-duplicated case-insensitively. */
+export const tagListSchema = z
+  .array(z.string().trim().max(LIMITS.tag))
+  .max(LIMITS.tags)
+  .transform((tags) => dedupeTags(tags.filter((t) => t !== '')));
+
 export const bookPatchSchema = z.object({
   title: z.string().trim().min(1).max(LIMITS.title).optional(),
   subtitle: nullableText(LIMITS.subtitle),
@@ -78,11 +97,7 @@ export const bookPatchSchema = z.object({
   pageCount: z.number().int().min(1).max(100_000).nullable().optional(),
   category: topicKey.nullable().optional(),
   topics: z.array(topicKey).max(LIMITS.topics).transform(dedupe).optional(),
-  tags: z
-    .array(z.string().trim().max(LIMITS.tag))
-    .max(LIMITS.tags)
-    .transform((tags) => dedupe(tags.filter((t) => t !== '')))
-    .optional(),
+  tags: tagListSchema.optional(),
   copies: z.number().int().min(1).max(99).optional(),
   readingStatus: z.enum(READING_STATUSES as [ReadingStatus, ...ReadingStatus[]]).optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
@@ -145,7 +160,12 @@ export const initUploadSchema = z.object({
   size: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   /** may be empty when the browser does not know the type – the extension decides then */
   mimeType: z.string().trim().max(255).optional().default(''),
+  /** tags of the recording (its books get them too) */
+  tags: tagListSchema.optional(),
 });
+
+/** PATCH /api/uploads/:videoId */
+export const sourcePatchSchema = z.object({ tags: tagListSchema });
 
 export const mergeBooksSchema = z.object({
   keepId: z.string().refine(isUuid, { message: 'Expected a UUID' }),

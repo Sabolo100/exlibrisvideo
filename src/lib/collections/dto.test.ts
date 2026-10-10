@@ -84,6 +84,7 @@ function video(over: Partial<VideoRow> = {}): VideoRow {
     framesTotal: 20,
     framesAnalyzed: 8,
     booksFound: 3,
+    tags: [],
     error: null,
     createdAt: now,
     processedAt: null,

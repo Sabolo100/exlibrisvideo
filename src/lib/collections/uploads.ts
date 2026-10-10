@@ -127,7 +127,7 @@ export function maxChunkBytes(): number {
 
 export async function initUpload(
   collectionId: string,
-  input: { filename: string; size: number; mimeType: string },
+  input: { filename: string; size: number; mimeType: string; tags?: string[] },
 ): Promise<VideoRow> {
   const e = env();
   if (!Number.isSafeInteger(input.size) || input.size <= 0) {
@@ -168,6 +168,7 @@ export async function initUpload(
         uploadStatus: 'uploading',
         storagePath,
         status: 'pending',
+        tags: input.tags ?? [],
       })
       .returning();
     return inserted;

@@ -25,6 +25,7 @@ import { api, ApiClientError } from '@/lib/client/api';
 import { forgetCollection, rememberCollection } from '@/lib/client/my-collections';
 import { fileKey, isActiveStatus, uploadStore, type ResumableUpload } from '@/lib/client/upload-store';
 import type { CollectionPatch, CreateCollectionResponse } from '@/lib/types';
+import { TagPicker } from '@/components/tags/TagPicker';
 import { DropZone } from './DropZone';
 import { formatBytes } from './format';
 import { useCollectionUploads, useOnline, useUploadLimits, useUploadState } from './hooks';
@@ -52,6 +53,9 @@ export interface UploaderProps {
   resumableUploads?: readonly ResumableUpload[];
   /** hide the built-in file list (when the parent renders the uploads itself) */
   showFileList?: boolean;
+  /** compact variant: let the owner tag the next recordings (`tagSuggestions` = the library's tags) */
+  withTags?: boolean;
+  tagSuggestions?: readonly string[];
 }
 
 interface PendingFile {
@@ -83,6 +87,8 @@ export function Uploader({
   showFileList = true,
   ref,
   onRecordMore,
+  withTags = false,
+  tagSuggestions,
 }: UploaderProps) {
   const { t, tp, locale } = useI18n();
   const router = useRouter();
@@ -107,6 +113,9 @@ export function Uploader({
   const [ownerName, setOwnerName] = useState(() => (standalone ? (uploadStore.getSnapshot().draft?.sent.ownerName ?? '') : ''));
   const [email, setEmail] = useState(() => (standalone ? (uploadStore.getSnapshot().draft?.sent.email ?? '') : ''));
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const tagsRef = useRef(tags);
+  tagsRef.current = tags;
   const emailRef = useRef<HTMLInputElement>(null);
 
   const fieldsRef = useRef({ title, ownerName, email });
@@ -131,7 +140,7 @@ export function Uploader({
   const enqueue = useCallback(
     (id: string, files: File[]) => {
       if (files.length === 0) return;
-      const created = uploadStore.enqueue(id, files, { resumable: resumableUploads });
+      const created = uploadStore.enqueue(id, files, { resumable: resumableUploads, tags: tagsRef.current });
       for (const c of created) batchRef.current.add(c.localId);
     },
     [resumableUploads],
@@ -556,6 +565,7 @@ export function Uploader({
   if (!hero) {
     return (
       <div className={cn('flex flex-col gap-3', className)}>
+        {withTags ? <TagPicker value={tags} onChange={setTags} suggestions={tagSuggestions} label={t('upload.tags.label')} /> : null}
         {zone}
         {alerts}
         {showFileList ? <UploadFileList items={visibleItems} size="sm" limits={limits} /> : null}

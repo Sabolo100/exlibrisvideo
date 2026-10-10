@@ -82,6 +82,7 @@ function bookColumns(ctx: ExportContext): ColumnDef[] {
       kind: 'text',
       value: (b) => secondaryTopicLabels(b, locale).join(', ') || null,
     },
+    { header: t('exporting.col.tags'), width: 22, kind: 'text', value: (b) => (b.tags ?? []).join(', ') || null },
     {
       header: t('exporting.col.readingStatus'),
       width: 18,

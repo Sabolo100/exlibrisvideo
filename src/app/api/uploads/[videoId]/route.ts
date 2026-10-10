@@ -2,7 +2,10 @@ import { requireOwnedVideo } from '@/lib/collections/guards';
 import { deleteSource } from '@/lib/collections/service';
 import { uploadLockKey, withLock } from '@/lib/collections/upload-lock';
 import { writeChunk } from '@/lib/collections/uploads';
-import { HttpError, json, noContent, withErrorHandling } from '@/lib/http';
+import { toVideoDTO } from '@/lib/collections/dto';
+import { setSourceTags } from '@/lib/collections/tags';
+import { sourcePatchSchema } from '@/lib/collections/validation';
+import { HttpError, json, noContent, parseJson, withErrorHandling } from '@/lib/http';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +46,15 @@ export const PUT = withErrorHandling(async (req: Request, ctx: Ctx) => {
   await requireOwnedVideo(req, videoId);
   const bytesReceived = await withLock(uploadLockKey(videoId), () => writeChunk(videoId, offset, req.body, contentLength));
   return json({ bytesReceived });
+});
+
+/** PATCH /api/uploads/:videoId `{ tags }` – owner tags a recording; its books get / lose the tags too. */
+export const PATCH = withErrorHandling(async (req: Request, ctx: Ctx) => {
+  const { videoId } = await ctx.params;
+  const { video } = await requireOwnedVideo(req, videoId);
+  const { tags } = await parseJson(req, sourcePatchSchema);
+  const updated = await setSourceTags(video.id, tags);
+  return json({ video: toVideoDTO(updated) });
 });
 
 /** DELETE /api/uploads/:videoId – remove a source with its frames, detections and single-source books. */

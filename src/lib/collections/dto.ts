@@ -145,6 +145,7 @@ export function toVideoDTO(row: VideoRow): VideoDTO {
     framesTotal: row.framesTotal,
     framesAnalyzed: row.framesAnalyzed,
     booksFound: row.booksFound,
+    tags: stringArray(row.tags),
     error: row.error,
     createdAt: isoRequired(row.createdAt),
     processedAt: iso(row.processedAt),

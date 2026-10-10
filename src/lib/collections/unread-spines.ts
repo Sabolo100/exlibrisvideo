@@ -106,7 +106,10 @@ export async function resolveUnreadSpine(collectionId: string, spineId: string, 
         .where(eq(books.collectionId, collectionId));
       if (Number(stats?.n ?? 0) >= env().MAX_BOOKS_PER_COLLECTION) throw new HttpError(400, 'too_many_books');
 
-      const [video] = await tx.select({ id: videos.id, kind: videos.kind }).from(videos).where(eq(videos.id, locked.videoId));
+      const [video] = await tx
+        .select({ id: videos.id, kind: videos.kind, tags: videos.tags })
+        .from(videos)
+        .where(eq(videos.id, locked.videoId));
       const [frame] = locked.frameId
         ? await tx.select({ id: frames.id, timeSec: frames.timeSec }).from(frames).where(eq(frames.id, locked.frameId))
         : [];
@@ -148,6 +151,7 @@ export async function resolveUnreadSpine(collectionId: string, spineId: string, 
           firstTimeSec: frame?.timeSec ?? null,
           shelfPosition,
           detectionCount: frame ? 1 : 0,
+          tags: video?.tags ?? [],
           // what the owner typed is theirs: enrichment fills the rest but never rewrites these
           enrichment: { userEdited: true, userEditedFields: author ? ['title', 'author'] : ['title'] },
         })

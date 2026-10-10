@@ -122,6 +122,8 @@ export const videos = pgTable(
     framesTotal: integer('frames_total').notNull().default(0),
     framesAnalyzed: integer('frames_analyzed').notNull().default(0),
     booksFound: integer('books_found').notNull().default(0),
+    /** owner's tags for this recording (whose shelf, which room, genre …) – every book found in it gets them */
+    tags: jsonb('tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     error: text('error'),
     createdAt: ts('created_at').notNull().defaultNow(),
     processedAt: ts('processed_at'),

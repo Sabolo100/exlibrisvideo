@@ -48,6 +48,8 @@ import { AppTabBar, type AppTab } from './AppTabBar';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
 import { UserAvatar } from '@/components/site/AccountMenu';
 import { useSession } from '@/components/site/SessionProvider';
+import { RecordingTagsSheet } from '@/components/tags/RecordingTagsSheet';
+import { tagSuggestions } from '@/components/tags/tag-utils';
 import { AppSettingsSheet } from './AppSettingsSheet';
 
 /** The views with their own tab; the rest live under "More". */
@@ -126,6 +128,8 @@ export function AppCollection() {
   const [addBookOpen, setAddBookOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  /** a fresh recording waiting for its (optional) tags before the upload */
+  const [recorded, setRecorded] = useState<File[] | null>(null);
   const sessionUser = useSession().user;
   const accountLibrary = !!sessionUser && sessionUser.libraryId === collection.id;
 
@@ -401,7 +405,18 @@ export function AppCollection() {
             onDone={(files: File[]) => {
               setCameraOpen(false);
               if (files.length === 0) return;
-              uploadStore.enqueue(collection.id, files);
+              // ask for the recording's tags first (optional), then upload
+              setRecorded(files);
+            }}
+          />
+          <RecordingTagsSheet
+            open={recorded !== null}
+            suggestions={tagSuggestions(books, collection.videos)}
+            onUpload={(tags) => {
+              const files = recorded;
+              setRecorded(null);
+              if (!files?.length) return;
+              uploadStore.enqueue(collection.id, files, { tags });
               toast({ title: t('app.collection.uploadStarted'), tone: 'info' });
             }}
           />

@@ -50,6 +50,7 @@ describe('XLSX export', () => {
       'Nyelv',
       'Téma',
       'További témák',
+      'Címkék',
       'Olvasottság',
       'Értékelés',
       'Kedvenc',
@@ -90,15 +91,15 @@ describe('XLSX export', () => {
     // number formats and typed values
     const second = books.getRow(2);
     expect(second.getCell(1).value).toBe(1);
-    expect(typeof second.getCell(23).value).toBe('number');
-    expect(second.getCell(23).numFmt).toBe('0%');
-    expect(second.getCell(26).value).toBeInstanceOf(Date);
+    expect(typeof second.getCell(24).value).toBe('number');
+    expect(second.getCell(24).numFmt).toBe('0%');
+    expect(second.getCell(27).value).toBeInstanceOf(Date);
     expect(second.getCell(10).value).toBe('magyar');
 
     // hyperlinks for covers
     let links = 0;
     for (let r = 2; r <= books.actualRowCount; r++) {
-      const v = books.getCell(r, 22).value;
+      const v = books.getCell(r, 23).value;
       if (v && typeof v === 'object' && 'hyperlink' in v) {
         links++;
         expect((v as ExcelJS.CellHyperlinkValue).hyperlink).toMatch(/^https:\/\//);

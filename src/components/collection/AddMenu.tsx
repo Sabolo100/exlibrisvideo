@@ -5,6 +5,7 @@ import { BookPlus, ChevronDown, Plus, Video } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AddBookDialog } from '@/components/book/AddBookDialog';
 import { Button, Dialog, DropdownMenu, useToast } from '@/components/ui';
+import { tagSuggestions } from '@/components/tags/tag-utils';
 import { Uploader } from '@/components/upload/Uploader';
 import { useI18n } from '@/i18n/client';
 import { useCollection } from './context';
@@ -23,6 +24,8 @@ export function AddVideoDialog({ open, onClose }: { open: boolean; onClose: () =
         .map((v) => ({ videoId: v.id, name: v.originalFilename, size: v.sizeBytes })),
     [collection.videos],
   );
+
+  const suggestions = useMemo(() => tagSuggestions(collection.books, collection.videos), [collection.books, collection.videos]);
 
   const close = () => {
     onClose();
@@ -44,6 +47,8 @@ export function AddVideoDialog({ open, onClose }: { open: boolean; onClose: () =
         collectionId={collection.id}
         existingSourceCount={collection.videos.filter((v) => v.uploadStatus !== 'failed').length}
         resumableUploads={resumable}
+        withTags
+        tagSuggestions={suggestions}
         onAllComplete={() => {
           toast({ title: t('collection.add.videoDone'), tone: 'success' });
           onClose();

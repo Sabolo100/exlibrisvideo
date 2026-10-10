@@ -140,6 +140,8 @@ export interface VideoDTO {
   framesTotal: number;
   framesAnalyzed: number;
   booksFound: number;
+  /** owner's tags for this recording; the books found in it carry them too */
+  tags: string[];
   error: string | null;
   createdAt: string;
   processedAt: string | null;

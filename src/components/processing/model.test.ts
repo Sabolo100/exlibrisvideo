@@ -35,6 +35,7 @@ function video(p: Partial<VideoDTO> = {}): VideoDTO {
     framesTotal: 40,
     framesAnalyzed: 12,
     booksFound: 0,
+    tags: [],
     error: null,
     createdAt: '2026-09-13T10:00:00.000Z',
     processedAt: null,

@@ -50,6 +50,7 @@ function makeCtx(books: BookDTO[], overrides: Partial<CollectionContextValue> = 
         framesTotal: 30,
         framesAnalyzed: 30,
         booksFound: books.length,
+        tags: [],
         error: null,
         createdAt: '2026-09-12T20:00:00.000Z',
         processedAt: '2026-09-12T20:05:00.000Z',

@@ -19,6 +19,7 @@ import { FrameStage } from './visual/FrameStage';
 import { FrameStrip } from './visual/FrameStrip';
 import { ReanalyzeButton } from './visual/ReanalyzeButton';
 import { isBoolean, isEditableOrWidgetTarget, scrollBehavior, useLatest, useStoredState } from './visual/hooks';
+import { SourceTags } from '@/components/tags/SourceTags';
 
 type LoadState =
   | { status: 'loading' }
@@ -320,8 +321,13 @@ export function FramesView() {
             detectionCounts={detectionCounts}
             onSelect={onSelectFrame}
             action={
-              collection.isOwner && group.video && group.frames.length > 0 && (group.video.status === 'done' || group.video.status === 'error') ? (
-                <ReanalyzeButton video={group.video} />
+              group.video ? (
+                <>
+                  <SourceTags video={group.video} />
+                  {collection.isOwner && group.frames.length > 0 && (group.video.status === 'done' || group.video.status === 'error') ? (
+                    <ReanalyzeButton video={group.video} />
+                  ) : null}
+                </>
               ) : undefined
             }
           />
