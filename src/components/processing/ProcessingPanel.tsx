@@ -10,7 +10,7 @@
  *   stepper, the share block (link, QR, owner link), owner-only "add more videos" and "e-mail me";
  * - calls onReady() once when the status becomes `ready`.
  */
-import { CircleAlert, RefreshCw, UploadCloud, WifiOff } from 'lucide-react';
+import { CircleAlert, RefreshCw, ScanBarcode, UploadCloud, WifiOff } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MessageKey } from '@/i18n';
@@ -43,6 +43,7 @@ import { SharePanel } from './SharePanel';
 import { SourceCard } from './SourceCard';
 import { TipsCarousel } from './TipsCarousel';
 import { usePolling } from './usePolling';
+import { AddBookPhotoDialog } from '@/components/book/AddBookPhotoDialog';
 import { ownerLibraryLabel } from '@/components/collection/labels';
 import { tagSuggestions } from '@/components/tags/tag-utils';
 
@@ -107,6 +108,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
     publicUrl: initial.publicUrl,
   }));
   const [connection, setConnection] = useState<Connection>('ok');
+  const [photoBookOpen, setPhotoBookOpen] = useState(false);
   const [failures, setFailures] = useState(0);
   /**
    * The uploader leads an empty draft (nothing uploaded, nothing uploading from this tab). Decided once:
@@ -323,6 +325,24 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
     </Card>
   ) : null;
 
+  // owner: a single new book from a photo (barcode, cover, spine) – also the quickest start of an empty library
+  const photoBookCard = isOwner ? (
+    <Card as="section" aria-label={t('book.photo.menu')} className={cn('flex items-center gap-3 p-3 sm:p-4', uploaderFirst ? 'order-2' : 'order-7')}>
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent [&_svg]:size-5">
+        <ScanBarcode aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink">{t('book.photo.menu')}</span>
+        <span className="block text-xs text-muted text-pretty">{t('book.photo.menuHint')}</span>
+      </span>
+      <Button size="sm" variant="secondary" onClick={() => setPhotoBookOpen(true)}>
+        {t('book.photo.start')}
+      </Button>
+      {/* mounted on demand: the panel itself also renders outside the collection provider */}
+      {photoBookOpen ? <AddBookPhotoDialog open onOpenChange={setPhotoBookOpen} /> : null}
+    </Card>
+  ) : null;
+
   return (
     <div className={cn('w-full', className)}>
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6">
@@ -391,6 +411,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
           </Card>
 
           {uploaderFirst ? uploaderCard : null}
+          {uploaderFirst ? photoBookCard : null}
 
           {visibleUploads.length > 0 ? (
             <Card as="section" aria-labelledby="exl-processing-uploads" className="order-2 p-4 sm:p-5">
@@ -480,6 +501,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
           ) : null}
 
           {uploaderFirst ? null : uploaderCard}
+          {uploaderFirst ? null : photoBookCard}
 
           <TipsCarousel className="order-8" />
         </div>

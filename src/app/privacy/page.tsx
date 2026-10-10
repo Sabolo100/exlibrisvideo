@@ -36,6 +36,8 @@ const SECTIONS: LegalSection[] = [
           'legal.privacy.data.item3',
           'legal.privacy.data.item4',
           'legal.privacy.data.item5',
+          'legal.privacy.data.item6',
+          'legal.privacy.data.item7',
         ],
       },
       { type: 'p', text: 'legal.privacy.data.p1' },
@@ -92,7 +94,7 @@ const SECTIONS: LegalSection[] = [
       { type: 'p', text: 'legal.privacy.cookies.p1' },
       {
         type: 'ul',
-        items: ['legal.privacy.cookies.item1', 'legal.privacy.cookies.item2', 'legal.privacy.cookies.item3', 'legal.privacy.cookies.item4'],
+        items: ['legal.privacy.cookies.item1', 'legal.privacy.cookies.item2', 'legal.privacy.cookies.item3', 'legal.privacy.cookies.item4', 'legal.privacy.cookies.item5'],
       },
       { type: 'p', text: 'legal.privacy.cookies.p2' },
     ],

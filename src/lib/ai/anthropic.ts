@@ -26,6 +26,7 @@ import type {
 } from '@anthropic-ai/sdk/resources/beta/messages/messages';
 import sharp from 'sharp';
 import type { z } from 'zod';
+import { BookPhotoWireSchema, bookPhotoSystemPrompt, bookPhotoUserText, toBookPhotoReading } from './book-photo';
 import { estimate } from './cost';
 import { AiConfigError, AiOutputError, AiProviderError } from './errors';
 import {
@@ -61,6 +62,9 @@ import type {
   SpineObservation,
   SpineReading,
   SpineToRead,
+  SpineViewImage,
+  BookPhotoKind,
+  BookPhotoReading,
   TextProvider,
   VisionContext,
   VisionFrame,
@@ -450,6 +454,22 @@ export class AnthropicVisionProvider implements VisionProvider {
     if (spines.length === 0) return { readings: [], usage: acc.total() };
     const readings = await this.readSpineBatch(spines, ctx, acc, true);
     return { readings, usage: acc.total() };
+  }
+
+  async identifyBookPhoto(photo: SpineViewImage, kind: BookPhotoKind): Promise<{ reading: BookPhotoReading; usage: AiUsage }> {
+    const acc = new UsageAccumulator('anthropic', this.model);
+    const image = await prepareImage(photo);
+    const content: BetaContentBlockParam[] = [
+      { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } },
+      { type: 'text', text: bookPhotoUserText(kind) },
+    ];
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const outcome = await this.caller.call('identifyBookPhoto', bookPhotoSystemPrompt(kind), content, BookPhotoWireSchema);
+      acc.add(outcome.usage);
+      if (outcome.kind === 'ok') return { reading: toBookPhotoReading(outcome.data), usage: acc.total() };
+      if (outcome.kind === 'refusal') break;
+    }
+    throw new AiOutputError('anthropic identifyBookPhoto: no usable answer', { provider: 'anthropic' });
   }
 
   private async readSpineBatch(

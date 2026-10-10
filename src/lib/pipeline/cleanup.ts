@@ -2,7 +2,7 @@
  * Hourly housekeeping (SPEC §4.8 `cleanup` job):
  *  - stale sources whose upload never completed (> 24 h without new bytes) → file + row removed
  *  - empty draft collections untouched for DRAFT_RETENTION_DAYS → rows + files removed
- *  - exports/ temp files older than 1 day
+ *  - exports/ temp files and unused single-book photos (tmp/photos/) older than 1 day
  *  - old rate_limits rows, finished jobs older than 30 days
  *  - orphaned key-frame temp dirs of crashed workers
  */
@@ -113,7 +113,16 @@ async function readDirSafe(dir: string): Promise<Dirent[]> {
 
 /** exports/<collectionId>/<file> older than one day; empty collection dirs are removed. */
 export async function purgeOldExports(now = Date.now()): Promise<number> {
-  const root = abs('exports');
+  return purgeDayOldFiles('exports', now);
+}
+
+/** Single-book photos nobody added a book for (tmp/photos/<collectionId>/<token>.jpg), after one day. */
+export async function purgeOldBookPhotos(now = Date.now()): Promise<number> {
+  return purgeDayOldFiles('tmp/photos', now);
+}
+
+async function purgeDayOldFiles(relRoot: string, now: number): Promise<number> {
+  const root = abs(relRoot);
   let removed = 0;
   for (const dir of await readDirSafe(root)) {
     const dirPath = path.join(root, dir.name);
@@ -187,7 +196,7 @@ export async function runCleanup(): Promise<CleanupResult> {
   // stale uploads first, so drafts they belonged to become purgeable in the same run
   await step('staleUploads', () => purgeStaleUploads());
   await step('drafts', () => purgeOldDrafts());
-  await step('exportFiles', () => purgeOldExports());
+  await step('exportFiles', async () => (await purgeOldExports()) + (await purgeOldBookPhotos()));
   await step('rateLimitRows', () => purgeRateLimits());
   await step('jobs', () => purgeFinishedJobs(FINISHED_JOB_MAX_AGE_DAYS));
   await step('tempDirs', () => purgeFrameTempDirs());

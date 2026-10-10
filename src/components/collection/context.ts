@@ -9,6 +9,7 @@ import { createContext, useContext } from 'react';
 import type {
   BookDTO,
   BookPatch,
+  BookPhotoKind,
   CollectionPatch,
   CollectionWithBooksDTO,
   DuplicateResolution,
@@ -87,7 +88,7 @@ export interface CollectionContextValue {
   /** mutations – optimistic, roll back + toast on failure, owner only */
   updateBook: (id: string, patch: BookPatch) => Promise<BookDTO | null>;
   deleteBooks: (ids: string[]) => Promise<void>;
-  addBook: (input: BookPatch & { title: string }) => Promise<BookDTO | null>;
+  addBook: (input: BookPatch & { title: string; photo?: { token: string; kind: BookPhotoKind } }) => Promise<BookDTO | null>;
   mergeBooks: (keepId: string, mergeIds: string[]) => Promise<BookDTO | null>;
   /**
    * Owner: answers "this book was already in the catalogue" (`book.duplicateOfId`) – `same` / `copy` merge it

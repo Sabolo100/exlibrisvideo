@@ -1,7 +1,7 @@
 /**
  * AI provider contracts (complete – implementations live in src/lib/ai/{anthropic,deepseek,mock}.ts).
  */
-import type { AiProviderName, BBox, Locale } from '@/lib/types';
+import type { AiProviderName, BBox, BookPhotoKind, Locale } from '@/lib/types';
 
 /** One spine seen in one frame. */
 export interface SpineObservation {
@@ -58,6 +58,26 @@ export interface VisionProvider {
    * provider without it gets whole frames through readSpines).
    */
   readSpineImages?(spines: SpineToRead[], ctx: VisionContext): Promise<{ readings: SpineReading[]; usage: AiUsage }>;
+  /** Identifies one book from one phone photo of its spine, cover or barcode (adding a single new book). */
+  identifyBookPhoto?(photo: SpineViewImage, kind: BookPhotoKind): Promise<{ reading: BookPhotoReading; usage: AiUsage }>;
+}
+
+/** What a single-book photo shows (shared with the API types). */
+export type { BookPhotoKind };
+
+export interface BookPhotoReading {
+  status: 'book' | 'unreadable' | 'not_book';
+  author: string | null;
+  /** "" when no title is legible */
+  title: string;
+  subtitle: string | null;
+  publisher: string | null;
+  /** digits (and X) only, as printed – not validated yet */
+  isbn: string | null;
+  /** ISO 639-1 */
+  language: string | null;
+  /** 0..1 */
+  confidence: number;
 }
 
 /** One picture of a cut-out spine: the spine turned on its side both ways, stacked (see spines/strips.ts). */

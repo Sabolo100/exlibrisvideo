@@ -161,6 +161,7 @@ export const collection = defineMessages({
     'tags.optional': '(nem kötelező)',
     'tags.hint':
       'A címkével csoportosíthatod a könyveket – pl. kinek a polca (Anna, Nagyi), melyik szoba, vagy műfaj. A felvétel minden könyve megkapja, és később címke szerint szűrhetsz.',
+    'tags.hintBook': 'A címkével csoportosíthatod a könyveket – pl. kinek a polca (Anna, Nagyi), melyik szoba, vagy műfaj –, és később címke szerint szűrhetsz.',
     'tags.selected': 'Kiválasztott címkék',
     'tags.remove': '„{tag}” címke eltávolítása',
     'tags.earlier': 'Korábbiak:',
@@ -496,6 +497,7 @@ export const collection = defineMessages({
     'tags.optional': '(optional)',
     'tags.hint':
       "Tags group your books – e.g. whose shelf it is (Anna, Grandma), which room, or a genre. Every book of the recording gets them, and you can filter by tag later.",
+    'tags.hintBook': 'Tags group your books – e.g. whose shelf it is (Anna, Grandma), which room, or a genre – and you can filter by tag later.',
     'tags.selected': 'Chosen tags',
     'tags.remove': 'Remove the tag “{tag}”',
     'tags.earlier': 'Earlier:',

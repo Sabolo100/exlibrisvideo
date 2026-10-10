@@ -27,7 +27,7 @@ export const rel = {
   cover: (collectionId: string, bookId: string) => `covers/${collectionId}/${bookId}.jpg`,
   exportFile: (collectionId: string, name: string) => `exports/${collectionId}/${name}`,
   collectionDirs: (collectionId: string) =>
-    ['uploads', 'frames', 'spines', 'covers', 'exports'].map((d) => `${d}/${collectionId}`),
+    ['uploads', 'frames', 'spines', 'covers', 'exports', 'tmp/photos'].map((d) => `${d}/${collectionId}`),
 };
 
 /** Absolute path for a relative storage path; throws on traversal attempts. */

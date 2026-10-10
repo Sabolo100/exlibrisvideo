@@ -300,3 +300,40 @@ export interface SessionUserDTO {
  * `same` merges it into the earlier book, `copy` merges it and counts one more copy, `different` keeps both.
  */
 export type DuplicateResolution = 'same' | 'copy' | 'different';
+
+/** What a single-book photo shows: the spine, the front cover, or the ISBN barcode on the back. */
+export type BookPhotoKind = 'spine' | 'cover' | 'isbn';
+
+/** A book identified from a photo (fields the owner confirms or corrects before adding it). */
+export interface IdentifiedBookDTO {
+  title: string;
+  subtitle: string | null;
+  author: string | null;
+  publisher: string | null;
+  /** valid ISBN-13 or null */
+  isbn: string | null;
+  editionYear: number | null;
+  pageCount: number | null;
+  language: string | null;
+  /** cover of the ISBN's edition (Google Books / Open Library), shown in the confirmation */
+  coverUrl: string | null;
+  /** 0..1 (1 when the ISBN was found in a book database) */
+  confidence: number;
+}
+
+/** POST /api/collections/:id/identify-photo */
+export interface IdentifyBookResponse {
+  /** a title or an author could be told */
+  found: boolean;
+  /** how: the barcode, the AI reading the photo, or only the ISBN database */
+  via: 'barcode' | 'ai' | 'lookup' | 'none';
+  candidate: IdentifiedBookDTO;
+  /** keeps the spine / cover photo for the new book (send it back with the book) */
+  photoToken: string | null;
+  /** the photo does not show a book */
+  notBook: boolean;
+  /** the ISBN is valid but no book database knows it */
+  isbnUnknown: boolean;
+  /** books of the library that look the same – another copy? */
+  similar: { id: string; title: string; author: string | null; copies: number }[];
+}

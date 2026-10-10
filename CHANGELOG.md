@@ -4,6 +4,18 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.3.0 – 2026-10-10
+
+### Added
+- **New book from a photo** (owner; add menu, phone app "More" sheet, empty library): photograph the ISBN
+  barcode, the front cover or the spine of one book. Barcodes are read on the phone (BarcodeDetector) or on
+  the server (own EAN-13 reader, AI reading the digits as a fallback) and looked up in Google Books / Open
+  Library (Hungarian name order for Hungarian books); spine and cover photos are read by the AI. The owner
+  checks the fields, tags the book and adds it – the cover or spine photo becomes the book's picture – or,
+  when the library already has it, counts one more copy. Photo books are enriched (topics, description,
+  cover) like recognised ones. Unused photos are purged after a day.
+- Privacy notice: Google sign-in data, single-book photos, the session cookies.
+
 ## 1.2.0 – 2026-10-10
 
 ### Added

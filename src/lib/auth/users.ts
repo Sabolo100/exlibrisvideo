@@ -5,7 +5,6 @@ import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { collections, users, type CollectionRow, type UserRow } from '@/db/schema';
 import { createCollection } from '@/lib/collections/service';
-import { parseCookieHeader } from '@/lib/security/cookies';
 import type { Locale, SessionUserDTO } from '@/lib/types';
 import type { GoogleProfile } from './google';
 import { SESSION_COOKIE, verifySessionValue } from './session';
@@ -55,30 +54,27 @@ export async function ensureLibrary(user: Pick<UserRow, 'id' | 'name' | 'locale'
   });
 }
 
-export function toSessionUserDTO(user: UserRow, libraryId: string | null): SessionUserDTO {
+function toSessionUserDTO(user: UserRow, libraryId: string | null): SessionUserDTO {
   return { id: user.id, email: user.email, name: user.name, picture: user.picture, libraryId };
 }
 
-async function loadSessionUser(userId: string | null): Promise<SessionUserDTO | null> {
-  if (!userId) return null;
+async function loadSessionUser(userId: string): Promise<SessionUserDTO | null> {
   const user = await findUser(userId);
   if (!user) return null;
   const library = await findLibrary(user.id);
   return toSessionUserDTO(user, library?.id ?? null);
 }
 
-/** The signed-in user of a route handler request (session cookie), or null. */
-export async function getSessionUserFromRequest(req: Request): Promise<SessionUserDTO | null> {
-  const value = parseCookieHeader(req.headers.get('cookie')).get(SESSION_COOKIE);
-  return loadSessionUser(verifySessionValue(value));
-}
-
-/** The signed-in user of a Server Component render, or null (never throws: the page still renders). */
+/**
+ * The signed-in user of a Server Component render, or null. Reading the cookie marks the page dynamic (that
+ * signal must not be caught); a database failure only costs the signed-in view.
+ */
 export async function getSessionUser(): Promise<SessionUserDTO | null> {
+  const { cookies } = await import('next/headers');
+  const userId = verifySessionValue((await cookies()).get(SESSION_COOKIE)?.value);
+  if (!userId) return null;
   try {
-    const { cookies } = await import('next/headers');
-    const value = (await cookies()).get(SESSION_COOKIE)?.value;
-    return await loadSessionUser(verifySessionValue(value));
+    return await loadSessionUser(userId);
   } catch (err) {
     console.warn('[auth] session lookup failed', { error: err instanceof Error ? err.message : String(err) });
     return null;

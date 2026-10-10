@@ -6,6 +6,7 @@ import type {
   ApiError,
   BookDTO,
   BookPatch,
+  BookPhotoKind,
   CollectionDTO,
   CollectionPatch,
   CollectionStatusDTO,
@@ -14,6 +15,7 @@ import type {
   DuplicateResolution,
   ExportFormat,
   FrameDTO,
+  IdentifyBookResponse,
   InitUploadResponse,
   Locale,
   ResolveUnreadSpineInput,
@@ -120,7 +122,16 @@ export const api = {
   reportUploadFailure: (report: UploadFailureReport) =>
     request<void>('/api/client-log', { method: 'POST', json: { kind: 'upload_failed', ...report }, keepalive: true }),
 
-  addBook: (collectionId: string, body: BookPatch & { title: string }) =>
+  /** Owner: which book is on this photo (spine / cover / ISBN barcode), and is it in the library already. */
+  identifyPhoto: (collectionId: string, input: { kind: BookPhotoKind; photo?: Blob | null; isbn?: string | null }) => {
+    const form = new FormData();
+    form.set('kind', input.kind);
+    if (input.photo) form.set('photo', input.photo, 'photo.jpg');
+    if (input.isbn) form.set('isbn', input.isbn);
+    return request<IdentifyBookResponse>(`/api/collections/${enc(collectionId)}/identify-photo`, { method: 'POST', body: form });
+  },
+
+  addBook: (collectionId: string, body: BookPatch & { title: string; photo?: { token: string; kind: BookPhotoKind } }) =>
     request<BookDTO>(`/api/collections/${enc(collectionId)}/books`, { method: 'POST', json: body }),
 
   updateBook: (bookId: string, patch: BookPatch) =>

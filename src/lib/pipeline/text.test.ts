@@ -293,3 +293,15 @@ describe('display casing', () => {
     expect(nameCase('Elena Ferrante')).toBe('Elena Ferrante');
   });
 });
+
+describe('hungarianNameOrder', () => {
+  it('turns Hungarian given-name-first names of Hungarian books', async () => {
+    const { hungarianNameOrder } = await import('./text');
+    expect(hungarianNameOrder('Magda Szabó', 'hu')).toBe('Szabó Magda');
+    expect(hungarianNameOrder('Péter Esterházy; Imre Kertész', 'hu')).toBe('Esterházy Péter; Kertész Imre');
+    expect(hungarianNameOrder('Szabó Magda', 'hu')).toBe('Szabó Magda');
+    expect(hungarianNameOrder('Elena Ferrante', 'hu')).toBe('Elena Ferrante');
+    expect(hungarianNameOrder('Magda Szabó', 'en')).toBe('Magda Szabó');
+    expect(hungarianNameOrder(null, 'hu')).toBeNull();
+  });
+});

@@ -598,6 +598,25 @@ function personSortKey(p: ParsedName): string {
   return [fam.folded, ...folded.filter((_, i) => i !== idx)].join(' ');
 }
 
+/**
+ * Hungarian authors in Hungarian order for a Hungarian book: book databases write "Magda Szabó", the spine
+ * says "Szabó Magda". Only two-word names whose first word is a Hungarian given name (and the last is not)
+ * are turned; everything else is kept. Several authors are separated by "; ".
+ */
+export function hungarianNameOrder(author: string | null | undefined, language?: string | null): string | null {
+  if (!author) return author ?? null;
+  if (language && language !== 'hu') return author;
+  return author
+    .split(/\s*;\s*/)
+    .map((name) => {
+      const words = name.trim().split(/\s+/);
+      if (words.length !== 2 || name.includes(',')) return name.trim();
+      const [first, last] = words.map((w) => foldForCompare(w));
+      return HU_GIVEN_NAMES.has(first) && !HU_GIVEN_NAMES.has(last) ? `${words[1]} ${words[0]}` : name.trim();
+    })
+    .join('; ');
+}
+
 /** family-name-first folded sort key, e.g. "Elena Ferrante" → "ferrante elena", "Esterházy Péter" → "esterhazy peter" */
 export function authorSortKey(author: string | null | undefined, language?: string | null): string | null {
   const people = parseAuthors(author, language);

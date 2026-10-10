@@ -14,6 +14,7 @@ import {
   Ellipsis,
   Mail,
   Plus,
+  ScanBarcode,
   Search,
   Settings2,
   Share2,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AddBookDialog } from '@/components/book/AddBookDialog';
+import { AddBookPhotoDialog } from '@/components/book/AddBookPhotoDialog';
 import { BookDrawer } from '@/components/book/BookDrawer';
 import { CameraRecorder } from '@/components/camera/CameraRecorder';
 import { ActiveFilters } from '@/components/collection/ActiveFilters';
@@ -126,6 +128,7 @@ export function AppCollection() {
   const [emailOpen, setEmailOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addBookOpen, setAddBookOpen] = useState(false);
+  const [photoBookOpen, setPhotoBookOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
   /** a fresh recording waiting for its (optional) tags before the upload */
@@ -349,6 +352,14 @@ export function AppCollection() {
                 }}
               />
               <SheetRow
+                icon={<ScanBarcode />}
+                label={t('book.photo.menu')}
+                onClick={() => {
+                  setMoreOpen(false);
+                  setPhotoBookOpen(true);
+                }}
+              />
+              <SheetRow
                 icon={<Plus />}
                 label={t('app.collection.addBook')}
                 onClick={() => {
@@ -399,6 +410,7 @@ export function AppCollection() {
           <EmailExportDialog open={emailOpen} onClose={() => setEmailOpen(false)} />
           <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
           <AddBookDialog open={addBookOpen} onOpenChange={setAddBookOpen} />
+          <AddBookPhotoDialog open={photoBookOpen} onOpenChange={setPhotoBookOpen} />
           <CameraRecorder
             open={cameraOpen}
             onClose={() => setCameraOpen(false)}

@@ -18,6 +18,8 @@ import { foldLoose } from './schemas';
 import type {
   AiUsage,
   BookClassification,
+  BookPhotoKind,
+  BookPhotoReading,
   BookForClassification,
   DuplicateQuestion,
   SpineObservation,
@@ -25,6 +27,7 @@ import type {
   VisionContext,
   VisionFrame,
   VisionProvider,
+  SpineViewImage,
 } from './types';
 
 export const MOCK_VISION_MODEL = 'mock-fixture';
@@ -215,6 +218,16 @@ export class MockVisionProvider implements VisionProvider {
 
   constructor(opts: MockOptions = {}) {
     this.opts = opts;
+  }
+
+  /** No model to ask: a deterministic sample book (the barcode decoder handles real ISBN photos). */
+  async identifyBookPhoto(photo: SpineViewImage, kind: BookPhotoKind): Promise<{ reading: BookPhotoReading; usage: AiUsage }> {
+    void photo;
+    const reading: BookPhotoReading =
+      kind === 'isbn'
+        ? { status: 'unreadable', author: null, title: '', subtitle: null, publisher: null, isbn: null, language: null, confidence: 0 }
+        : { status: 'book', author: 'Szabó Magda', title: 'Abigél', subtitle: null, publisher: 'Móra', isbn: null, language: 'hu', confidence: 0.9 };
+    return { reading, usage: { provider: 'mock', model: MOCK_VISION_MODEL, inputTokens: 0, outputTokens: 0, estCostUsd: 0 } };
   }
 
   private root(): string {

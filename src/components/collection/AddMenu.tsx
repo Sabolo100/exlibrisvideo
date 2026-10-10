@@ -1,9 +1,10 @@
 'use client';
 
 /** Owner "add" actions: more videos/photos (Uploader in a dialog) and manual book entry. */
-import { BookPlus, ChevronDown, Plus, Video } from 'lucide-react';
+import { BookPlus, Camera, ChevronDown, Plus, Video } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AddBookDialog } from '@/components/book/AddBookDialog';
+import { AddBookPhotoDialog } from '@/components/book/AddBookPhotoDialog';
 import { Button, Dialog, DropdownMenu, useToast } from '@/components/ui';
 import { tagSuggestions } from '@/components/tags/tag-utils';
 import { Uploader } from '@/components/upload/Uploader';
@@ -63,6 +64,7 @@ export function AddMenu() {
   const { t } = useI18n();
   const [videoOpen, setVideoOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   return (
     <>
@@ -77,6 +79,13 @@ export function AddMenu() {
             description: t('collection.add.videoHint'),
             icon: <Video />,
             onSelect: () => setVideoOpen(true),
+          },
+          {
+            key: 'photo',
+            label: t('book.photo.menu'),
+            description: t('book.photo.menuHint'),
+            icon: <Camera />,
+            onSelect: () => setPhotoOpen(true),
           },
           {
             key: 'manual',
@@ -94,6 +103,7 @@ export function AddMenu() {
       />
       <AddVideoDialog open={videoOpen} onClose={() => setVideoOpen(false)} />
       <AddBookDialog open={bookOpen} onOpenChange={setBookOpen} />
+      <AddBookPhotoDialog open={photoOpen} onOpenChange={setPhotoOpen} />
     </>
   );
 }

@@ -78,7 +78,8 @@ Validate every body with zod. Owner-only endpoints return 403 `forbidden` withou
 | `PUT /api/uploads/:videoId?offset=<n>` | owner | raw bytes (`application/octet-stream`, ≤ `UPLOAD_CHUNK_MB`) | `{ bytesReceived }`. If `offset !== bytesReceived` → `409 conflict` with `details: { bytesReceived }` (client re-syncs). Append-only write, streamed to disk. |
 | `POST /api/uploads/:videoId/complete` | owner | – | `{ video: VideoDTO }`; verifies size, sniffs magic bytes, sets `uploaded`, `status=queued`, enqueues `process_video`, collection → `processing` |
 | `DELETE /api/uploads/:videoId` | owner | – | `204` removes a source (and its frames/detections; books whose only evidence was this source are deleted) |
-| `POST /api/collections/:id/books` | owner | `BookPatch & { title: string }` | `201 BookDTO` (`source='manual'`) |
+| `POST /api/collections/:id/books` | owner | `BookPatch & { title: string, photo?: { token, kind } }` | `201 BookDTO` (`source='manual'`; with a spine / cover photo token: the photo becomes `spinePath` / `coverPath`, `source='image'`; any `photo` queues enrichment 20 s later) |
+| `POST /api/collections/:id/identify-photo` | owner (120/h per collection) | multipart `kind` = `isbn`\|`cover`\|`spine`, `photo`, optional `isbn` read by the browser | `IdentifyBookResponse`: barcode → EAN-13 reader (`src/lib/books/ean13.ts`) → AI digits; ISBN → Google Books + Open Library (`isbn-lookup.ts`); spine / cover → provider `identifyBookPhoto`; plus `similar` books of the library (another copy?); spine / cover photo kept as `tmp/photos/<id>/<token>.jpg` for a day |
 | `PATCH /api/books/:bookId` | owner | `BookPatch` | `BookDTO` (recompute `authorSort`/`titleSort` when author/title change) |
 | `DELETE /api/books/:bookId` | owner | – | `204` |
 | `POST /api/collections/:id/books/merge` | owner | `{ keepId, mergeIds: string[] }` | `BookDTO` (moves detections, sums `detectionCount`, keeps best spine) |

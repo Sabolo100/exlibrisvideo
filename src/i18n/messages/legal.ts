@@ -33,6 +33,9 @@ export const legal = defineMessages({
     'privacy.data.item3':
       'A felismert könyvlistát és mindazt, amit te adsz meg: a katalógus címét, a nevedet, megjegyzéseket, olvasási állapotot, értékelést és kölcsönzési adatokat (például hogy kinek adtad kölcsön a könyvet).',
     'privacy.data.item4': 'Az e-mail-címedet, ha megadod. Ez nem kötelező.',
+    'privacy.data.item6':
+      'Ha Google-fiókkal lépsz be: a Google-fiókod azonosítóját, e-mail-címedet, nevedet és profilképed címét – csak a belépéshez és ahhoz, hogy a könyvtáradat a fiókodhoz kössük. Jelszót nem látunk, a Google-fiókodhoz más hozzáférést nem kérünk.',
+    'privacy.data.item7': 'A könyvekről egyenként feltöltött fotókat (vonalkód, borító, gerinc). A vonalkódfotót a felismerés után nem őrizzük meg.',
     'privacy.data.item5':
       'Technikai adatokat: az IP-címedet a visszaélések kiszűréséhez (kéréskorlátozás), a böngésző által küldött alapadatokat (például a nyelvi beállítást) és a lent felsorolt, működéshez szükséges sütiket.',
     'privacy.data.p1': 'Nem kérünk jelszót vagy bankkártyaadatot, és nem készítünk rólad profilt.',
@@ -79,6 +82,7 @@ export const legal = defineMessages({
     'privacy.cookies.item2': 'exl_pin_… – megjegyzi, hogy megadtad egy védett katalógus PIN-kódját (legfeljebb 180 napig).',
     'privacy.cookies.item3': 'exl_seen_… – hogy egy megnyitást ne számoljunk többször (30 percig).',
     'privacy.cookies.item4': 'exl_lang – a választott nyelv (1 évig).',
+    'privacy.cookies.item5': 'exl_session – Google-belépés esetén azt jelzi, hogy be vagy jelentkezve (legfeljebb 400 napig, kijelentkezéskor törlődik); exl_oauth – a belépés közben 15 percig.',
     'privacy.cookies.p2':
       'A böngésződ helyi tárolójában (localStorage) tartjuk a Kollekcióim listát – benne a tulajdonosi kulcsokkal – és a választott színtémát. Ezek nem kerülnek a szerverre, és a böngészőadatok törlésével eltávolíthatod őket.',
 
@@ -195,6 +199,9 @@ export const legal = defineMessages({
     'privacy.data.item3':
       'The recognised book list and everything you add yourself: the catalogue title, your name, notes, reading status, ratings and lending details (for example who you lent a book to).',
     'privacy.data.item4': 'Your e-mail address, if you give it. This is optional.',
+    'privacy.data.item6':
+      'If you sign in with Google: your Google account id, e-mail address, name and the address of your profile photo – only to sign you in and to tie your library to your account. We never see your password and ask for no other access to your Google account.',
+    'privacy.data.item7': 'Photos of single books you upload (barcode, cover, spine). A barcode photo is not kept after recognition.',
     'privacy.data.item5':
       'Technical data: your IP address to prevent abuse (rate limiting), basic data sent by your browser (such as the language setting), and the essential cookies listed below.',
     'privacy.data.p1': 'We never ask for a password or card details, and we don’t build a profile of you.',
@@ -240,6 +247,7 @@ export const legal = defineMessages({
     'privacy.cookies.item2': 'exl_pin_… – remembers that you entered the PIN of a protected catalogue (up to 180 days).',
     'privacy.cookies.item3': 'exl_seen_… – so that one visit isn’t counted more than once (30 minutes).',
     'privacy.cookies.item4': 'exl_lang – your chosen language (1 year).',
+    'privacy.cookies.item5': 'exl_session – after a Google sign-in, marks that you are signed in (up to 400 days, deleted when you sign out); exl_oauth – for 15 minutes during the sign-in.',
     'privacy.cookies.p2':
       'Your browser’s local storage (localStorage) holds the My collections list – including owner keys – and your chosen colour theme. These never reach our servers, and clearing your browser data removes them.',
 

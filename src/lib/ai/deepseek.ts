@@ -13,6 +13,7 @@
  * - DeepSeek downsamples images heavily, so its boxes are coarse; normalised (0..1) answers
  *   are detected and scaled, everything is clamped to the frame.
  */
+import { BOOK_PHOTO_JSON_SHAPE, bookPhotoSystemPrompt, bookPhotoUserText, coerceBookPhoto, toBookPhotoReading } from './book-photo';
 import { estimate } from './cost';
 import { AiConfigError, AiOutputError, AiProviderError } from './errors';
 import {
@@ -51,6 +52,9 @@ import type {
   SpineObservation,
   SpineReading,
   SpineToRead,
+  SpineViewImage,
+  BookPhotoKind,
+  BookPhotoReading,
   TextProvider,
   VisionContext,
   VisionFrame,
@@ -410,6 +414,25 @@ export class DeepSeekVisionProvider implements VisionProvider {
     if (spines.length === 0) return { readings: [], usage: acc.total() };
     const readings = await this.readSpineBatch(spines, ctx, acc, true);
     return { readings, usage: acc.total() };
+  }
+
+  async identifyBookPhoto(photo: SpineViewImage, kind: BookPhotoKind): Promise<{ reading: BookPhotoReading; usage: AiUsage }> {
+    const acc = new UsageAccumulator('deepseek', this.model);
+    const messages: DeepSeekMessage[] = [
+      { role: 'system', content: `${bookPhotoSystemPrompt(kind)}
+
+${BOOK_PHOTO_JSON_SHAPE}` },
+      {
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mediaTypeOf(photo.jpeg)};base64,${photo.jpeg.toString('base64')}` } },
+          { type: 'text', text: bookPhotoUserText(kind) },
+        ],
+      },
+    ];
+    const outcome = await callJson(this.client, this.model, messages, 800, (root) => coerceBookPhoto(root), acc, 'identifyBookPhoto');
+    if (outcome.kind !== 'ok') throw new AiOutputError('deepseek identifyBookPhoto: reply truncated', { provider: 'deepseek' });
+    return { reading: toBookPhotoReading(outcome.value), usage: acc.total() };
   }
 
   private async readSpineBatch(

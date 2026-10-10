@@ -18,11 +18,13 @@ export interface TagPickerProps {
   label?: string;
   /** hide the "what are tags for" hint (e.g. when it is shown nearby already) */
   hideHint?: boolean;
+  /** the hint text (default: tags of a recording) */
+  hint?: string;
   disabled?: boolean;
   className?: string;
 }
 
-export function TagPicker({ value, onChange, suggestions = [], label, hideHint = false, disabled = false, className }: TagPickerProps) {
+export function TagPicker({ value, onChange, suggestions = [], label, hideHint = false, hint, disabled = false, className }: TagPickerProps) {
   const { t } = useI18n();
   const inputId = useId();
   const hintId = useId();
@@ -54,7 +56,7 @@ export function TagPicker({ value, onChange, suggestions = [], label, hideHint =
       {!hideHint ? (
         <p id={hintId} className="flex gap-1.5 text-xs leading-relaxed text-muted text-pretty">
           <Lightbulb aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-accent" />
-          {t('collection.tags.hint')}
+          {hint ?? t('collection.tags.hint')}
         </p>
       ) : null}
 
