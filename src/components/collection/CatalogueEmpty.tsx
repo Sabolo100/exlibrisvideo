@@ -2,15 +2,12 @@
 
 /**
  * Shown instead of the toolbar and views when processing finished without any book (or every source
- * failed): what went wrong, filming tips, and – for the owner – "upload a new video" / "add by hand".
+ * failed): what went wrong and filming tips for the owner (the ways to add books are the AddPanel above).
  */
-import { BookPlus, Hand, MoveHorizontal, Rows3, Ruler, Sun, TriangleAlert, Video } from 'lucide-react';
-import { useState } from 'react';
-import { AddBookDialog } from '@/components/book/AddBookDialog';
-import { Button, EmptyShelfIllustration } from '@/components/ui';
+import { Hand, MoveHorizontal, Rows3, Ruler, Sun, TriangleAlert } from 'lucide-react';
+import { EmptyShelfIllustration } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
 import type { MessageKey } from '@/i18n';
-import { AddVideoDialog } from './AddMenu';
 import { useCollection } from './context';
 
 const TIPS: { key: MessageKey; icon: typeof Sun }[] = [
@@ -24,8 +21,6 @@ const TIPS: { key: MessageKey; icon: typeof Sun }[] = [
 export function CatalogueEmpty() {
   const { t } = useI18n();
   const { collection, isOwner } = useCollection();
-  const [videoOpen, setVideoOpen] = useState(false);
-  const [bookOpen, setBookOpen] = useState(false);
   const failed = collection.status === 'error';
 
   return (
@@ -48,16 +43,6 @@ export function CatalogueEmpty() {
           <p className="mt-2 max-w-lg text-[0.9375rem] text-pretty text-muted">
             {!isOwner ? t('collection.empty.descriptionViewer') : failed ? t('collection.banner.error') : t('collection.empty.description')}
           </p>
-          {isOwner ? (
-            <div className="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start print:hidden">
-              <Button variant="primary" leftIcon={<Video className="size-4" />} onClick={() => setVideoOpen(true)}>
-                {t('collection.empty.addVideo')}
-              </Button>
-              <Button leftIcon={<BookPlus className="size-4" />} onClick={() => setBookOpen(true)}>
-                {t('collection.empty.addManual')}
-              </Button>
-            </div>
-          ) : null}
         </div>
 
         {isOwner ? (
@@ -76,13 +61,6 @@ export function CatalogueEmpty() {
           </div>
         ) : null}
       </div>
-
-      {isOwner ? (
-        <>
-          <AddVideoDialog open={videoOpen} onClose={() => setVideoOpen(false)} />
-          <AddBookDialog open={bookOpen} onOpenChange={setBookOpen} />
-        </>
-      ) : null}
     </section>
   );
 }

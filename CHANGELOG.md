@@ -4,6 +4,17 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.6.0 – 2026-10-10
+
+### Changed
+- Library page, owner: the "Hozzáadás" drop-down in the header is replaced by a wide, low block under the
+  header that shows all three ways of adding books at once, each with its own start button – upload a
+  video or photos (recommended: filled green tile, gilt button), a single book from a photo, a single book
+  by hand. Visible straight after the first sign-in, no menu to open. Stacks on phones, three columns from
+  tablet width; works in the dark theme.
+- Empty / failed catalogue: the owner's duplicate "upload a new video" / "add by hand" buttons are gone
+  (the block above covers them); the filming tips stay.
+
 ## 1.5.0 – 2026-10-10
 
 ### Changed

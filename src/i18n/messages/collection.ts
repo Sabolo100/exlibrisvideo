@@ -35,7 +35,6 @@ export const collection = defineMessages({
     'header.actions': 'A katalógus műveletei',
     'action.share': 'Megosztás',
     'action.export': 'Exportálás',
-    'action.add': 'Hozzáadás',
     'action.settings': 'Beállítások',
     'action.print': 'Nyomtatás',
 
@@ -90,11 +89,15 @@ export const collection = defineMessages({
     'email.rateLimited': 'Ma már több levelet is küldtünk ehhez a katalógushoz. Holnap újra próbálhatod.',
 
     // --- add ---
-    'add.menu': 'Hozzáadás a katalógushoz',
-    'add.video': 'Újabb videó vagy fotó',
-    'add.videoHint': 'Egy másik polc, sor vagy szekrény',
+    'add.title': 'Tedd fel a könyveidet',
+    'add.subtitle': 'Válaszd ki, hogyan kerüljenek a könyveid a könyvtárba.',
+    'add.recommended': 'Ajánlott',
+    'add.videoOption': 'Videó vagy fotó feltöltése',
+    'add.videoOptionHint': 'Végigfilmezed a polcot, a gerinceket mi olvassuk le',
+    'add.videoStart': 'Feltöltés',
     'add.manual': 'Könyv felvétele kézzel',
     'add.manualHint': 'Ha egy könyv nem látszott a felvételen',
+    'add.manualStart': 'Beírás',
     'add.videoTitle': 'Videó vagy fotó hozzáadása',
     'add.videoDescription': 'Az új könyveket összefésüljük a meglévőkkel, a duplikátumokat kiszűrjük.',
     'add.videoDone': 'Feltöltve – elkezdtük a feldolgozást',
@@ -255,8 +258,6 @@ export const collection = defineMessages({
     'empty.tip.pace': 'Lassú, egyenletes pásztázás – nagyjából fél másodperc könyvenként',
     'empty.tip.upright': 'Úgy tartsd a telefont, hogy a gerincek függőlegesen álljanak',
     'empty.tip.rows': 'Soronként egy felvétel, vagy egy lassú cikcakk',
-    'empty.addVideo': 'Új videó feltöltése',
-    'empty.addManual': 'Könyv felvétele kézzel',
     'empty.errorTitle': 'Nem sikerült feldolgozni a felvételeket',
 
     // --- bulk actions ---
@@ -371,7 +372,6 @@ export const collection = defineMessages({
     'header.actions': 'Catalogue actions',
     'action.share': 'Share',
     'action.export': 'Export',
-    'action.add': 'Add',
     'action.settings': 'Settings',
     'action.print': 'Print',
 
@@ -426,11 +426,15 @@ export const collection = defineMessages({
     'email.rateLimited': 'We’ve already sent several e-mails for this catalogue today. Please try again tomorrow.',
 
     // --- add ---
-    'add.menu': 'Add to the catalogue',
-    'add.video': 'Another video or photo',
-    'add.videoHint': 'A different shelf, row or bookcase',
+    'add.title': 'Add your books',
+    'add.subtitle': 'Choose how your books get into the library.',
+    'add.recommended': 'Recommended',
+    'add.videoOption': 'Upload a video or photos',
+    'add.videoOptionHint': 'Film the shelf and we read the spines',
+    'add.videoStart': 'Upload',
     'add.manual': 'Add a book by hand',
     'add.manualHint': 'For a book that wasn’t visible in the footage',
+    'add.manualStart': 'Enter details',
     'add.videoTitle': 'Add a video or photo',
     'add.videoDescription': 'New books are merged with the existing ones and duplicates are filtered out.',
     'add.videoDone': 'Uploaded – processing has started',
@@ -591,8 +595,6 @@ export const collection = defineMessages({
     'empty.tip.pace': 'Pan slowly and steadily – about half a second per book',
     'empty.tip.upright': 'Hold the phone so the spines stand upright',
     'empty.tip.rows': 'One clip per shelf row, or a slow zig-zag',
-    'empty.addVideo': 'Upload a new video',
-    'empty.addManual': 'Add a book by hand',
     'empty.errorTitle': 'We couldn’t process the footage',
 
     // --- bulk actions ---

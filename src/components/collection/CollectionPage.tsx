@@ -4,7 +4,7 @@
  * Client shell of `/<id>` (inside <CollectionProvider>):
  * - owner links (?k= / ?r=) are claimed and stripped, visited collections are remembered on this device;
  * - draft / processing → the live ProcessingPanel; ready / error → the catalogue: header, owner banner,
- *   sticky toolbar, the active view, book drawer, bulk action bar, print catalogue.
+ *   the owner's add block, sticky toolbar, the active view, book drawer, bulk action bar, print catalogue.
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { BookDrawer } from '@/components/book/BookDrawer';
@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
 import { rememberCollection } from '@/lib/client/my-collections';
 import type { ViewKey } from '@/lib/types';
+import { AddPanel } from './AddPanel';
 import { BulkActionBar } from './BulkActionBar';
 import { CatalogueEmpty } from './CatalogueEmpty';
 import { CollectionHeader } from './CollectionHeader';
@@ -61,6 +62,7 @@ function Catalogue() {
     <>
       <CollectionHeader />
       <OwnerBanner onReview={() => requestAnimationFrame(scrollPanelIntoView)} />
+      {collection.isOwner ? <AddPanel className="mt-4" /> : null}
 
       {books.length === 0 && collection.isOwner && unreadSpines.length > 0 ? (
         // nothing could be read yet, but the owner can still name the spines

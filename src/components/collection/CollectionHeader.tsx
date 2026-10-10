@@ -3,7 +3,7 @@
 /**
  * Ex-libris styled title block of the catalogue: bookplate frame with gilt corners, title (inline
  * editable for the owner), owner line, description, counts, created date + sources, and the actions
- * (share, export, add, settings, print).
+ * (share, export, settings, print). Adding books is the AddPanel block under the header.
  */
 import { Check, KeyRound, Lock, Pencil, Printer, Settings2, Share2, X } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
@@ -11,7 +11,6 @@ import { LogoMark } from '@/components/site/Logo';
 import { Badge, Button, IconButton, Input, cn, useToast } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
 import type { MessageKey } from '@/i18n';
-import { AddMenu } from './AddMenu';
 import { useCollection } from './context';
 import { apiErrorMessage } from './errors';
 import { ExportMenu } from './ExportMenu';
@@ -262,7 +261,6 @@ export function CollectionHeader() {
               <span className="max-sm:sr-only">{t('collection.action.share')}</span>
             </Button>
             <ExportMenu />
-            {isOwner ? <AddMenu /> : null}
             {isOwner ? (
               <IconButton
                 variant="secondary"

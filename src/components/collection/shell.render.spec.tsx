@@ -42,6 +42,7 @@ vi.mock('@/components/views/FramesView', () => ({ FramesView: marker('view-frame
 vi.mock('@/components/views/ReviewView', () => ({ ReviewView: marker('view-review') }));
 vi.mock('@/components/book/BookDrawer', () => ({ BookDrawer: marker('drawer') }));
 vi.mock('@/components/book/AddBookDialog', () => ({ AddBookDialog: () => null }));
+vi.mock('@/components/book/AddBookPhotoDialog', () => ({ AddBookPhotoDialog: () => null }));
 vi.mock('@/components/book/MergeDialog', () => ({ MergeDialog: () => null }));
 vi.mock('@/components/upload/Uploader', () => ({ Uploader: () => null }));
 vi.mock('@/components/processing/ProcessingPanel', () => ({
@@ -167,8 +168,26 @@ describe('CollectionPage – ready catalogue', () => {
     expect(html).toContain('collection-view-tab-review');
     expect(visible).toContain('1 ellenőrizendő');
     expect(html).toContain('aria-label="Beállítások"');
-    expect(visible).toContain('Hozzáadás');
     expect(html).toContain('aria-label="Cím szerkesztése"');
+  });
+
+  it('shows the owner all three ways to add books at once, each with a start button', () => {
+    const html = renderPage(makeCollection({ isOwner: true }));
+    const visible = text(html);
+    expect(visible).toContain('Tedd fel a könyveidet');
+    expect(visible).toContain('Videó vagy fotó feltöltése');
+    expect(visible).toContain('Könyv fotóról');
+    expect(visible).toContain('Könyv felvétele kézzel');
+    for (const cta of ['Feltöltés', 'Fotózás', 'Beírás']) {
+      expect(html).toMatch(new RegExp(`<button[^>]*>(?:<[^>]+>)*${cta}<`));
+    }
+    // the old "Hozzáadás" drop-down button is gone
+    expect(visible).not.toContain('Hozzáadás');
+  });
+
+  it('keeps the add block away from visitors', () => {
+    const visible = text(renderPage(makeCollection()));
+    expect(visible).not.toContain('Tedd fel a könyveidet');
   });
 
   it('restores view, sort and search from the URL', () => {
@@ -225,7 +244,8 @@ describe('CollectionPage – other states', () => {
     const html = renderPage(makeCollection({ isOwner: true, books: [] }));
     const visible = text(html);
     expect(visible).toContain('Még nincs könyv a katalógusban');
-    expect(visible).toContain('Új videó feltöltése');
+    // the ways to add books come from the add block above, not from buttons inside the empty state
+    expect(visible).toContain('Tedd fel a könyveidet');
     expect(visible).toContain('Könyv felvétele kézzel');
     expect(visible).toContain('Így sikerül a felvétel');
     expect(html).not.toContain('role="tablist"');
