@@ -4,6 +4,14 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.5.0 – 2026-10-10
+
+### Changed
+- Landing page in one column, top to bottom: headline (wide), one long shelf being filmed, Google sign-in
+  (centred), then the recording – "open it on your phone and film right away" with a QR code next to the
+  uploader for files already on this computer.
+- New "quick peek" section: what a finished library looks like (header, views, tags, two full shelves).
+
 ## 1.4.0 – 2026-10-10
 
 ### Changed

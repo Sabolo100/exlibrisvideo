@@ -10,6 +10,7 @@ import { Faq } from '@/components/landing/Faq';
 import { FilmingTips } from '@/components/landing/FilmingTips';
 import { FinalCta } from '@/components/landing/FinalCta';
 import { Hero } from '@/components/landing/Hero';
+import { LibraryPeek } from '@/components/landing/LibraryPeek';
 import { HowItWorks } from '@/components/landing/HowItWorks';
 import { PrivacyPromise } from '@/components/landing/PrivacyPromise';
 import { WhatYouGet } from '@/components/landing/WhatYouGet';
@@ -75,6 +76,7 @@ export default async function HomePage() {
     <>
       {notice}
       <Hero demoCollectionId={demoId} />
+      <LibraryPeek demoCollectionId={demoId} />
       <HowItWorks />
       <FilmingTips />
       <WhatYouGet />

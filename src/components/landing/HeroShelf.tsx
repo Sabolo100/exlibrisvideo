@@ -9,9 +9,12 @@ import { spineLabel } from '@/components/books/BookSpine';
 import type { SpineSize } from '@/components/books/spine-layout';
 import { cn } from '@/components/ui/cn';
 import type { BookDTO } from '@/lib/types';
+import { SAMPLE_BOOKS } from '@/components/books/sample-books';
 import { HERO_BOOKS } from './hero-books';
 
 const ROWS: BookDTO[][] = [HERO_BOOKS.slice(0, 9), HERO_BOOKS.slice(9)];
+/** the long shelf: the classics plus more sample books in one row that runs past the edge (never wraps) */
+const LONG_ROW: BookDTO[] = [...HERO_BOOKS, ...SAMPLE_BOOKS.filter((b) => !HERO_BOOKS.some((h) => h.title === b.title))];
 /** the order in which the "recognised" chip names the books (follows the sweeping phone) */
 const CHIP_ORDER = [9, 1, 11, 5, 14, 3, 16, 7, 12, 0, 10, 4, 13, 8, 15, 2, 17, 6];
 const CHIP_MS = 2800;
@@ -23,14 +26,23 @@ const SCAN_CSS = `
   94%, 100% { left: 1%; }
 }
 .exl-hero-scan { animation: exl-hero-scan 10s ease-in-out infinite; }
+@keyframes exl-hero-scan-wide {
+  0%, 6% { left: 1%; }
+  44%, 56% { left: 85%; }
+  94%, 100% { left: 1%; }
+}
+.exl-hero-scan-wide { animation: exl-hero-scan 10s ease-in-out infinite; width: 28%; }
+@media (min-width: 640px) {
+  .exl-hero-scan-wide { animation: exl-hero-scan-wide 12s ease-in-out infinite; width: 14%; }
+}
 @keyframes exl-hero-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .exl-hero-rec { animation: exl-hero-rec 1.4s ease-in-out infinite; }
 `;
 
-function Bookcase({ size }: { size: SpineSize }) {
+function Bookcase({ size, rows }: { size: SpineSize; rows: BookDTO[][] }) {
   return (
     <div className="flex flex-col gap-2.5">
-      {ROWS.map((row, r) => (
+      {rows.map((row, r) => (
         <Shelf
           key={r}
           size={size}
@@ -56,7 +68,7 @@ function Bookcase({ size }: { size: SpineSize }) {
  * Hero illustration: two shelves of Hungarian classics slide in, a phone viewfinder sweeps across them
  * and a chip names the books it "recognises". Decorative – exposed to assistive tech as one image.
  */
-export function HeroShelf({ className }: { className?: string }) {
+export function HeroShelf({ className, wide = false }: { className?: string; /** one long shelf instead of two */ wide?: boolean }) {
   const { t, tp } = useI18n();
   const reduced = useReducedMotion();
   const [tick, setTick] = useState(0);
@@ -69,19 +81,26 @@ export function HeroShelf({ className }: { className?: string }) {
 
   const current = HERO_BOOKS[CHIP_ORDER[tick]];
 
+
   return (
-    <figure role="img" aria-label={t('landing.hero.illustration')} className={cn('relative mx-auto w-full max-w-[34rem]', className)}>
+    <figure role="img" aria-label={t('landing.hero.illustration')} className={cn('relative mx-auto w-full', wide ? 'max-w-[60rem]' : 'max-w-[34rem]', className)}>
       <style>{SCAN_CSS}</style>
       <div aria-hidden="true" className="relative">
-        <div className="sm:hidden">
-          <Bookcase size="sm" />
+        <div className="sm:hidden" data-long-row={wide ? '' : undefined}>
+          <Bookcase size="sm" rows={wide ? [LONG_ROW] : ROWS} />
         </div>
-        <div className="max-sm:hidden">
-          <Bookcase size="md" />
+        <div className="max-sm:hidden" data-long-row={wide ? '' : undefined}>
+          <Bookcase size="md" rows={wide ? [LONG_ROW] : ROWS} />
         </div>
 
+        {wide ? <style>{'[data-long-row] [role="list"] { flex-wrap: nowrap; overflow: hidden; }'}</style> : null}
         {/* the phone sweeping along the shelves */}
-        <div className="exl-hero-scan pointer-events-none absolute -top-3 -bottom-3 left-[1%] w-[28%]">
+        <div
+          className={cn(
+            'pointer-events-none absolute -top-3 -bottom-3 left-[1%]',
+            wide ? 'exl-hero-scan-wide' : 'exl-hero-scan w-[28%]',
+          )}
+        >
           <div className="relative h-full w-full rounded-[1.1rem] border-[3px] border-[#fdf8ee]/90 bg-[linear-gradient(180deg,rgb(255_255_255/0.08),rgb(255_255_255/0.02))] shadow-[0_10px_30px_-8px_rgb(0_0_0/0.55),inset_0_0_0_1px_rgb(0_0_0/0.25)]">
             <span className="absolute top-2 left-1/2 h-1 w-8 -translate-x-1/2 rounded-full bg-[#fdf8ee]/70" />
             <span className="absolute top-2.5 right-3 flex items-center gap-1 text-[0.5625rem] font-semibold tracking-wider text-[#fdf8ee]">
@@ -96,7 +115,7 @@ export function HeroShelf({ className }: { className?: string }) {
           </div>
         </div>
 
-        <span className="absolute -top-3 right-3 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink shadow-soft tabular-nums">
+        <span className={cn('absolute -top-3 right-3 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-semibold text-ink shadow-soft tabular-nums', wide && 'hidden')}>
           {tp('landing.hero.found', HERO_BOOKS.length)}
         </span>
 

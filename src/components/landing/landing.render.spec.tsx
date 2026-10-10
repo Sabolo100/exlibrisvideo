@@ -91,6 +91,7 @@ describe('landing page', () => {
     const sections = (page.props as { children: ReactElement[] }).children;
     expect(sections.filter((s) => typeof s.type === 'function').map((s) => (s.type as { name: string }).name)).toEqual([
       'Hero',
+      'LibraryPeek',
       'HowItWorks',
       'FilmingTips',
       'WhatYouGet',
