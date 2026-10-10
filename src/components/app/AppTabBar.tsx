@@ -71,7 +71,7 @@ export function AppTabBar({ tabs, center, className, label }: AppTabBarProps) {
         {center ? (
           <>
             {tabs.slice(0, half).map(renderTab)}
-            <div className="flex w-20 shrink-0 items-start justify-center">{center}</div>
+            <div className={cn('flex shrink-0 items-start justify-center', tabs.length ? 'w-20' : 'flex-1')}>{center}</div>
             {tabs.slice(half).map(renderTab)}
           </>
         ) : (

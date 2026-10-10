@@ -8,6 +8,7 @@ import { env, googleAuthEnabled } from '@/lib/env';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { Providers } from '@/components/site/Providers';
+import { PwaStart } from '@/components/site/PwaStart';
 import { SessionProvider } from '@/components/site/SessionProvider';
 import { UiModeProvider } from '@/components/app/UiModeProvider';
 import { getUiMode } from '@/components/app/ui-mode.server';
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <I18nProvider locale={locale}>
           <Providers>
             <SessionProvider user={user} authEnabled={googleAuthEnabled()}>
+            <PwaStart />
             <UiModeProvider mode={uiMode}>
               {app ? (
                 // phone app: every page renders its own full-screen <AppScreen> (top bar, content, tab bar)

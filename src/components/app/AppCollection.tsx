@@ -13,6 +13,7 @@ import {
   Download,
   Ellipsis,
   Mail,
+  Images,
   Plus,
   ScanBarcode,
   Search,
@@ -46,16 +47,20 @@ import { api } from '@/lib/client/api';
 import { uploadStore } from '@/lib/client/upload-store';
 import type { ViewKey } from '@/lib/types';
 import { AppScreen } from './AppScreen';
-import { AppTabBar, type AppTab } from './AppTabBar';
+import { AppFab, AppTabBar, type AppTab } from './AppTabBar';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
 import { UserAvatar } from '@/components/site/AccountMenu';
 import { useSession } from '@/components/site/SessionProvider';
-import { RecordingTagsSheet } from '@/components/tags/RecordingTagsSheet';
-import { tagSuggestions } from '@/components/tags/tag-utils';
+import { copyPickedFiles } from '@/lib/client/stable-files';
+import { AppInstallButton } from './AppInstallButton';
 import { AppSettingsSheet } from './AppSettingsSheet';
 
 /** The views with their own tab; the rest live under "More". */
+const GALLERY_ACCEPT = 'video/*,image/jpeg,image/png,image/webp,.mp4,.m4v,.mov,.webm,.mkv,.3gp,.jpg,.jpeg,.png,.webp';
+
 const PRIMARY_VIEWS: readonly ViewKey[] = ['shelf', 'covers', 'authors', 'stats'];
+/** owners: the add button takes the middle of the tab bar, statistics moves into "More" */
+const OWNER_PRIMARY_VIEWS: readonly ViewKey[] = ['shelf', 'covers', 'authors'];
 
 function SheetSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -131,8 +136,8 @@ export function AppCollection() {
   const [photoBookOpen, setPhotoBookOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
-  /** a fresh recording waiting for its (optional) tags before the upload */
-  const [recorded, setRecorded] = useState<File[] | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const sessionUser = useSession().user;
   const accountLibrary = !!sessionUser && sessionUser.libraryId === collection.id;
 
@@ -175,8 +180,9 @@ export function AppCollection() {
     setShareOpen(true);
   };
 
+  const primaryViews = isOwner ? OWNER_PRIMARY_VIEWS : PRIMARY_VIEWS;
   const tabs: AppTab[] = [
-    ...PRIMARY_VIEWS.filter((v) => views.includes(v)).map((v) => {
+    ...primaryViews.filter((v) => views.includes(v)).map((v) => {
       const Icon = VIEW_META[v].icon;
       return { key: v, label: t(VIEW_META[v].labelKey), icon: <Icon />, active: activeView === v, onClick: () => pickView(v) };
     }),
@@ -184,14 +190,15 @@ export function AppCollection() {
       key: 'more',
       label: t('app.collection.more'),
       icon: <Ellipsis />,
-      active: !PRIMARY_VIEWS.includes(activeView) || moreOpen,
+      active: !primaryViews.includes(activeView) || moreOpen,
       badge: isOwner && reviewBadge > 0 ? reviewBadge : undefined,
       onClick: () => setMoreOpen(true),
     },
   ];
 
-  const secondaryViews = views.filter((v) => !PRIMARY_VIEWS.includes(v));
-  const subtitle = processing ? t('app.collection.processing') : `${tp('collection.header.books', counts.books)} · ${tp('collection.header.authors', counts.authors)}`;
+  const secondaryViews = views.filter((v) => !primaryViews.includes(v));
+  const emptyDraft = collection.status === 'draft' && books.length === 0 && collection.videos.length === 0;
+  const subtitle = emptyDraft ? t('app.collection.empty') : processing ? t('app.collection.processing') : `${tp('collection.header.books', counts.books)} · ${tp('collection.header.authors', counts.authors)}`;
 
   return (
     <AppScreen
@@ -217,6 +224,7 @@ export function AppCollection() {
           subtitle={subtitle}
           actions={
             <>
+              {accountLibrary ? <AppInstallButton onNeedHelp={() => setAppSettingsOpen(true)} /> : null}
               {!processing && books.length > 0 ? (
                 <AppBarButton
                   label={searchOpen ? t('app.collection.searchClose') : t('app.collection.search')}
@@ -227,10 +235,6 @@ export function AppCollection() {
                     setSearchOpen((o) => !o);
                   }}
                 />
-              ) : null}
-              {isOwner && !processing ? (
-                // a missed book on the shelf: film it again right from here (the merge skips the books already in)
-                <AppBarButton label={t('app.collection.addVideo')} icon={<Camera />} onClick={() => setCameraOpen(true)} />
               ) : null}
               <AppBarButton label={t('app.collection.share')} icon={<Share2 />} onClick={() => void share()} />
             </>
@@ -263,7 +267,17 @@ export function AppCollection() {
           }
         />
       }
-      bottom={processing || books.length === 0 ? undefined : <AppTabBar label={t('app.collection.views.label')} tabs={tabs} />}
+      bottom={
+        isOwner ? (
+          <AppTabBar
+            label={t('app.collection.views.label')}
+            tabs={processing || books.length === 0 ? [] : tabs}
+            center={<AppFab label={t('app.collection.add')} icon={<Plus />} onClick={() => setAddOpen(true)} />}
+          />
+        ) : processing || books.length === 0 ? undefined : (
+          <AppTabBar label={t('app.collection.views.label')} tabs={tabs} />
+        )
+      }
       mainClassName={processing ? 'px-3 pt-3 pb-6' : 'pb-6'}
     >
       {claiming ? (
@@ -368,14 +382,6 @@ export function AppCollection() {
                 }}
               />
               <SheetRow
-                icon={<Mail />}
-                label={t('app.collection.email')}
-                onClick={() => {
-                  setMoreOpen(false);
-                  setEmailOpen(true);
-                }}
-              />
-              <SheetRow
                 icon={<Settings2 />}
                 label={t('app.collection.settings')}
                 onClick={() => {
@@ -397,6 +403,16 @@ export function AppCollection() {
               href={api.exportUrl(collection.id, format, locale)}
             />
           ))}
+          {isOwner ? (
+            <SheetRow
+              icon={<Mail />}
+              label={t('app.collection.email')}
+              onClick={() => {
+                setMoreOpen(false);
+                setEmailOpen(true);
+              }}
+            />
+          ) : null}
         </SheetSection>
       </Drawer>
 
@@ -417,21 +433,57 @@ export function AppCollection() {
             onDone={(files: File[]) => {
               setCameraOpen(false);
               if (files.length === 0) return;
-              // ask for the recording's tags first (optional), then upload
-              setRecorded(files);
-            }}
-          />
-          <RecordingTagsSheet
-            open={recorded !== null}
-            suggestions={tagSuggestions(books, collection.videos)}
-            onUpload={(tags) => {
-              const files = recorded;
-              setRecorded(null);
-              if (!files?.length) return;
-              uploadStore.enqueue(collection.id, files, { tags });
+              uploadStore.enqueue(collection.id, files);
               toast({ title: t('app.collection.uploadStarted'), tone: 'info' });
             }}
           />
+          <input
+            ref={galleryRef}
+            type="file"
+            multiple
+            accept={GALLERY_ACCEPT}
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => {
+              const input = e.currentTarget;
+              const picked = Array.from(input.files ?? []);
+              if (picked.length === 0) return;
+              // open the files right now: Chrome on Android drops access to picked files after a moment
+              void copyPickedFiles(picked).then((ready) => {
+                input.value = '';
+                if (ready.length === 0) return;
+                uploadStore.enqueue(collection.id, ready);
+                toast({ title: t('app.collection.uploadStarted'), tone: 'info' });
+              });
+            }}
+          />
+          <Drawer open={addOpen} onClose={() => setAddOpen(false)} title={t('app.collection.add')} size="sm">
+            <div className="flex flex-col gap-2 pb-2">
+              {[
+                { key: 'record', icon: <Camera />, label: t('app.collection.addVideo'), hint: t('app.add.recordHint'), run: () => setCameraOpen(true) },
+                { key: 'gallery', icon: <Images />, label: t('app.add.gallery'), hint: t('app.add.galleryHint'), run: () => galleryRef.current?.click() },
+                { key: 'photo', icon: <ScanBarcode />, label: t('book.photo.menu'), hint: t('book.photo.menuHint'), run: () => setPhotoBookOpen(true) },
+                { key: 'manual', icon: <Plus />, label: t('app.collection.addBook'), hint: t('app.add.manualHint'), run: () => setAddBookOpen(true) },
+              ].map((a) => (
+                <button
+                  key={a.key}
+                  type="button"
+                  onClick={() => {
+                    setAddOpen(false);
+                    a.run();
+                  }}
+                  className="app-chrome flex items-center gap-3 rounded-2xl border border-line bg-surface px-3.5 py-3 text-left active:bg-surface-2"
+                >
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent [&_svg]:size-[22px]">{a.icon}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[0.9375rem] font-semibold text-ink">{a.label}</span>
+                    <span className="block text-[0.8125rem] leading-snug text-muted">{a.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Drawer>
         </>
       ) : null}
     </AppScreen>

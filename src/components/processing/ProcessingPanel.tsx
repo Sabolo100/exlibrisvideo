@@ -45,6 +45,7 @@ import { TipsCarousel } from './TipsCarousel';
 import { usePolling } from './usePolling';
 import { AddBookPhotoDialog } from '@/components/book/AddBookPhotoDialog';
 import { ownerLibraryLabel } from '@/components/collection/labels';
+import { SourceTags } from '@/components/tags/SourceTags';
 import { tagSuggestions } from '@/components/tags/tag-utils';
 
 export interface ProcessingPanelProps {
@@ -318,8 +319,6 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
         existingSourceCount={status.videos.length}
         resumableUploads={resumable}
         showFileList={false}
-        withTags
-        tagSuggestions={tagSuggestions(books, status.videos)}
         onAllComplete={() => pollStatusNow()}
       />
     </Card>
@@ -475,6 +474,16 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
                         onRemove={isOwner ? removeSource : undefined}
                         limits={limits}
                       />
+                      {/* tags come after the upload, e.g. while the recording is being processed */}
+                      {isOwner && video.uploadStatus === 'uploaded' ? (
+                        <SourceTags
+                          video={video}
+                          suggestions={tagSuggestions(books, status.videos)}
+                          canEdit
+                          onSaved={() => pollStatusNow()}
+                          className="mt-1.5 px-1"
+                        />
+                      ) : null}
                     </motion.li>
                   ))}
                 </AnimatePresence>
@@ -490,7 +499,8 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
           {/* a signed-in user's library is reached through the account, not by keeping its link */}
           {initial.isAccountLibrary ? null : <SharePanel collectionId={id} publicUrl={meta.publicUrl} className="order-3" />}
 
-          {isOwner ? (
+          {/* a signed-in owner has the export menu (download / e-mail) instead of a notification form */}
+          {isOwner && !initial.isAccountLibrary ? (
             <EmailWhenReady
               collectionId={id}
               email={meta.email}

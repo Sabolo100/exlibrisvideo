@@ -50,7 +50,8 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
     setDismissed(readDismissed(collection.id));
   }, [collection.id]);
 
-  if (!isOwner) return null;
+  // a signed-in owner's library needs no "save your link" notes: export / e-mail live in the export menu
+  if (!isOwner || collection.isAccountLibrary) return null;
 
   const dismiss = () => {
     writeDismissed(collection.id);

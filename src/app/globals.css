@@ -144,6 +144,11 @@ html.app-mode body.app-body {
   /* app screens are exactly one viewport tall (AppScreen: h-dvh); pages without an app screen still scroll */
   overscroll-behavior: none;
 }
+html.app-locked,
+html.app-locked body {
+  height: 100%;
+  overflow: hidden;
+}
 html.app-mode {
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;

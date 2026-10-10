@@ -20,6 +20,7 @@ import { FrameStrip } from './visual/FrameStrip';
 import { ReanalyzeButton } from './visual/ReanalyzeButton';
 import { isBoolean, isEditableOrWidgetTarget, scrollBehavior, useLatest, useStoredState } from './visual/hooks';
 import { SourceTags } from '@/components/tags/SourceTags';
+import { tagSuggestions } from '@/components/tags/tag-utils';
 
 type LoadState =
   | { status: 'loading' }
@@ -27,7 +28,7 @@ type LoadState =
   | { status: 'ready'; frames: FrameDTO[]; detections: FrameDetection[] };
 
 export function FramesView() {
-  const { collection, books, openBook, openBookId } = useCollection();
+  const { collection, books, openBook, openBookId, refresh } = useCollection();
   const { t, tp, n, locale } = useUiTranslator();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
@@ -323,7 +324,7 @@ export function FramesView() {
             action={
               group.video ? (
                 <>
-                  <SourceTags video={group.video} />
+                  <SourceTags video={group.video} suggestions={tagSuggestions(books, collection.videos)} canEdit={collection.isOwner} onSaved={refresh} />
                   {collection.isOwner && group.frames.length > 0 && (group.video.status === 'done' || group.video.status === 'error') ? (
                     <ReanalyzeButton video={group.video} />
                   ) : null}

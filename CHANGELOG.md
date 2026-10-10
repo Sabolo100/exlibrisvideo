@@ -4,6 +4,24 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.4.0 – 2026-10-10
+
+### Changed
+- Phone app, own library: a "+" button in the middle of the bottom bar (record a shelf, video / photos from
+  the gallery, book from a photo, book by hand) – there was no way back to these from the catalogue.
+- E-mail export only in the export menu; a signed-in owner's library no longer shows the "save your link"
+  banner or the "shall we let you know" e-mail card.
+- Tags are asked after the upload, on the recording's card (while it is processed), not before it.
+- Landing page: headline beside the shelf, then sign-in (recommended) and the link-only uploader side by side.
+- Empty library: subtitle "Still empty" instead of "Processing…".
+
+### Fixed
+- Phone app: the document could scroll a few pixels, sliding the top bar under the browser's address bar.
+
+### Added
+- Installable app (PWA): service worker `/sw.js` (cache name carries version + build id), the install prompt
+  is caught at start-up, an install button in the app's top bar.
+
 ## 1.3.0 – 2026-10-10
 
 ### Added

@@ -25,7 +25,7 @@ export function SignInCard({ variant = 'hero', className }: { variant?: 'hero' |
       aria-labelledby="signin-card-title"
       className={cn(
         'relative rounded-2xl border border-accent/40 bg-surface p-4 shadow-[0_6px_20px_-14px_hsl(var(--shadow-color)/0.55)]',
-        app ? 'app-chrome' : 'sm:p-5',
+        app ? 'app-chrome' : 'sm:p-6',
         className,
       )}
     >
@@ -39,7 +39,6 @@ export function SignInCard({ variant = 'hero', className }: { variant?: 'hero' |
         {t('account.signIn.text')}
       </p>
       <SignInButton fullWidth size={app ? 'md' : 'lg'} className="mt-3" />
-      {!app ? <p className="mt-3 text-xs text-muted">{t('account.signIn.withoutAccount')}</p> : null}
     </section>
   );
 }

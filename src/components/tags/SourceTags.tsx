@@ -2,36 +2,45 @@
 
 /**
  * Tags of one recording: shown as small chips; the owner edits them in a dialog. Saving updates the
- * recording and the books found in it (server side), then the catalogue reloads.
+ * recording and the books found in it (server side); `onSaved` lets the screen reload.
  */
 import { Tag } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useCollection } from '@/components/collection/context';
+import { useState } from 'react';
 import { Button, Chip, Dialog, cn, useToast } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
 import { api } from '@/lib/client/api';
 import type { VideoDTO } from '@/lib/types';
 import { TagPicker } from './TagPicker';
-import { tagSuggestions } from './tag-utils';
 
-export function SourceTags({ video, className }: { video: Pick<VideoDTO, 'id' | 'originalFilename' | 'tags'>; className?: string }) {
+export function SourceTags({
+  video,
+  suggestions,
+  canEdit,
+  onSaved,
+  className,
+}: {
+  video: Pick<VideoDTO, 'id' | 'originalFilename' | 'tags'>;
+  /** the library's tags, most used first */
+  suggestions: readonly string[];
+  canEdit: boolean;
+  onSaved?: (video: VideoDTO) => void | Promise<void>;
+  className?: string;
+}) {
   const { t } = useI18n();
   const { toast } = useToast();
-  const { collection, books, isOwner, refresh } = useCollection();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string[]>(video.tags);
   const [busy, setBusy] = useState(false);
-  const suggestions = useMemo(() => tagSuggestions(books, collection.videos), [books, collection.videos]);
 
-  if (!isOwner && video.tags.length === 0) return null;
+  if (!canEdit && video.tags.length === 0) return null;
 
   const save = async () => {
     setBusy(true);
     try {
-      await api.setSourceTags(video.id, draft);
+      const { video: updated } = await api.setSourceTags(video.id, draft);
       setOpen(false);
       toast({ title: t('collection.tags.saved'), tone: 'success' });
-      await refresh();
+      await onSaved?.(updated);
     } catch {
       toast({ title: t('collection.tags.saveFailed'), tone: 'error' });
     } finally {
@@ -46,7 +55,7 @@ export function SourceTags({ video, className }: { video: Pick<VideoDTO, 'id' | 
           {tag}
         </Chip>
       ))}
-      {isOwner ? (
+      {canEdit ? (
         <Button
           size="sm"
           variant="ghost"
@@ -59,7 +68,7 @@ export function SourceTags({ video, className }: { video: Pick<VideoDTO, 'id' | 
           {video.tags.length ? t('collection.tags.edit') : t('collection.tags.addTo')}
         </Button>
       ) : null}
-      {isOwner ? (
+      {canEdit ? (
         <Dialog
           open={open}
           onClose={() => (busy ? undefined : setOpen(false))}
@@ -78,7 +87,7 @@ export function SourceTags({ video, className }: { video: Pick<VideoDTO, 'id' | 
           }
         >
           <p className="mb-3 text-sm text-muted text-pretty">{t('collection.tags.editDescription')}</p>
-          <TagPicker value={draft} onChange={setDraft} suggestions={suggestions} hideHint={false} disabled={busy} />
+          <TagPicker value={draft} onChange={setDraft} suggestions={suggestions} disabled={busy} />
         </Dialog>
       ) : null}
     </div>

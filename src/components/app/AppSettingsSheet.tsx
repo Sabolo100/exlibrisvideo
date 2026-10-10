@@ -3,7 +3,7 @@
 /** App settings sheet: language, appearance, "add to home screen", desktop view, legal links. */
 import { ChevronRight, Download, LogOut, Monitor, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Drawer, SegmentedControl, useTheme, type ThemePreference } from '@/components/ui';
 import { versionLabel } from '@/lib/version';
 import { useI18n } from '@/i18n/client';
@@ -11,6 +11,7 @@ import type { Locale } from '@/lib/types';
 import { UserAvatar } from '@/components/site/AccountMenu';
 import { useSession } from '@/components/site/SessionProvider';
 import { SignInButton } from '@/components/site/SignInButton';
+import { promptInstall, useInstallState } from '@/lib/client/install-prompt';
 import { useUiMode } from './UiModeProvider';
 
 /** Signed in: who, and sign-out. Signed out (sign-in configured): the Google button. */
@@ -42,26 +43,6 @@ function AccountRow() {
       <SignInButton fullWidth />
     </div>
   );
-}
-
-type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
-
-function useInstallState() {
-  const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
-  const [standalone, setStandalone] = useState(false);
-  const [ios, setIos] = useState(false);
-  useEffect(() => {
-    const nav = navigator as Navigator & { standalone?: boolean };
-    setStandalone(window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true);
-    setIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setPrompt(e as InstallPromptEvent);
-    };
-    window.addEventListener('beforeinstallprompt', onPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
-  }, []);
-  return { prompt, standalone, ios, clearPrompt: () => setPrompt(null) };
 }
 
 function Row({ children }: { children: ReactNode }) {
@@ -113,12 +94,11 @@ export function AppSettingsSheet({ open, onClose }: { open: boolean; onClose: ()
           </p>
           {install.standalone ? (
             <p className="mt-1 text-sm text-muted">{t('app.settings.installed')}</p>
-          ) : install.prompt ? (
+          ) : install.canPrompt ? (
             <button
               type="button"
               onClick={() => {
-                void install.prompt?.prompt();
-                install.clearPrompt();
+                void promptInstall();
               }}
               className="mt-2 h-11 w-full rounded-xl bg-primary text-[0.9375rem] font-semibold text-primary-ink active:opacity-90"
             >

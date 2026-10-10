@@ -4,7 +4,7 @@
  * One full-screen app screen: top bar · scrollable content · bottom bar. The document never scrolls
  * (html.app-mode); only the content area does, with contained overscroll – like a native app.
  */
-import type { ReactNode, Ref } from 'react';
+import { useEffect, type ReactNode, type Ref } from 'react';
 import { cn } from '@/components/ui';
 
 export const APP_MAIN_ID = 'app-main';
@@ -22,6 +22,14 @@ export interface AppScreenProps {
 }
 
 export function AppScreen({ top, bottom, children, mainClassName, mainRef, fixedContent, className }: AppScreenProps) {
+  // while an app screen is shown the document itself must not scroll: a few pixels of document scroll
+  // (Chrome's collapsing address bar, a toast layer) slid the top bar under the address bar
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('app-locked');
+    window.scrollTo(0, 0);
+    return () => root.classList.remove('app-locked');
+  }, []);
   return (
     <div className={cn('flex h-dvh w-full flex-col overflow-hidden bg-bg', className)}>
       {top}

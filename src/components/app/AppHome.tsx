@@ -13,6 +13,7 @@ import { SignInCard } from '@/components/site/SignInCard';
 import type { UploadLimits } from '@/components/upload/limits';
 import { useI18n } from '@/i18n/client';
 import { listMyCollections, type MyCollectionEntry } from '@/lib/client/my-collections';
+import { AppInstallButton } from './AppInstallButton';
 import { AppMainTabBar } from './AppMainTabBar';
 import { AppOpenSheet } from './AppOpenSheet';
 import { AppRecordProvider, useAppRecord } from './AppRecordProvider';
@@ -128,7 +129,12 @@ function HomeContent() {
         <AppTopBar
           leading={<LogoMark className="ml-2 h-8 w-7" />}
           title={t('app.name')}
-          actions={<AppBarButton label={t('app.settings.title')} icon={<Settings2 />} onClick={() => setSettingsOpen(true)} />}
+          actions={
+            <>
+              <AppInstallButton onNeedHelp={() => setSettingsOpen(true)} />
+              <AppBarButton label={t('app.settings.title')} icon={<Settings2 />} onClick={() => setSettingsOpen(true)} />
+            </>
+          }
         />
       }
       bottom={<AppMainTabBar active="home" />}
