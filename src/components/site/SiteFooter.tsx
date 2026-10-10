@@ -2,6 +2,7 @@
 
 import { Mail } from 'lucide-react';
 import Link from 'next/link';
+import { versionLabel } from '@/lib/version';
 import { useI18n } from '@/i18n/client';
 import { cn } from '@/components/ui/cn';
 import { LogoMark } from './Logo';
@@ -74,6 +75,9 @@ export function SiteFooter() {
             ·
           </span>
           {t('common.footer.madeWith')}
+        </p>
+        <p className="font-mono text-[0.6875rem] text-muted/80" title={t('common.footer.version')}>
+          {versionLabel()}
         </p>
       </div>
     </footer>

@@ -46,6 +46,9 @@ import type { ViewKey } from '@/lib/types';
 import { AppScreen } from './AppScreen';
 import { AppTabBar, type AppTab } from './AppTabBar';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
+import { UserAvatar } from '@/components/site/AccountMenu';
+import { useSession } from '@/components/site/SessionProvider';
+import { AppSettingsSheet } from './AppSettingsSheet';
 
 /** The views with their own tab; the rest live under "More". */
 const PRIMARY_VIEWS: readonly ViewKey[] = ['shelf', 'covers', 'authors', 'stats'];
@@ -108,8 +111,8 @@ export function AppCollection() {
   const { toast } = useToast();
   const { collection, books, view, setView, filters, setFilters, activeFilterCount, sort, setSort, isOwner, refresh, visibleBooks } =
     useCollection();
-  const { counts, pendingReview, unreadSpineCount } = useCollectionShell();
-  const reviewBadge = pendingReview + unreadSpineCount;
+  const { counts, pendingReview, duplicateCount, unreadSpineCount } = useCollectionShell();
+  const reviewBadge = pendingReview + duplicateCount + unreadSpineCount;
   const onlyUnreadSpines = books.length === 0 && isOwner && unreadSpineCount > 0;
   const { claiming, processing } = useCollectionPageLifecycle();
   const mainRef = useRef<HTMLElement>(null);
@@ -122,6 +125,9 @@ export function AppCollection() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addBookOpen, setAddBookOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const sessionUser = useSession().user;
+  const accountLibrary = !!sessionUser && sessionUser.libraryId === collection.id;
 
   const views = useMemo(() => availableViews({ isOwner: collection.isOwner, videos: collection.videos }), [collection.isOwner, collection.videos]);
   const activeView: ViewKey = views.includes(view) ? view : 'shelf';
@@ -185,7 +191,21 @@ export function AppCollection() {
       mainRef={mainRef}
       top={
         <AppTopBar
-          leading={<AppBackButton fallbackHref="/my" />}
+          leading={
+            accountLibrary ? (
+              // the signed-in user's home: no "back" – the avatar opens the settings (account, sign-out)
+              <button
+                type="button"
+                aria-label={t('app.settings.title')}
+                onClick={() => setAppSettingsOpen(true)}
+                className="ml-1 inline-flex rounded-full p-1 active:scale-95"
+              >
+                {sessionUser ? <UserAvatar user={sessionUser} /> : null}
+              </button>
+            ) : (
+              <AppBackButton fallbackHref="/my" />
+            )
+          }
           title={title}
           subtitle={subtitle}
           actions={
@@ -369,6 +389,7 @@ export function AppCollection() {
         <FiltersPanel onDone={() => setFiltersOpen(false)} />
       </Drawer>
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} />
+      {accountLibrary ? <AppSettingsSheet open={appSettingsOpen} onClose={() => setAppSettingsOpen(false)} /> : null}
       {isOwner ? (
         <>
           <EmailExportDialog open={emailOpen} onClose={() => setEmailOpen(false)} />

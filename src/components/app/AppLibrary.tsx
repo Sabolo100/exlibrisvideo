@@ -12,6 +12,7 @@ import { Badge, Drawer, EmptyShelfIllustration, useToast } from '@/components/ui
 import type { UploadLimits } from '@/components/upload/limits';
 import { useI18n } from '@/i18n/client';
 import { forgetCollection, type MyCollectionEntry } from '@/lib/client/my-collections';
+import { AccountLibraryCard } from '@/components/site/SignInCard';
 import { AppMainTabBar } from './AppMainTabBar';
 import { AppOpenSheet } from './AppOpenSheet';
 import { AppRecordProvider, useAppRecord } from './AppRecordProvider';
@@ -41,6 +42,7 @@ function LibraryContent() {
       bottom={<AppMainTabBar active="library" />}
       mainClassName="px-4 pt-3 pb-4"
     >
+      <AccountLibraryCard variant="app" className="mb-4" />
       {entries.length === 0 ? (
         <div className="app-screen-in flex h-full flex-col items-center justify-center px-6 text-center">
           <EmptyShelfIllustration className="w-44" />

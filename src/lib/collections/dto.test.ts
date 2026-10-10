@@ -49,6 +49,8 @@ function book(over: Partial<BookRow> = {}): BookRow {
     firstTimeSec: 1.5,
     shelfPosition: 3,
     detectionCount: 4,
+    copies: 1,
+    duplicateOfId: null,
     readingStatus: 'read',
     rating: 5,
     favorite: true,
@@ -94,6 +96,7 @@ function collection(over: Partial<CollectionRow> = {}): CollectionRow {
   return {
     id: '123456789',
     ownerTokenHash: sha256Hex('tok'),
+    userId: null,
     title: 'Otthoni könyvtár',
     description: null,
     ownerName: 'Kata',

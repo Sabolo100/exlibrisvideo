@@ -101,6 +101,7 @@ function makeCollection(overrides: Partial<CollectionWithBooksDTO> = {}): Collec
     createdAt: '2026-09-12T20:00:00.000Z',
     updatedAt: '2026-09-12T20:05:00.000Z',
     emailSentAt: null,
+    isAccountLibrary: false,
     books,
     ...overrides,
   };

@@ -25,8 +25,8 @@ export function viewTabId(view: ViewKey): string {
 export function ViewSwitcher({ views, className }: ViewSwitcherProps) {
   const { t, tp, n } = useI18n();
   const { view, setView } = useCollection();
-  const { pendingReview, unreadSpineCount } = useCollectionShell();
-  const reviewBadge = pendingReview + unreadSpineCount;
+  const { pendingReview, duplicateCount, unreadSpineCount } = useCollectionShell();
+  const reviewBadge = pendingReview + duplicateCount + unreadSpineCount;
   const listRef = useRef<HTMLDivElement>(null);
   const active = views.includes(view) ? view : views[0];
 

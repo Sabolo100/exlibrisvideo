@@ -49,6 +49,8 @@ export function makeSampleBook(partial: Partial<BookDTO> & { title: string }): B
     firstTimeSec: n * 0.4,
     shelfPosition: n,
     detectionCount: 3,
+    copies: 1,
+    duplicateOfId: null,
     readingStatus: 'unknown',
     rating: null,
     favorite: false,

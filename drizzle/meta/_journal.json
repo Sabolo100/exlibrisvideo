@@ -15,6 +15,13 @@
       "when": 1789588156365,
       "tag": "0001_unread_spines",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791611351921,
+      "tag": "0002_accounts",
+      "breakpoints": true
     }
   ]
 }

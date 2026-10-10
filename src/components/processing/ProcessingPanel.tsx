@@ -43,6 +43,7 @@ import { SharePanel } from './SharePanel';
 import { SourceCard } from './SourceCard';
 import { TipsCarousel } from './TipsCarousel';
 import { usePolling } from './usePolling';
+import { ownerLibraryLabel } from '@/components/collection/labels';
 
 export interface ProcessingPanelProps {
   initial: CollectionWithBooksDTO;
@@ -292,7 +293,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
   const sources = sortSources(status.videos);
   const counts = sourceCounts(status.videos);
   const totals = uploadTotals(visibleUploads);
-  const title = meta.title?.trim() || t('processing.title.fallback');
+  const title = meta.title?.trim() || ownerLibraryLabel(initial.ownerName, t) || t('processing.title.fallback');
   const booksLine = status.bookCount > 0 ? tp('processing.progress.books', status.bookCount) : t('processing.progress.noBooksYet');
   const showBar = phase === 'uploading' || phase === 'processing' || phase === 'enriching' || phase === 'ready';
   const barValue =
@@ -462,7 +463,8 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
 
         {/* side column */}
         <div className="contents lg:flex lg:flex-col lg:gap-5">
-          <SharePanel collectionId={id} publicUrl={meta.publicUrl} className="order-3" />
+          {/* a signed-in user's library is reached through the account, not by keeping its link */}
+          {initial.isAccountLibrary ? null : <SharePanel collectionId={id} publicUrl={meta.publicUrl} className="order-3" />}
 
           {isOwner ? (
             <EmailWhenReady

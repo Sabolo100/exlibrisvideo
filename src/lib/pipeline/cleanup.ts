@@ -84,13 +84,14 @@ export async function purgeStaleUploads(now = Date.now()): Promise<number> {
   return removed;
 }
 
-/** Draft collections without any source or book, untouched for DRAFT_RETENTION_DAYS. */
+/** Draft collections without any source or book, untouched for DRAFT_RETENTION_DAYS (never a user's library). */
 export async function purgeOldDrafts(now = Date.now()): Promise<number> {
   const days = Math.max(1, env().DRAFT_RETENTION_DAYS);
   const cutoff = new Date(now - days * DAY);
   const res = await db().execute<{ id: string }>(sql`
     DELETE FROM collections c
      WHERE c.status = 'draft'
+       AND c.user_id IS NULL
        AND c.created_at < ${cutoff.toISOString()}::timestamptz
        AND c.updated_at < ${cutoff.toISOString()}::timestamptz
        AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.collection_id = c.id)

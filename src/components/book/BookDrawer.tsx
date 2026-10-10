@@ -10,7 +10,9 @@ import {
   Hand,
   Heart,
   Image as ImageIcon,
+  Minus,
   Pencil,
+  Plus,
   TriangleAlert,
   Trash2,
   Undo2,
@@ -339,6 +341,11 @@ export function BookDetails({ book, ctx, onEdit, onMarkReviewed, marking }: Book
     book.publisher ? <span key="publisher">{book.publisher}</span> : null,
     book.language ? <span key="language">{languageName(book.language, locale)}</span> : null,
     book.pageCount ? <span key="pages">{tp('book.drawer.pages', book.pageCount)}</span> : null,
+    book.copies > 1 ? (
+      <span key="copies" className="font-semibold">
+        {tp('book.copies.count', book.copies)}
+      </span>
+    ) : null,
   ].filter(Boolean);
 
   const secondary = [
@@ -694,6 +701,33 @@ function OwnerFields({ book, ctx }: { book: BookDTO; ctx: CollectionContextValue
           >
             {t('book.owner.favorite')}
           </Button>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span id={`copies-${book.id}`} className="text-sm font-medium text-ink">
+            {t('book.copies.label')}
+          </span>
+          <div role="group" aria-labelledby={`copies-${book.id}`} className="flex items-center gap-1">
+            <IconButton
+              aria-label={t('book.copies.less')}
+              icon={<Minus />}
+              size="sm"
+              variant="secondary"
+              disabled={book.copies <= 1}
+              onClick={() => void updateBook(book.id, { copies: Math.max(1, book.copies - 1) })}
+            />
+            <span className="w-8 text-center text-base font-semibold text-ink tabular-nums" aria-live="polite">
+              {book.copies}
+            </span>
+            <IconButton
+              aria-label={t('book.copies.more')}
+              icon={<Plus />}
+              size="sm"
+              variant="secondary"
+              disabled={book.copies >= 99}
+              onClick={() => void updateBook(book.id, { copies: Math.min(99, book.copies + 1) })}
+            />
+          </div>
         </div>
 
         <Field label={t('book.owner.notes')} labelAside={<SaveIndicator status={notes.status} onRetry={notes.retry} />}>

@@ -3,6 +3,8 @@
  * what you get, privacy promise, FAQ and a final call to action.
  */
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { getServerT } from '@/i18n/server';
 import { Faq } from '@/components/landing/Faq';
 import { FilmingTips } from '@/components/landing/FilmingTips';
@@ -14,6 +16,8 @@ import { WhatYouGet } from '@/components/landing/WhatYouGet';
 import { AppHome } from '@/components/app/AppHome';
 import { getUiMode } from '@/components/app/ui-mode.server';
 import { serverUploadLimits } from '@/components/upload/server-limits';
+import { AuthNotice } from '@/components/site/SignInCard';
+import { ensureLibrary, findUser, getSessionUser } from '@/lib/auth/users';
 
 /** Optional sample collection (public build-time setting, like the header's "Minta könyvtár" link). */
 function demoCollectionId(): string | null {
@@ -40,12 +44,36 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/** A signed-in user's home is their library (created on first use). */
+async function signedInLibraryId(): Promise<string | null> {
+  const session = await getSessionUser();
+  if (!session) return null;
+  if (session.libraryId) return session.libraryId;
+  const user = await findUser(session.id);
+  return user ? (await ensureLibrary(user)).id : null;
+}
+
 export default async function HomePage() {
+  const libraryId = await signedInLibraryId();
+  if (libraryId) redirect(`/${libraryId}`);
+  const notice = (
+    <Suspense fallback={null}>
+      <AuthNotice />
+    </Suspense>
+  );
   // phones get the app home screen instead of the marketing page
-  if ((await getUiMode()) === 'app') return <AppHome limits={serverUploadLimits()} />;
+  if ((await getUiMode()) === 'app') {
+    return (
+      <>
+        {notice}
+        <AppHome limits={serverUploadLimits()} />
+      </>
+    );
+  }
   const demoId = demoCollectionId();
   return (
     <>
+      {notice}
       <Hero demoCollectionId={demoId} />
       <HowItWorks />
       <FilmingTips />

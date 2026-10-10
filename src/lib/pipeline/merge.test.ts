@@ -450,6 +450,23 @@ describe('clusterObservations – existing books', () => {
     );
     expect(cs).toHaveLength(6);
     expect(cs.every((c) => c.matchedBookId === null)).toBe(true);
+    // … but the owner is asked whether it is another copy or the same book
+    const matyszak = cs.find((c) => c.title.startsWith('Antik Róma'));
+    expect(matyszak?.possibleDuplicateOf).toBe('b6');
+    expect(cs.filter((c) => c !== matyszak).every((c) => !c.possibleDuplicateOf)).toBe(true);
+  });
+
+  it('a partial title elsewhere is not asked about as a duplicate', () => {
+    const cs = clusterObservations(
+      framesToObs([
+        [['A holtak küldöttei', 'Adam-Troy Castro'], ['Rudolf', null], ['Az ellopott futár', 'Rejtő Jenő']],
+        [['Rudolf', null], ['Az ellopott futár', 'Rejtő Jenő'], ['A harcos', 'Stephen King']],
+        [['Az ellopott futár', 'Rejtő Jenő'], ['A harcos', 'Stephen King'], ['A vád tanúja', 'Agatha Christie']],
+        [['A harcos', 'Stephen King'], ['A vád tanúja', 'Agatha Christie'], ['Korszakhatáron', 'Schmidt Mária']],
+      ]),
+      existingShelf,
+    );
+    expect(cs.every((c) => !c.matchedBookId && !c.possibleDuplicateOf)).toBe(true);
   });
 
   it('a clip continuing the previous clip matches the overlapping edge books', () => {

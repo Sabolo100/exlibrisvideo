@@ -73,6 +73,7 @@ function collection(p: Partial<CollectionWithBooksDTO> = {}): CollectionWithBook
     createdAt: '2026-09-13T10:00:00.000Z',
     updatedAt: '2026-09-13T10:01:00.000Z',
     emailSentAt: null,
+    isAccountLibrary: false,
     ...p,
     books,
   };

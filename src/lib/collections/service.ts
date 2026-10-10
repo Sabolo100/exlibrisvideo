@@ -6,7 +6,7 @@
  * the database commit succeeded.
  */
 import fs from 'node:fs/promises';
-import { count, eq, inArray, max, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, max, ne, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { db, type DB } from '@/db';
 import { books, collections, detections, unreadSpines, videos, type BookRow, type CollectionRow, type NewBookRow } from '@/db/schema';
@@ -16,7 +16,7 @@ import { enqueueJob } from '@/lib/jobs/queue';
 import { authorSortKey, titleSortKey } from '@/lib/pipeline/text';
 import { hashPin, isValidPin, newCollectionId, newOwnerToken, sha256Hex } from '@/lib/security/tokens';
 import { abs, removeCollectionFiles } from '@/lib/storage';
-import type { BBox, CollectionStatus, Locale } from '@/lib/types';
+import type { BBox, CollectionStatus, DuplicateResolution, Locale } from '@/lib/types';
 import {
   bookPatchSchema,
   collectionPatchSchema,
@@ -108,6 +108,7 @@ export const BIBLIOGRAPHIC_FIELDS = [
 
 const PATCHABLE_FIELDS = [
   ...BIBLIOGRAPHIC_FIELDS,
+  'copies',
   'readingStatus',
   'rating',
   'favorite',
@@ -332,6 +333,7 @@ export async function addManualBook(collectionId: string, input: unknown): Promi
       category: p.category ?? null,
       topics: p.topics ?? [],
       tags: p.tags ?? [],
+      copies: p.copies ?? 1,
       readingStatus: p.readingStatus ?? 'unknown',
       rating: p.rating ?? null,
       favorite: p.favorite ?? false,
@@ -441,7 +443,12 @@ const FILLABLE_FIELDS = [
  * detection counts are summed, the best-confidence spine evidence is kept, topics/tags are united, empty
  * bibliographic fields are filled from the merged books, the kept book's owner fields stay as they are.
  */
-export async function mergeBooks(collectionId: string, keepId: string, mergeIds: string[]): Promise<BookRow> {
+export async function mergeBooks(
+  collectionId: string,
+  keepId: string,
+  mergeIds: string[],
+  opts: { addCopies?: boolean } = {},
+): Promise<BookRow> {
   const ids = [...new Set(mergeIds)].filter((id) => id !== keepId);
   if (ids.length === 0) throw new HttpError(400, 'invalid', { issues: [{ path: 'mergeIds', code: 'empty', message: 'Nothing to merge' }] });
 
@@ -460,9 +467,14 @@ export async function mergeBooks(collectionId: string, keepId: string, mergeIds:
     const all = [keep, ...others];
 
     await tx.update(detections).set({ bookId: keepId }).where(inArray(detections.bookId, ids));
+    // books waiting for a duplicate answer about a merged book now ask about the kept one
+    await tx.update(books).set({ duplicateOfId: keepId }).where(and(inArray(books.duplicateOfId, ids), ne(books.id, keepId)));
 
     const set: Partial<NewBookRow> = {
       detectionCount: all.reduce((s, b) => s + (b.detectionCount ?? 0), 0),
+      // the same book read twice keeps its count; another copy adds up
+      copies: opts.addCopies ? Math.min(99, all.reduce((s, b) => s + Math.max(1, b.copies ?? 1), 0)) : Math.max(1, keep.copies ?? 1),
+      duplicateOfId: keep.duplicateOfId && !ids.includes(keep.duplicateOfId) ? keep.duplicateOfId : null,
       confidence: Math.max(...all.map((b) => b.confidence)),
       topics: union(keep.topics, ...others.map((b) => b.topics)),
       tags: union(keep.tags, ...others.map((b) => b.tags)),
@@ -499,6 +511,27 @@ export async function mergeBooks(collectionId: string, keepId: string, mergeIds:
 
   await removeStoredFiles(filesToRemove);
   return updated;
+}
+
+/**
+ * The owner's answer to "this book was already in the catalogue" (`books.duplicateOfId`): `same` merges the
+ * new book into the earlier one, `copy` merges it and counts one more copy, `different` keeps both books.
+ * Returns the book that stays and, when merged, the id of the book that is gone.
+ */
+export async function resolveDuplicate(
+  collectionId: string,
+  bookId: string,
+  resolution: DuplicateResolution,
+): Promise<{ book: BookRow; removedId: string | null }> {
+  const [book] = await db().select().from(books).where(and(eq(books.id, bookId), eq(books.collectionId, collectionId))).limit(1);
+  if (!book) throw new HttpError(404, 'not_found');
+  const earlierId = book.duplicateOfId;
+  if (resolution === 'different' || !earlierId) {
+    const [row] = await db().update(books).set({ duplicateOfId: null, updatedAt: new Date() }).where(eq(books.id, bookId)).returning();
+    return { book: row, removedId: null };
+  }
+  const kept = await mergeBooks(collectionId, earlierId, [bookId], { addCopies: resolution === 'copy' });
+  return { book: kept, removedId: bookId };
 }
 
 /* ------------------------------------------------------------------ */

@@ -12,7 +12,10 @@ import { IconButton } from '@/components/ui/IconButton';
 import { LanguageSwitch } from '@/components/ui/LanguageSwitch';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useI18n } from '@/i18n/client';
+import { AccountMenu } from './AccountMenu';
 import { Logo } from './Logo';
+import { useSession } from './SessionProvider';
+import { SignInButton } from './SignInButton';
 
 const DEMO_ID = process.env.NEXT_PUBLIC_DEMO_COLLECTION_ID;
 
@@ -36,7 +39,12 @@ function skipToContent(e: React.MouseEvent<HTMLAnchorElement>) {
 /** Sticky translucent paper header: logo, navigation, language switch, theme toggle, mobile menu. */
 export function SiteHeader() {
   const { t } = useI18n();
+  const { user } = useSession();
   const pathname = usePathname() ?? '/';
+  // signed in: the main action opens the user's library (new recordings are added there)
+  const mainAction = user?.libraryId
+    ? { href: `/${user.libraryId}`, label: t('account.menu.library'), icon: <Library aria-hidden="true" /> }
+    : { href: '/#upload', label: t('common.nav.new'), icon: <Plus aria-hidden="true" /> };
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const firstMenuLinkRef = useRef<HTMLAnchorElement>(null);
@@ -107,9 +115,10 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
-          <Button href="/#upload" variant="primary" size="sm" leftIcon={<Plus aria-hidden="true" />} className="max-sm:hidden">
-            {t('common.nav.new')}
+          <Button href={mainAction.href} variant="primary" size="sm" leftIcon={mainAction.icon} className="max-sm:hidden">
+            {mainAction.label}
           </Button>
+          <SignInButton size="sm" short className="max-sm:hidden" />
           <div className="hidden items-center gap-1.5 md:flex">
             <LanguageSwitch />
             <ThemeToggle />
@@ -122,6 +131,7 @@ export function SiteHeader() {
             onClick={() => setMenuOpen((v) => !v)}
             className="md:hidden"
           />
+          <AccountMenu />
         </div>
       </div>
 
@@ -140,13 +150,14 @@ export function SiteHeader() {
               <nav aria-label={t('common.aria.mainNav')} className="mx-auto flex max-w-6xl flex-col px-4 pt-3 pb-2 sm:px-6">
                 <Link
                   ref={firstMenuLinkRef}
-                  href="/#upload"
+                  href={mainAction.href}
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-3 py-3 font-display text-lg font-semibold text-primary hover:bg-surface-2 [&_svg]:size-5"
                 >
-                  <Plus aria-hidden="true" />
-                  {t('common.nav.new')}
+                  {mainAction.icon}
+                  {mainAction.label}
                 </Link>
+                <SignInButton fullWidth className="my-1" />
                 {items.map((item) => (
                   <Link
                     key={item.href}

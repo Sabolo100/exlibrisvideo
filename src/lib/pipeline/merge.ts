@@ -68,6 +68,11 @@ export interface MergeCluster {
   bestObservationKey: string;
   /** existing book of the collection this cluster is the same book as, or null (new book) */
   matchedBookId: string | null;
+  /**
+   * New book whose title (with compatible authors) matches an existing book that is not in this shelf
+   * context – a second copy elsewhere, or the same book filmed again: the owner is asked. Null otherwise.
+   */
+  possibleDuplicateOf?: string | null;
   author: string | null;
   title: string;
   spineAuthor: string | null;
@@ -742,6 +747,7 @@ function buildCluster(members: Item[], sims: SimCache): ClusterBuild {
       observationKeys: sorted.map((it) => it.obs.key),
       bestObservationKey: best.obs.key,
       matchedBookId: null,
+      possibleDuplicateOf: null,
       author,
       title,
       spineAuthor,
@@ -1299,6 +1305,14 @@ export function clusterObservations(
       takenBy.set(c.bi, [...(taken ?? []), c.ci]);
       builds[c.ci].cluster.matchedBookId = existing[c.bi].id;
     }
+    // a whole-title match that the shelf context did not confirm: ask the owner (same book or another copy)
+    const lone = candidates
+      .filter((c) => !usedC.has(c.ci) && c.score >= SAME_TITLE_THRESHOLD)
+      .sort((x, y) => Number(y.strong) - Number(x.strong) || y.score - x.score || x.bi - y.bi);
+    for (const c of lone) {
+      const cluster = builds[c.ci].cluster;
+      if (!cluster.possibleDuplicateOf) cluster.possibleDuplicateOf = existing[c.bi].id;
+    }
   }
 
   /* ---- 9. near-duplicate candidates ---- */
@@ -1672,6 +1686,7 @@ export async function mergeVideoDetections(
           firstTimeSec: best.frameTime,
           shelfPosition: video.sortOrder * 100000 + clusterIndex,
           detectionCount: c.observationKeys.length,
+          duplicateOfId: c.possibleDuplicateOf ?? null,
           createdAt: now,
           updatedAt: now,
         });

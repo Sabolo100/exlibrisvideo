@@ -83,6 +83,7 @@ export const bookPatchSchema = z.object({
     .max(LIMITS.tags)
     .transform((tags) => dedupe(tags.filter((t) => t !== '')))
     .optional(),
+  copies: z.number().int().min(1).max(99).optional(),
   readingStatus: z.enum(READING_STATUSES as [ReadingStatus, ...ReadingStatus[]]).optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
   favorite: z.boolean().optional(),

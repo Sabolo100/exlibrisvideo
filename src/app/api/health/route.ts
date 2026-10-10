@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { json, withErrorHandling } from '@/lib/http';
+import { BUILD_ID } from '@/lib/version';
 import pkg from '../../../../package.json';
 
 export const runtime = 'nodejs';
@@ -27,9 +28,9 @@ async function pingDb(): Promise<boolean> {
   }
 }
 
-/** GET /api/health – `{ ok, db, version }` (503 when the database is unreachable). */
+/** GET /api/health – `{ ok, db, version, build }` (503 when the database is unreachable). */
 export const GET = withErrorHandling(async () => {
   const dbOk = await pingDb();
   const version = process.env.APP_VERSION || pkg.version;
-  return json({ ok: dbOk, db: dbOk, version }, { status: dbOk ? 200 : 503 });
+  return json({ ok: dbOk, db: dbOk, version, build: BUILD_ID }, { status: dbOk ? 200 : 503 });
 });

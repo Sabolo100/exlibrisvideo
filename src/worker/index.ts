@@ -14,6 +14,9 @@ import { existsSync } from 'node:fs';
 import os from 'node:os';
 import { nextFullHour } from './helpers';
 import { WorkerRuntime } from './runtime';
+import pkg from '../../package.json';
+
+const APP_PKG_VERSION = pkg.version;
 
 for (const f of ['.env.local', '.env']) {
   if (existsSync(f)) process.loadEnvFile(f);
@@ -59,7 +62,7 @@ async function main(): Promise<void> {
   const concurrency = Math.max(1, e.WORKER_CONCURRENCY);
   const pollMs = Math.max(100, e.WORKER_POLL_MS);
 
-  console.info('[worker] starting', { workerId, concurrency, pollMs, node: process.version });
+  console.info('[worker] starting', { workerId, version: APP_PKG_VERSION, concurrency, pollMs, node: process.version });
 
   await m.migrate.runMigrations();
   console.info('[worker] migrations applied');

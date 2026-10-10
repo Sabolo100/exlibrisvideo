@@ -86,6 +86,7 @@ function makeCtx(books: BookDTO[], overrides: Partial<CollectionContextValue> = 
     createdAt: '2026-09-12T20:00:00.000Z',
     updatedAt: '2026-09-12T20:05:00.000Z',
     emailSentAt: null,
+    isAccountLibrary: false,
     books,
   };
   return {
@@ -112,6 +113,7 @@ function makeCtx(books: BookDTO[], overrides: Partial<CollectionContextValue> = 
     deleteBooks: vi.fn(async () => {}),
     addBook: vi.fn(async () => null),
     mergeBooks: vi.fn(async () => null),
+    resolveDuplicate: vi.fn(async () => null),
     unreadSpines: [],
     resolveUnreadSpine: vi.fn(async () => null),
     dismissUnreadSpine: vi.fn(async () => true),

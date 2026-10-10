@@ -40,6 +40,7 @@ export interface JsonExportBook {
   reviewed: boolean;
   shelfPosition: number;
   detectionCount: number;
+  copies: number;
   readingStatus: BookDTO['readingStatus'];
   rating: number | null;
   favorite: boolean;
@@ -129,6 +130,7 @@ export function buildJsonObject(ctx: ExportContext): JsonExport {
         reviewed: b.reviewed,
         shelfPosition: b.shelfPosition,
         detectionCount: b.detectionCount,
+        copies: b.copies ?? 1,
         readingStatus: b.readingStatus,
         rating: b.rating,
         favorite: b.favorite,

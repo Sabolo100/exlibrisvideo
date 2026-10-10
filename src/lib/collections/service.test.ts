@@ -34,6 +34,7 @@ import {
   deleteSource,
   mergeBooks,
   recomputeCollectionStatus,
+  resolveDuplicate,
   updateBook,
   updateCollection,
 } from './service';
@@ -344,6 +345,31 @@ describe.skipIf(!dbAvailable)('collections service (PostgreSQL)', () => {
       await expectHttpError(mergeBooks(a.collection.id, ka.id, [ka.id]), 400, 'invalid');
       await expectHttpError(mergeBooks(a.collection.id, ka.id, [randomUUID()]), 404, 'not_found');
       expect(await db().select().from(books).where(inArray(books.id, [ka.id, kb.id]))).toHaveLength(2);
+    });
+  });
+
+  describe('resolveDuplicate', () => {
+    it('another copy merges into the earlier book and adds up the copies', async () => {
+      const { collection } = await newCollection();
+      const earlier = await insertBook(collection.id, { title: 'Antik Róma', copies: 1, tags: ['nappali'] });
+      const found = await insertBook(collection.id, { title: 'Antik Róma', duplicateOfId: earlier.id, tags: ['Anna'] });
+      const { book, removedId } = await resolveDuplicate(collection.id, found.id, 'copy');
+      expect(removedId).toBe(found.id);
+      expect(book).toMatchObject({ id: earlier.id, copies: 2, duplicateOfId: null });
+      expect([...book.tags].sort()).toEqual(['Anna', 'nappali']);
+      expect(await db().select().from(books).where(eq(books.id, found.id))).toHaveLength(0);
+    });
+
+    it('the same book merges without a new copy; a different book only drops the question', async () => {
+      const { collection } = await newCollection();
+      const earlier = await insertBook(collection.id, { title: 'Gauguin élete', copies: 2 });
+      const again = await insertBook(collection.id, { title: 'Gauguin élete', duplicateOfId: earlier.id });
+      const other = await insertBook(collection.id, { title: 'Gauguin élete', duplicateOfId: earlier.id });
+      const same = await resolveDuplicate(collection.id, again.id, 'same');
+      expect(same.book).toMatchObject({ id: earlier.id, copies: 2 });
+      const different = await resolveDuplicate(collection.id, other.id, 'different');
+      expect(different).toMatchObject({ removedId: null, book: { id: other.id, duplicateOfId: null } });
+      await expectHttpError(resolveDuplicate(collection.id, randomUUID(), 'same'), 404, 'not_found');
     });
   });
 

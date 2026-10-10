@@ -44,6 +44,7 @@ export const common = defineMessages({
     'footer.privacy': 'Adatvédelem',
     'footer.terms': 'Felhasználási feltételek',
     'footer.madeWith': 'Könyvszeretőknek készült',
+    'footer.version': 'Verzió és build-azonosító',
     'footer.contact': 'Kapcsolat',
 
     // --- ui-kit (additive) ---
@@ -139,6 +140,7 @@ export const common = defineMessages({
     'footer.privacy': 'Privacy',
     'footer.terms': 'Terms of use',
     'footer.madeWith': 'Made for book lovers',
+    'footer.version': 'Version and build id',
     'footer.contact': 'Contact',
 
     // --- ui-kit (additive) ---

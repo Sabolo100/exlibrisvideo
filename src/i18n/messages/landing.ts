@@ -7,14 +7,14 @@ export const landing = defineMessages({
     'meta.description':
       'Vedd fel telefonnal a könyvespolcodat, és pár perc alatt böngészhető, szép katalógust kapsz saját linken, Excel-exporttal. Ingyenes, regisztráció nélkül.',
 
-    'hero.eyebrow': 'Ingyenes · regisztráció nélkül',
+    'hero.eyebrow': 'Ingyenes · regisztráció nélkül is',
     'hero.title': 'Filmezd le a könyvespolcodat – mi katalógust készítünk belőle',
     'hero.lead':
       'Egy lassú pásztázás a telefonoddal, és a mesterséges intelligencia kiolvassa a gerinceket. Pár perc múlva ott a könyvtárad egy saját linken: polcnézettel, borítókkal, statisztikákkal és Excel-exporttal.',
     'hero.leadShort':
       'Egy lassú pásztázás a telefonoddal, és pár perc múlva kész a könyvtárad katalógusa – saját linken, Excel-exporttal.',
     'hero.point.free': 'Ingyenes',
-    'hero.point.noSignup': 'Nem kell regisztrálni',
+    'hero.point.noSignup': 'Fiók nélkül is működik',
     'hero.point.languages': 'Magyar és idegen nyelvű könyvek',
     'hero.illustration': 'Illusztráció: klasszikus magyar regények egy könyvespolcon, amelyeket egy telefon épp végigpásztáz',
     'hero.recognised': 'Felismerve',
@@ -140,13 +140,13 @@ export const landing = defineMessages({
     'meta.description':
       'Film your bookshelf with your phone and within minutes get a beautiful, browsable catalogue at your own link, with Excel export. Free, no sign-up.',
 
-    'hero.eyebrow': 'Free · no sign-up',
+    'hero.eyebrow': 'Free · works without signing up',
     'hero.title': 'Film your bookshelf – we’ll turn it into a catalogue',
     'hero.lead':
       'One slow pan with your phone, and AI reads the spines. A few minutes later your library is waiting at its own link – with a shelf view, covers, statistics and an Excel export.',
     'hero.leadShort': 'One slow pan with your phone, and a few minutes later your library catalogue is ready – at its own link, with Excel export.',
     'hero.point.free': 'Free',
-    'hero.point.noSignup': 'No sign-up',
+    'hero.point.noSignup': 'Works without an account',
     'hero.point.languages': 'Hungarian and foreign-language books',
     'hero.illustration': 'Illustration: Hungarian classic novels on a bookshelf, being scanned by a phone',
     'hero.recognised': 'Recognised',

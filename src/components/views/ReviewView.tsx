@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpenCheck, Check, ChevronLeft, ClipboardCheck, Combine, Library, Lock, PanelRightOpen, RotateCcw, ScanText, Search, SkipForward, Sparkles, Trash2 } from 'lucide-react';
+import { BookCopy, BookOpenCheck, Check, ChevronLeft, ClipboardCheck, Combine, Library, Lock, PanelRightOpen, RotateCcw, ScanText, Search, SkipForward, Sparkles, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { BookSpine, ConfidenceMeter, confidenceLevel, spineLabel } from '@/components/books';
@@ -15,9 +15,10 @@ import { Button, Card, Dialog, EmptyState, Field, Input, Kbd, ProgressBar, Segme
 import { useI18n } from '@/i18n/client';
 import { SPINE_PALETTE, hash01 } from '@/lib/book-utils';
 import type { BookDTO, BookPatch } from '@/lib/types';
+import { DuplicateReview } from './DuplicateReview';
 import { UnreadSpineReview } from './UnreadSpineReview';
 
-type ReviewMode = 'books' | 'spines';
+type ReviewMode = 'books' | 'duplicates' | 'spines';
 
 /**
  * Owner-only review: card by card, the books that need a human look (needsReview && !reviewed) and the
@@ -41,9 +42,13 @@ function ReviewModes() {
   const { books, unreadSpines } = useCollection();
   const pendingBooks = useMemo(() => reviewQueue(books).length, [books]);
   const spineCount = unreadSpines.length;
-  // the spines first only when no book is waiting
-  const [mode, setMode] = useState<ReviewMode>(() => (pendingBooks === 0 && spineCount > 0 ? 'spines' : 'books'));
-  const showSwitch = spineCount > 0 || mode === 'spines';
+  const duplicateCount = useMemo(() => books.filter((b) => b.duplicateOfId).length, [books]);
+  // quick duplicate questions first; the spines only when no book is waiting
+  const [mode, setMode] = useState<ReviewMode>(() =>
+    duplicateCount > 0 ? 'duplicates' : pendingBooks === 0 && spineCount > 0 ? 'spines' : 'books',
+  );
+  const showDuplicates = duplicateCount > 0 || mode === 'duplicates';
+  const showSwitch = spineCount > 0 || showDuplicates || mode === 'spines';
 
   const label = (long: string, short: string, count: number) => (
     <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -69,6 +74,16 @@ function ReviewModes() {
               title: t('book.review.kind.books'),
               label: label(t('book.review.kind.books'), t('book.review.kind.booksShort'), pendingBooks),
             },
+            ...(showDuplicates
+              ? [
+                  {
+                    value: 'duplicates' as const,
+                    icon: <BookCopy />,
+                    title: t('book.review.kind.duplicates'),
+                    label: label(t('book.review.kind.duplicates'), t('book.review.kind.duplicatesShort'), duplicateCount),
+                  },
+                ]
+              : []),
             {
               value: 'spines',
               icon: <ScanText />,
@@ -78,7 +93,9 @@ function ReviewModes() {
           ]}
         />
       ) : null}
-      {mode === 'spines' ? (
+      {mode === 'duplicates' ? (
+        <DuplicateReview onDone={() => setMode('books')} />
+      ) : mode === 'spines' ? (
         <UnreadSpineReview pendingBooks={pendingBooks} onOpenBooks={() => setMode('books')} />
       ) : (
         <ReviewSession unreadSpines={spineCount} onOpenSpines={() => setMode('spines')} />

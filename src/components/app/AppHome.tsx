@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { BookSpine, SAMPLE_BOOKS } from '@/components/books';
 import { LogoMark } from '@/components/site/Logo';
+import { SignInCard } from '@/components/site/SignInCard';
 import type { UploadLimits } from '@/components/upload/limits';
 import { useI18n } from '@/i18n/client';
 import { listMyCollections, type MyCollectionEntry } from '@/lib/client/my-collections';
@@ -140,6 +141,8 @@ function HomeContent() {
           <p className="mt-1 text-[0.875rem] leading-snug text-muted">{t('app.home.hero.text')}</p>
         </div>
       </section>
+
+      <SignInCard variant="app" className="mt-1 shrink-0" />
 
       <button
         type="button"

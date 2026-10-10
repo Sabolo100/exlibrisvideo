@@ -23,6 +23,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/app/ui-mode.server', () => ({ getUiMode: async () => 'web' }));
 
+// signed out (the signed-in home redirects to the user's library)
+vi.mock('@/lib/auth/users', () => ({ getSessionUser: async () => null, findUser: async () => null, ensureLibrary: async () => null }));
+
 vi.mock('@/i18n/server', async () => {
   const { getTranslator } = await import('@/i18n');
   return {
@@ -86,7 +89,7 @@ describe('landing page', () => {
   it('composes every section and localizes the metadata', async () => {
     const page = await HomePage();
     const sections = (page.props as { children: ReactElement[] }).children;
-    expect(sections.map((s) => (s.type as { name: string }).name)).toEqual([
+    expect(sections.filter((s) => typeof s.type === 'function').map((s) => (s.type as { name: string }).name)).toEqual([
       'Hero',
       'HowItWorks',
       'FilmingTips',

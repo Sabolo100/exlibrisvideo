@@ -375,8 +375,10 @@ export function Uploader({
       onFiles={addFiles}
       disabled={slotsFull || submitting}
       headingLevel={hero ? 'h2' : 'h3'}
-      title={hero ? t('upload.hero.title') : t('upload.compact.title')}
-      description={hero ? t('upload.hero.description') : t('upload.compact.description')}
+      title={hero ? t('upload.hero.title') : existingSourceCount === 0 ? t('upload.compact.titleFirst') : t('upload.compact.title')}
+      description={
+        hero ? t('upload.hero.description') : existingSourceCount === 0 ? t('upload.compact.descriptionFirst') : t('upload.compact.description')
+      }
       touchDescription={hero ? t('upload.hero.touchDescription') : undefined}
       footnote={formatsNote}
     />

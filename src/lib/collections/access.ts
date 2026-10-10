@@ -2,11 +2,12 @@
  * Ownership / PIN access (SPEC §2 cookies). Server-only (owner: api).
  *
  * Owner: valid `exl_own_<id>` cookie (HMAC of the stored owner-token hash) or
- *        `Authorization: Bearer <ownerToken>`.
+ *        `Authorization: Bearer <ownerToken>`, or – for a user's library – that user's sign-in session.
  * Viewer: owner, or visibility 'link', or a valid `exl_pin_<id>` cookie (HMAC of the current PIN hash –
  *         changing the PIN invalidates every PIN cookie).
  */
 import type { CollectionRow } from '@/db/schema';
+import { SESSION_COOKIE, verifySessionValue } from '@/lib/auth/session';
 import { publicCollectionUrl } from '@/lib/env';
 import { parseCookieHeader, serializeCookie } from '@/lib/security/cookies';
 import {
@@ -35,13 +36,18 @@ export const SEEN_COOKIE_MAX_AGE = 30 * 60;
 
 /** Pure access resolution shared by the page and route-handler variants. */
 export function resolveViewer(
-  collection: Pick<CollectionRow, 'id' | 'ownerTokenHash' | 'visibility' | 'pinHash'>,
+  collection: Pick<CollectionRow, 'id' | 'ownerTokenHash' | 'visibility' | 'pinHash'> & { userId?: string | null },
   getCookie: (name: string) => string | undefined,
   authorization: string | null | undefined,
 ): Viewer {
   let isOwner = false;
 
-  const ownCookie = getCookie(ownerCookieName(collection.id));
+  if (collection.userId) {
+    const sessionUser = verifySessionValue(getCookie(SESSION_COOKIE));
+    if (sessionUser && sessionUser === collection.userId) isOwner = true;
+  }
+
+  const ownCookie = isOwner ? undefined : getCookie(ownerCookieName(collection.id));
   if (ownCookie && timingSafeEqualStr(ownCookie, ownerCookieValue(collection.id, collection.ownerTokenHash))) {
     isOwner = true;
   }

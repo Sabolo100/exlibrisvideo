@@ -1,13 +1,48 @@
 'use client';
 
 /** App settings sheet: language, appearance, "add to home screen", desktop view, legal links. */
-import { ChevronRight, Download, Monitor, Moon, Sun, SunMoon } from 'lucide-react';
+import { ChevronRight, Download, LogOut, Monitor, Moon, Sun, SunMoon } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer, SegmentedControl, useTheme, type ThemePreference } from '@/components/ui';
+import { versionLabel } from '@/lib/version';
 import { useI18n } from '@/i18n/client';
 import type { Locale } from '@/lib/types';
+import { UserAvatar } from '@/components/site/AccountMenu';
+import { useSession } from '@/components/site/SessionProvider';
+import { SignInButton } from '@/components/site/SignInButton';
 import { useUiMode } from './UiModeProvider';
+
+/** Signed in: who, and sign-out. Signed out (sign-in configured): the Google button. */
+function AccountRow() {
+  const { t } = useI18n();
+  const { user, authEnabled, signOut } = useSession();
+  if (user) {
+    return (
+      <div className="flex items-center gap-3 py-3">
+        <UserAvatar user={user} className="size-10" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[0.9375rem] font-medium text-ink">{user.name ?? user.email}</span>
+          <span className="block truncate text-sm text-muted">{user.email}</span>
+        </span>
+        <button
+          type="button"
+          onClick={() => void signOut()}
+          className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-medium text-ink active:bg-surface-2"
+        >
+          <LogOut aria-hidden="true" className="size-4" />
+          {t('account.menu.signOut')}
+        </button>
+      </div>
+    );
+  }
+  if (!authEnabled) return null;
+  return (
+    <div className="py-3">
+      <SignInButton fullWidth />
+    </div>
+  );
+}
 
 type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -42,6 +77,7 @@ export function AppSettingsSheet({ open, onClose }: { open: boolean; onClose: ()
   return (
     <Drawer open={open} onClose={onClose} title={t('app.settings.title')} size="sm">
       <div className="flex flex-col divide-y divide-line/70">
+        <AccountRow />
         <Row>
           <span className="text-[0.9375rem] font-medium text-ink">{t('app.settings.language')}</span>
           <SegmentedControl<Locale>
@@ -119,6 +155,7 @@ export function AppSettingsSheet({ open, onClose }: { open: boolean; onClose: ()
           ))}
         </nav>
         <p className="pt-3 pb-1 text-center font-display text-sm text-muted italic">{t('app.settings.about')}</p>
+        <p className="pb-1 text-center font-mono text-[0.6875rem] text-muted/80">{versionLabel()}</p>
       </div>
     </Drawer>
   );

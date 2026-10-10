@@ -25,6 +25,7 @@ import { isPlausibleEmail } from '@/components/upload/validate';
 import { api, ApiClientError } from '@/lib/client/api';
 import { forgetCollection, listMyCollections, rememberCollection, type MyCollectionEntry } from '@/lib/client/my-collections';
 import type { CollectionStatusDTO } from '@/lib/types';
+import { AccountLibraryCard } from '@/components/site/SignInCard';
 
 /** localStorage key documented in SPEC §2 (the raw string is the external-store snapshot). */
 const STORAGE_KEY = 'exl_my_collections';
@@ -333,6 +334,7 @@ export function MyCollections() {
       <header className="max-w-2xl">
         <h1 className="font-display text-3xl leading-tight font-semibold text-ink sm:text-4xl">{t('my.title')}</h1>
         <p className="mt-2 text-base leading-relaxed text-muted text-pretty">{t('my.intro')}</p>
+        <AccountLibraryCard className="mt-6" />
       </header>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-8">

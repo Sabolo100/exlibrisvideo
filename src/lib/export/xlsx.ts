@@ -90,6 +90,7 @@ function bookColumns(ctx: ExportContext): ColumnDef[] {
     },
     { header: t('exporting.col.rating'), width: 12, kind: 'stars', value: (b) => ratingStars(b.rating) || null },
     { header: t('exporting.col.favorite'), width: 10, kind: 'flag', value: (b) => (b.favorite ? yesNo(true, locale) : null) },
+    { header: t('exporting.col.copies'), width: 10, kind: 'int', value: (b) => b.copies ?? 1 },
     isOwner && { header: t('exporting.col.notes'), width: 40, kind: 'wrap', value: (b) => text(b.notes) },
     isOwner && { header: t('exporting.col.lentTo'), width: 20, kind: 'text', value: (b) => text(b.lentTo) },
     isOwner && { header: t('exporting.col.lentAt'), width: 16, kind: 'date', value: (b) => utcDateOf(b.lentAt) },

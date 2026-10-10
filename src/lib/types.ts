@@ -107,6 +107,13 @@ export interface BookDTO {
   firstTimeSec: number | null;
   shelfPosition: number;
   detectionCount: number;
+  /** physical copies the owner has (≥ 1) */
+  copies: number;
+  /**
+   * The catalogue already had this book when a later recording / photo found it again elsewhere: the owner
+   * decides (review) whether it is the same book, another copy, or a different book. Owner only (null otherwise).
+   */
+  duplicateOfId: string | null;
   readingStatus: ReadingStatus;
   rating: number | null;
   favorite: boolean;
@@ -158,8 +165,10 @@ export interface CollectionDTO {
   locale: Locale;
   visibility: Visibility;
   status: CollectionStatus;
-  /** true when the current request carries a valid owner cookie */
+  /** true when the current request carries a valid owner cookie (or the owner's sign-in) */
   isOwner: boolean;
+  /** the library of a signed-in user (Google account) rather than a link-only catalogue */
+  isAccountLibrary: boolean;
   /** only for the owner */
   email: string | null;
   publicUrl: string;
@@ -252,6 +261,7 @@ export interface BookPatch {
   category?: string | null;
   topics?: string[];
   tags?: string[];
+  copies?: number;
   readingStatus?: ReadingStatus;
   rating?: number | null;
   favorite?: boolean;
@@ -272,3 +282,19 @@ export interface CollectionPatch {
   /** required when switching to visibility 'pin' (4–8 digits) */
   pin?: string | null;
 }
+
+/** The signed-in user (Google account) as the UI sees it. */
+export interface SessionUserDTO {
+  id: string;
+  email: string;
+  name: string | null;
+  picture: string | null;
+  /** id of the user's library (created at the first sign-in) */
+  libraryId: string | null;
+}
+
+/**
+ * POST /api/books/:bookId/duplicate – the owner's answer to "this book was already in the catalogue":
+ * `same` merges it into the earlier book, `copy` merges it and counts one more copy, `different` keeps both.
+ */
+export type DuplicateResolution = 'same' | 'copy' | 'different';

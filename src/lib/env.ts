@@ -118,6 +118,10 @@ const schema = z.object({
   /** days after which untouched empty draft collections are purged */
   DRAFT_RETENTION_DAYS: int(7),
 
+  // --- sign-in with Google (OAuth 2.0 / OpenID Connect); both unset → the sign-in is hidden ---
+  GOOGLE_CLIENT_ID: optStr,
+  GOOGLE_CLIENT_SECRET: optStr,
+
   // --- admin ---
   ADMIN_PASSWORD: optStr,
 });
@@ -163,4 +167,10 @@ export function resolveTextProvider(): AiProviderName {
   const p = e.AI_TEXT_PROVIDER.toLowerCase();
   if (p === 'anthropic' || p === 'deepseek' || p === 'mock') return p;
   return resolveVisionProvider();
+}
+
+/** Sign-in with Google is configured. */
+export function googleAuthEnabled(): boolean {
+  const e = env();
+  return !!(e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET);
 }

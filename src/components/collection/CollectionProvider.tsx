@@ -592,6 +592,35 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
     [collectionId, commit, handleLostOwnership, putBackUnreadSpine, requireOwner, takeUnreadSpine, toast, t],
   );
 
+  const resolveDuplicate = useCallback<CollectionContextValue['resolveDuplicate']>(
+    async (bookId, resolution) => {
+      if (!requireOwner()) return null;
+      try {
+        const { book, removedId } = await api.resolveDuplicate(bookId, resolution);
+        commit((c) => {
+          const rest = removedId ? removeBooks(c.books, [removedId]).books : c.books;
+          const next = upsertBook(rest, book);
+          return { ...c, books: next, bookCount: next.length };
+        });
+        if (removedId) {
+          setRawSelection((prev) => {
+            if (!prev.has(removedId)) return prev;
+            const next = new Set(prev);
+            next.delete(removedId);
+            return next;
+          });
+          if (openBookRef.current === removedId) setOpenBookId(book.id);
+        }
+        return book;
+      } catch (err) {
+        toast({ id: 'books-duplicate-failed', title: t('collection.toast.mergeFailed'), description: apiErrorMessage(err, t), tone: 'error' });
+        handleLostOwnership(err);
+        return null;
+      }
+    },
+    [commit, handleLostOwnership, requireOwner, setOpenBookId, toast, t],
+  );
+
   const dismissUnreadSpine = useCallback<CollectionContextValue['dismissUnreadSpine']>(
     async (id) => {
       if (!requireOwner()) return false;
@@ -819,6 +848,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       deleteBooks,
       addBook,
       mergeBooks,
+      resolveDuplicate,
       resolveUnreadSpine,
       dismissUnreadSpine,
       updateCollection,
@@ -849,6 +879,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       deleteBooks,
       addBook,
       mergeBooks,
+      resolveDuplicate,
       resolveUnreadSpine,
       dismissUnreadSpine,
       updateCollection,
@@ -862,6 +893,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       facets,
       counts,
       pendingReview: facets.pendingReview,
+      duplicateCount: isOwner ? books.filter((b) => b.duplicateOfId).length : 0,
       unreadSpineCount: isOwner ? unreadSpines.length : 0,
       refreshing,
       ownerToken,
@@ -871,7 +903,7 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       setCollectionEmail,
       focusSearch,
     }),
-    [appliedQuery, facets, counts, isOwner, unreadSpines.length, refreshing, ownerToken, refreshSilently, saveCollection, bulkUpdate, setCollectionEmail, focusSearch],
+    [appliedQuery, facets, counts, isOwner, books, unreadSpines.length, refreshing, ownerToken, refreshSilently, saveCollection, bulkUpdate, setCollectionEmail, focusSearch],
   );
 
   return (

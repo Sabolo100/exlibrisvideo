@@ -11,6 +11,7 @@ import type {
   BookPatch,
   CollectionPatch,
   CollectionWithBooksDTO,
+  DuplicateResolution,
   Locale,
   ReadingStatus,
   ResolveUnreadSpineInput,
@@ -85,6 +86,11 @@ export interface CollectionContextValue {
   deleteBooks: (ids: string[]) => Promise<void>;
   addBook: (input: BookPatch & { title: string }) => Promise<BookDTO | null>;
   mergeBooks: (keepId: string, mergeIds: string[]) => Promise<BookDTO | null>;
+  /**
+   * Owner: answers "this book was already in the catalogue" (`book.duplicateOfId`) – `same` / `copy` merge it
+   * into the earlier book (copy: +1 copy), `different` keeps both. Returns the book that stays, or null.
+   */
+  resolveDuplicate: (bookId: string, resolution: DuplicateResolution) => Promise<BookDTO | null>;
   /** the owner named the book on an unread spine: the spine leaves the list at once, the book joins the shelf */
   resolveUnreadSpine: (id: string, input: ResolveUnreadSpineInput) => Promise<BookDTO | null>;
   /** the owner discarded an unread spine; false when it could not be discarded (it is back in the list) */

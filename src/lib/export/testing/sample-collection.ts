@@ -106,6 +106,8 @@ export function makeSampleBook(i: number, seed: Seed, variant = 0): BookDTO {
     firstTimeSec: i * 0.4,
     shelfPosition: i,
     detectionCount: 2 + (i % 4),
+    copies: 1,
+    duplicateOfId: null,
     readingStatus: STATUSES[i % STATUSES.length],
     rating: i % 6 === 0 ? 5 : i % 6 === 1 ? 4 : i % 6 === 2 ? 3 : null,
     favorite: i % 8 === 0,
@@ -141,6 +143,7 @@ export function makeSampleCollection(opts: { bookCount?: number; isOwner?: boole
     createdAt: '2026-09-12T19:21:03.000Z',
     updatedAt: '2026-09-12T19:45:00.000Z',
     emailSentAt: null,
+    isAccountLibrary: false,
     books,
   };
 }

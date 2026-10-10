@@ -22,6 +22,7 @@ import {
   uuid,
   varchar,
   bigint,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type {
   BBox,
@@ -42,6 +43,23 @@ import type {
 
 const ts = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
 
+/**
+ * A signed-in user (Google account). Owns at most one collection – their library – which every new
+ * recording and book is added to. Collections without a user are the link-only (owner token) ones.
+ */
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Google account id (`sub` of the ID token) */
+  googleSub: text('google_sub').notNull().unique(),
+  email: text('email').notNull(),
+  name: text('name'),
+  /** Google profile photo URL */
+  picture: text('picture'),
+  locale: varchar('locale', { length: 5 }).notNull().default('hu'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  lastLoginAt: ts('last_login_at').notNull().defaultNow(),
+});
+
 /** A user's library. Public id is a 9-digit number used in the URL: exlibrisvideo.hu/334345435 */
 export const collections = pgTable(
   'collections',
@@ -49,6 +67,8 @@ export const collections = pgTable(
     id: varchar('id', { length: 12 }).primaryKey(),
     /** sha256(ownerToken) hex – the raw token is only ever shown to the owner (link + email). */
     ownerTokenHash: text('owner_token_hash').notNull(),
+    /** the signed-in owner (one library per user); null for link-only collections */
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
     title: text('title'),
     description: text('description'),
     ownerName: text('owner_name'),
@@ -67,7 +87,11 @@ export const collections = pgTable(
     createdAt: ts('created_at').notNull().defaultNow(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
   },
-  (t) => [index('collections_email_idx').on(t.email), index('collections_created_idx').on(t.createdAt)],
+  (t) => [
+    index('collections_email_idx').on(t.email),
+    index('collections_created_idx').on(t.createdAt),
+    uniqueIndex('collections_user_uq').on(t.userId),
+  ],
 );
 
 /** An uploaded source: a shelf video (or a still photo). One collection can have many. */
@@ -197,6 +221,13 @@ export const books = pgTable(
     /** global shelf order: video.sortOrder * 100000 + order within the video */
     shelfPosition: doublePrecision('shelf_position').notNull().default(0),
     detectionCount: integer('detection_count').notNull().default(1),
+    /** physical copies of this book the owner has */
+    copies: smallint('copies').notNull().default(1),
+    /**
+     * Set when a later recording / photo found a book that is already in the catalogue but not in the same
+     * shelf context: the owner decides whether it is the same book, another copy, or a different book.
+     */
+    duplicateOfId: uuid('duplicate_of_id').references((): AnyPgColumn => books.id, { onDelete: 'set null' }),
 
     // --- owner's personal data ---
     readingStatus: varchar('reading_status', { length: 16 }).$type<ReadingStatus>().notNull().default('unknown'),
@@ -315,6 +346,7 @@ export const rateLimits = pgTable('rate_limits', {
   count: integer('count').notNull().default(0),
 });
 
+export type UserRow = typeof users.$inferSelect;
 export type CollectionRow = typeof collections.$inferSelect;
 export type VideoRow = typeof videos.$inferSelect;
 export type FrameRow = typeof frames.$inferSelect;

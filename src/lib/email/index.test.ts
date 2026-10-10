@@ -71,6 +71,7 @@ function row(overrides: Partial<CollectionRow> = {}): CollectionRow {
   return {
     id: '334345435',
     ownerTokenHash: 'hash',
+    userId: null,
     title: 'Nagyszülők könyvespolca – Tőzsér-hagyaték',
     description: null,
     ownerName: 'Budaházy Ödön',

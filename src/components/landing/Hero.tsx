@@ -3,6 +3,7 @@ import { getServerT } from '@/i18n/server';
 import { Button } from '@/components/ui/Button';
 import { serverUploadLimits } from '@/components/upload/server-limits';
 import { Uploader } from '@/components/upload/Uploader';
+import { SignInCard } from '@/components/site/SignInCard';
 import { HeroShelf } from './HeroShelf';
 
 /** Landing hero: Fraunces headline, one-sentence promise, the uploader itself (#upload) and the animated bookshelf. */
@@ -46,6 +47,8 @@ export async function Hero({ demoCollectionId }: { demoCollectionId?: string | n
               </li>
             ))}
           </ul>
+
+          <SignInCard className="mt-3" />
 
           <div id="upload" className="mt-1 scroll-mt-24">
             <Uploader variant="hero" limits={uploadLimits} />

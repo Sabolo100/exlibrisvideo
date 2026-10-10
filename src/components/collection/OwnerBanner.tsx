@@ -40,8 +40,8 @@ function writeDismissed(id: string) {
 export function OwnerBanner({ onReview }: { onReview?: () => void }) {
   const { t, tp } = useI18n();
   const { collection, isOwner, setView } = useCollection();
-  const { ownerToken, pendingReview, unreadSpineCount } = useCollectionShell();
-  const toReview = pendingReview + unreadSpineCount;
+  const { ownerToken, pendingReview, duplicateCount, unreadSpineCount } = useCollectionShell();
+  const toReview = pendingReview + duplicateCount + unreadSpineCount;
   // null until mounted (localStorage is client-only)
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);
@@ -100,9 +100,13 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
                   <div className="min-w-0">
                     <h2 className="font-display text-lg leading-snug font-semibold text-ink">{t('collection.banner.title')}</h2>
                     <p className="mt-0.5 text-sm text-pretty text-muted">
-                      {ownerToken ? t('collection.banner.text') : t('collection.banner.textNoToken')}
+                      {collection.isAccountLibrary
+                        ? t('account.library.addHint')
+                        : ownerToken
+                          ? t('collection.banner.text')
+                          : t('collection.banner.textNoToken')}
                     </p>
-                    {ownerToken ? (
+                    {ownerToken && !collection.isAccountLibrary ? (
                       <CopyField
                         label={t('collection.banner.editLink')}
                         value={ownerLinkFor(collection.publicUrl, ownerToken)}
@@ -120,6 +124,7 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
                       <span className="sr-only">
                         {[
                           pendingReview > 0 ? tp('collection.banner.review', pendingReview) : null,
+                          duplicateCount > 0 ? tp('collection.banner.duplicates', duplicateCount) : null,
                           unreadSpineCount > 0 ? tp('collection.banner.spines', unreadSpineCount) : null,
                         ]
                           .filter(Boolean)
@@ -138,6 +143,7 @@ export function OwnerBanner({ onReview }: { onReview?: () => void }) {
               {toReview > 0 ? (
                 <div aria-hidden="true" className="relative mt-3 flex flex-col gap-0.5 border-t border-accent/25 pt-2.5 pl-12 text-[0.8125rem] font-medium text-ink/80">
                   {pendingReview > 0 ? <p>{tp('collection.banner.review', pendingReview)}</p> : null}
+                  {duplicateCount > 0 ? <p>{tp('collection.banner.duplicates', duplicateCount)}</p> : null}
                   {unreadSpineCount > 0 ? <p>{tp('collection.banner.spines', unreadSpineCount)}</p> : null}
                 </div>
               ) : null}

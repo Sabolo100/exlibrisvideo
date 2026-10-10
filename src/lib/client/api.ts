@@ -11,6 +11,7 @@ import type {
   CollectionStatusDTO,
   CollectionWithBooksDTO,
   CreateCollectionResponse,
+  DuplicateResolution,
   ExportFormat,
   FrameDTO,
   InitUploadResponse,
@@ -131,6 +132,10 @@ export const api = {
   dismissUnreadSpine: (collectionId: string, spineId: string) =>
     request<void>(`/api/collections/${enc(collectionId)}/unread-spines/${enc(spineId)}`, { method: 'DELETE' }),
 
+  /** owner's answer to "already in the catalogue": same book / another copy / a different book */
+  resolveDuplicate: (bookId: string, resolution: DuplicateResolution) =>
+    request<{ book: BookDTO; removedId: string | null }>(`/api/books/${enc(bookId)}/duplicate`, { method: 'POST', json: { resolution } }),
+
   mergeBooks: (collectionId: string, keepId: string, mergeIds: string[]) =>
     request<BookDTO>(`/api/collections/${enc(collectionId)}/books/merge`, { method: 'POST', json: { keepId, mergeIds } }),
 
@@ -144,6 +149,9 @@ export const api = {
 
   emailExport: (collectionId: string, body: { email?: string; formats?: ExportFormat[] }) =>
     request<{ queued: true }>(`/api/collections/${enc(collectionId)}/email`, { method: 'POST', json: body }),
+
+  /** signs out of the Google account session on this device */
+  logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
 
   recover: (email: string) => request<{ ok: true }>('/api/recover', { method: 'POST', json: { email } }),
 };

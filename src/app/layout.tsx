@@ -3,10 +3,12 @@ import type { ReactNode } from 'react';
 import { I18nProvider } from '@/i18n/client';
 import { getRequestLocale } from '@/i18n/server';
 import { translate } from '@/i18n';
-import { env } from '@/lib/env';
+import { getSessionUser } from '@/lib/auth/users';
+import { env, googleAuthEnabled } from '@/lib/env';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { Providers } from '@/components/site/Providers';
+import { SessionProvider } from '@/components/site/SessionProvider';
 import { UiModeProvider } from '@/components/app/UiModeProvider';
 import { getUiMode } from '@/components/app/ui-mode.server';
 import './globals.css';
@@ -38,7 +40,7 @@ export const viewport: Viewport = {
 const themeScript = `(function(){try{var t=localStorage.getItem('exl_theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})();`;
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [locale, uiMode] = await Promise.all([getRequestLocale(), getUiMode()]);
+  const [locale, uiMode, user] = await Promise.all([getRequestLocale(), getUiMode(), getSessionUser()]);
   const app = uiMode === 'app';
   return (
     <html lang={locale} data-theme="light" className={app ? 'app-mode' : undefined} suppressHydrationWarning>
@@ -48,6 +50,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className={app ? 'paper app-body' : 'paper flex min-h-dvh flex-col'}>
         <I18nProvider locale={locale}>
           <Providers>
+            <SessionProvider user={user} authEnabled={googleAuthEnabled()}>
             <UiModeProvider mode={uiMode}>
               {app ? (
                 // phone app: every page renders its own full-screen <AppScreen> (top bar, content, tab bar)
@@ -60,6 +63,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 </>
               )}
             </UiModeProvider>
+            </SessionProvider>
           </Providers>
         </I18nProvider>
       </body>
