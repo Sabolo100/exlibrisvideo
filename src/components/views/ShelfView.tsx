@@ -14,12 +14,13 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
 import { READING_STATUS_META } from '@/components/books';
-import { SHELF_GEOMETRY, SPINE_SIZES, shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
+import { SHELF_GEOMETRY, shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { useCollection } from '@/components/collection/context';
 import { Select, SegmentedControl, Switch } from '@/components/ui';
 import { useUiTranslator } from '@/components/ui/hooks';
@@ -37,6 +38,7 @@ import {
 } from './visual/hooks';
 import { ShelfCase } from './visual/ShelfCase';
 import {
+  bookendBox,
   buildShelfLayout,
   DENSITY_SIZE,
   groupShelfBooks,
@@ -44,6 +46,8 @@ import {
   SHELF_DENSITIES,
   SHELF_GROUP_BYS,
   shelfNeighbour,
+  SHELF_INNER_PADDING,
+  SPINE_GAP,
   type ShelfDensity,
   type ShelfGroupBy,
 } from './visual/shelf-layout';
@@ -51,6 +55,16 @@ import { SpineHoverCard } from './visual/SpineHoverCard';
 
 /** Up to this many books every spine is interactive from the start (full a11y tree, no placeholders). */
 const EAGER_LIMIT = 250;
+/**
+ * The skeleton shown until the width is measured (the server HTML and the moment before hydration) is
+ * a ghost of the real bookcase laid out at this width – the catalogue's content column on a desktop
+ * screen – so a small library is not drawn as a wall of planks that collapses once the page is alive.
+ */
+const SKELETON_WIDTH = 1104;
+/** planks the skeleton draws at most (what is above the fold) */
+const SKELETON_MAX_ROWS = 2;
+/** books laid out for the skeleton: plenty for its planks, bounded for huge libraries */
+const SKELETON_MAX_BOOKS = 200;
 /** target of the "skip past the bookcase" link (one shelf view per page) */
 const SHELF_END_ID = 'exl-shelf-end';
 
@@ -232,7 +246,7 @@ export function ShelfView() {
       </a>
       <div ref={setContainer} className="relative flex flex-col gap-10 pt-2" onKeyDown={onKeyDown} onFocus={onFocus}>
         {layout === null ? (
-          <ShelfSkeleton size={size} />
+          <ShelfSkeleton books={visibleBooks} size={size} />
         ) : (
           layout.groups.map((group) => {
             const labelText = groupBy === 'none' ? undefined : groupLabel(group.key);
@@ -266,33 +280,40 @@ export function ShelfView() {
   );
 }
 
-function ShelfSkeleton({ size }: { size: SpineSize }) {
+function ShelfSkeleton({ books, size }: { books: readonly BookDTO[]; size: SpineSize }) {
   const g = SHELF_GEOMETRY[size];
   const row = shelfRowHeight(size);
-  const widths = [22, 30, 26, 34, 24, 28, 31, 23, 27, 35, 25, 29];
+  const gap = SPINE_GAP[size];
+  const bookend = bookendBox(size);
+  const rows = useMemo(
+    () =>
+      buildShelfLayout([{ key: 'all', books: books.slice(0, SKELETON_MAX_BOOKS) }], SKELETON_WIDTH, size).rows.slice(0, SKELETON_MAX_ROWS),
+    [books, size],
+  );
+  const ghost = (key: string, width: number, height: number, style?: CSSProperties) => (
+    <div
+      key={key}
+      className="shrink-0 animate-pulse rounded-t-[3px]"
+      style={{ width, height, background: 'color-mix(in oklab, var(--wood-light), transparent 55%)', ...style }}
+    />
+  );
   return (
     <div
       aria-hidden="true"
       className="overflow-hidden rounded-[6px]"
       style={{ padding: `${g.top}px ${g.side}px 0`, background: 'var(--wood-dark)' }}
     >
-      {[0, 1].map((r) => (
+      {rows.map((r) => (
         <div
-          key={r}
-          className="flex items-end gap-0.5 overflow-hidden px-2.5"
-          style={{ height: row, borderBottom: `${g.plank}px solid var(--wood)` }}
+          key={r.key}
+          data-skeleton-row={r.key}
+          className="flex items-end overflow-hidden"
+          style={{ height: row, gap, paddingInline: SHELF_INNER_PADDING[size], borderBottom: `${g.plank}px solid var(--wood)` }}
         >
-          {widths.map((w, i) => (
-            <div
-              key={i}
-              className="shrink-0 animate-pulse rounded-t-[3px]"
-              style={{
-                width: Math.round((w * SPINE_SIZES[size].width) / SPINE_SIZES.md.width),
-                height: Math.round(SPINE_SIZES[size].height * (0.8 + ((i * 7 + r * 3) % 5) * 0.05)),
-                background: 'color-mix(in oklab, var(--wood-light), transparent 55%)',
-              }}
-            />
-          ))}
+          {r.startBookend
+            ? ghost('bookend', bookend.width, bookend.height, { marginInlineStart: bookend.marginStart, marginInlineEnd: bookend.marginEnd })
+            : null}
+          {r.spines.map((spine) => ghost(spine.book.id, spine.width, spine.height))}
         </div>
       ))}
     </div>

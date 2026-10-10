@@ -4,6 +4,14 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.6.1 – 2026-10-10
+
+### Fixed
+- Library page: on reload a wall of two or three shelf planks flashed for a moment before the real shelf
+  (one plank for a small library) appeared. The placeholder shown until the page is alive is now a ghost
+  of the real shelf (same number of planks, same spine sizes and bookends, at most two planks), so a small
+  library no longer collapses from a tall placeholder.
+
 ## 1.6.0 – 2026-10-10
 
 ### Changed

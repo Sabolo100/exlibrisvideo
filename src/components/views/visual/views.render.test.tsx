@@ -205,6 +205,19 @@ describe('ShelfView', () => {
     expect(count(compact, 'data-plank-row=')).toBeLessThan(count(comfortable, 'data-plank-row='));
   });
 
+  it('draws the skeleton as a ghost of the real shelf: one plank for a small library, two at most', () => {
+    env.width = null;
+    const one = render(<ShelfView />, makeCtx([books[0]]));
+    expect(count(one, 'data-skeleton-row=')).toBe(1);
+    // one ghost spine + the start bookend, not a fixed wall of twelve
+    expect(count(one, 'animate-pulse')).toBe(2);
+    const many = Array.from({ length: 400 }, (_, i) => makeSampleBook({ title: `Könyv ${i + 1}`, author: `Szerző ${i % 31}`, pageCount: 120 + ((i * 53) % 500) }));
+    const wall = render(<ShelfView />, makeCtx(many));
+    expect(count(wall, 'data-skeleton-row=')).toBe(2);
+    // the real shelf is not drawn yet
+    expect(count(one, 'data-plank-row=') + count(wall, 'data-plank-row=')).toBe(0);
+  });
+
   it('shows the filtered empty state with a reset button, or the empty-shelf state', () => {
     const filtered = render(<ShelfView />, makeCtx(books, { visibleBooks: [], activeFilterCount: 2 }));
     expect(filtered).toContain('Nincs a szűrésnek megfelelő könyv');
