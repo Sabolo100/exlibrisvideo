@@ -3,12 +3,14 @@
 /**
  * App-wide "new catalogue" flow: the record button opens the in-app camera, the gallery button a file
  * picker; the resulting files go into the "Új katalógus" sheet, which uploads them and starts processing.
- * A signed-in user has one library: their recordings are uploaded into it and the library opens.
+ * A signed-in user has one library: their recordings are uploaded into it and the library opens. A guest is
+ * asked once whether to sign in first (SignInNudge) before the camera / picker opens.
  */
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CameraRecorder } from '@/components/camera/CameraRecorder';
 import { useSession } from '@/components/site/SessionProvider';
+import { useSignInNudge } from '@/components/site/SignInNudge';
 import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/i18n/client';
 import { copyPickedFiles } from '@/lib/client/stable-files';
@@ -38,6 +40,7 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
   const { toast } = useToast();
   const router = useRouter();
   const libraryId = useSession().user?.libraryId ?? null;
+  const { guard, nudge } = useSignInNudge();
 
   const addFiles = useCallback(
     (next: File[]) => {
@@ -55,8 +58,8 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
     [libraryId, router, t, toast],
   );
 
-  const record = useCallback(() => setCameraOpen(true), []);
-  const pickFromGallery = useCallback(() => inputRef.current?.click(), []);
+  const record = useCallback(() => guard(() => setCameraOpen(true)), [guard]);
+  const pickFromGallery = useCallback(() => guard(() => inputRef.current?.click()), [guard]);
   const value = useMemo(() => ({ record, pickFromGallery }), [record, pickFromGallery]);
   const maxDurationSec = Math.min(180, limits?.maxVideoSeconds ?? 180);
 
@@ -103,6 +106,7 @@ export function AppRecordProvider({ children, limits }: { children: ReactNode; l
         onClose={() => setSheetOpen(false)}
         onRecordMore={() => setCameraOpen(true)}
       />
+      {nudge}
     </AppRecordContext.Provider>
   );
 }

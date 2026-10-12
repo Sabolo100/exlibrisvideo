@@ -1,7 +1,7 @@
 import { localeFromRequest } from '@/i18n/server';
 import { finishGoogleSignIn, OAUTH_COOKIE, oauthClearCookie, parseOAuthCookie } from '@/lib/auth/google';
 import { sessionSetCookie } from '@/lib/auth/session';
-import { ensureLibrary, upsertGoogleUser } from '@/lib/auth/users';
+import { adoptGuestCollection, ensureLibrary, upsertGoogleUser } from '@/lib/auth/users';
 import { parseCookieHeader } from '@/lib/security/cookies';
 import { timingSafeEqualStr } from '@/lib/security/tokens';
 
@@ -18,11 +18,13 @@ function redirect(req: Request, location: string, cookies: string[] = []): Respo
 /**
  * GET /api/auth/google/callback?code&state – Google sends the user back here. Checks the state, exchanges
  * the code, creates / updates the user and their library, sets the session cookie and opens the library
- * (or the page the sign-in started from).
+ * (or the page the sign-in started from). A link-only catalogue the visitor filmed before signing in
+ * (`claim`, proved by the owner cookie) becomes the new library instead of an empty one.
  */
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const saved = parseOAuthCookie(parseCookieHeader(req.headers.get('cookie')).get(OAUTH_COOKIE));
+  const jar = parseCookieHeader(req.headers.get('cookie'));
+  const saved = parseOAuthCookie(jar.get(OAUTH_COOKIE));
   const state = url.searchParams.get('state');
   const code = url.searchParams.get('code');
 
@@ -36,8 +38,9 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const profile = await finishGoogleSignIn(code, saved.verifier);
     const user = await upsertGoogleUser(profile, localeFromRequest(req));
-    const library = await ensureLibrary(user);
-    console.info('[auth] signed in', { userId: user.id, collectionId: library.id });
+    const adopted = saved.claim ? await adoptGuestCollection(user, saved.claim, (name) => jar.get(name)) : null;
+    const library = adopted ?? (await ensureLibrary(user));
+    console.info('[auth] signed in', { userId: user.id, collectionId: library.id, adopted: adopted !== null });
     return redirect(req, saved.next ?? `/${library.id}`, [sessionSetCookie(req, user.id)]);
   } catch (err) {
     console.warn('[auth] sign-in failed', { error: err instanceof Error ? err.message : String(err) });

@@ -1,9 +1,10 @@
 /**
  * Signed-in users and their library (one collection per user). Server-only.
  */
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { collections, users, type CollectionRow, type UserRow } from '@/db/schema';
+import { resolveViewer } from '@/lib/collections/access';
 import { createCollection } from '@/lib/collections/service';
 import type { Locale, SessionUserDTO } from '@/lib/types';
 import type { GoogleProfile } from './google';
@@ -51,6 +52,35 @@ export async function ensureLibrary(user: Pick<UserRow, 'id' | 'name' | 'locale'
     const [owned] = await tx.update(collections).set({ userId: user.id }).where(eq(collections.id, collection.id)).returning();
     console.info('[auth] library created', { userId: user.id, collectionId: owned.id });
     return owned;
+  });
+}
+
+/**
+ * Signing in after filming as a guest: the link-only catalogue the visitor owns on this device (proved by
+ * the owner cookie, not by the id they send) becomes their library – same id, same link, books and recordings
+ * stay. Only for an account that has no library yet; one that already has one keeps both apart (merging two
+ * libraries is a different job). Returns the adopted library, or null when nothing was adopted.
+ */
+export async function adoptGuestCollection(
+  user: Pick<UserRow, 'id' | 'name'>,
+  collectionId: string,
+  getCookie: (name: string) => string | undefined,
+): Promise<CollectionRow | null> {
+  return db().transaction(async (tx) => {
+    // the same lock as ensureLibrary: a second tab signing in at the same time cannot make a second library
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`exl-library:${user.id}`}, 0))`);
+    const [mine] = await tx.select({ id: collections.id }).from(collections).where(eq(collections.userId, user.id)).limit(1);
+    if (mine) return null;
+    const [guest] = await tx.select().from(collections).where(eq(collections.id, collectionId)).for('update');
+    if (!guest || guest.userId) return null;
+    if (!resolveViewer(guest, getCookie, null).isOwner) return null;
+    const [adopted] = await tx
+      .update(collections)
+      .set({ userId: user.id, ownerName: guest.ownerName ?? user.name, updatedAt: new Date() })
+      .where(and(eq(collections.id, guest.id), isNull(collections.userId)))
+      .returning();
+    if (adopted) console.info('[auth] guest catalogue adopted as library', { userId: user.id, collectionId: adopted.id });
+    return adopted ?? null;
   });
 }
 

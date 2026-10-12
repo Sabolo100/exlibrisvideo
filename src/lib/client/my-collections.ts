@@ -62,6 +62,19 @@ export function forgetCollection(id: string): void {
   save(listMyCollections().filter((e) => e.id !== id));
 }
 
+/** A catalogue made on this device is a candidate for "my filmed shelf" for this long. */
+const GUEST_CLAIM_MAX_AGE_MS = 30 * 24 * 3600 * 1000;
+
+/**
+ * The link-only catalogue this device made most recently (an owner token is remembered): what a visitor who
+ * signs in after filming as a guest most likely wants in their new library. The server decides whether it can
+ * really be adopted (owner cookie, not yet an account's library, the account has no library yet).
+ */
+export function latestOwnedGuestId(now = Date.now()): string | null {
+  const own = listMyCollections().find((e) => e.token && now - Date.parse(e.createdAt) <= GUEST_CLAIM_MAX_AGE_MS);
+  return own?.id ?? null;
+}
+
 export function getOwnerToken(id: string): string | null {
   return listMyCollections().find((e) => e.id === id)?.token ?? null;
 }

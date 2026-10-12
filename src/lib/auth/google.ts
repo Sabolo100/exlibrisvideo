@@ -43,13 +43,21 @@ export function safeNextPath(next: string | null | undefined): string | null {
   return next;
 }
 
+/**
+ * A link-only catalogue the visitor made before signing in (public id, 6–12 digits): it becomes the new
+ * account's library. Only the shape is checked here – the callback proves ownership from the owner cookie.
+ */
+export function safeClaimId(claim: string | null | undefined): string | null {
+  return claim && /^[0-9]{6,12}$/.test(claim) ? claim : null;
+}
+
 export interface OAuthStart {
   url: string;
-  /** `exl_oauth` cookie value: "<state>.<verifier>.<b64url(next)>" */
+  /** `exl_oauth` cookie value: "<state>.<verifier>.<b64url(next)>[.<claimed collection id>]" */
   cookieValue: string;
 }
 
-export function startGoogleSignIn(next: string | null): OAuthStart {
+export function startGoogleSignIn(next: string | null, claim: string | null = null): OAuthStart {
   const e = env();
   if (!e.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is not set');
   const state = crypto.randomBytes(18).toString('base64url');
@@ -66,7 +74,8 @@ export function startGoogleSignIn(next: string | null): OAuthStart {
     prompt: 'select_account',
   });
   const nextPart = Buffer.from(safeNextPath(next) ?? '', 'utf8').toString('base64url');
-  return { url: `${GOOGLE_AUTH_URL}?${params}`, cookieValue: `${state}.${verifier}.${nextPart}` };
+  const claimId = safeClaimId(claim);
+  return { url: `${GOOGLE_AUTH_URL}?${params}`, cookieValue: `${state}.${verifier}.${nextPart}${claimId ? `.${claimId}` : ''}` };
 }
 
 export function oauthSetCookie(req: Request, value: string): string {
@@ -78,17 +87,19 @@ export function oauthClearCookie(req: Request): string {
 }
 
 /** Parses the `exl_oauth` cookie; null when malformed. */
-export function parseOAuthCookie(value: string | undefined): { state: string; verifier: string; next: string | null } | null {
+export function parseOAuthCookie(
+  value: string | undefined,
+): { state: string; verifier: string; next: string | null; claim: string | null } | null {
   if (!value) return null;
   const parts = value.split('.');
-  if (parts.length !== 3 || !parts[0] || !parts[1]) return null;
+  if ((parts.length !== 3 && parts.length !== 4) || !parts[0] || !parts[1]) return null;
   let next: string | null = null;
   try {
     next = safeNextPath(Buffer.from(parts[2], 'base64url').toString('utf8'));
   } catch {
     next = null;
   }
-  return { state: parts[0], verifier: parts[1], next };
+  return { state: parts[0], verifier: parts[1], next, claim: safeClaimId(parts[3]) };
 }
 
 export class GoogleAuthError extends Error {}

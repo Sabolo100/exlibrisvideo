@@ -4,7 +4,7 @@ vi.hoisted(() => {
   process.env.GOOGLE_CLIENT_ID = 'client-1';
 });
 import { resolveViewer } from '@/lib/collections/access';
-import { parseOAuthCookie, profileFromIdToken, safeNextPath, startGoogleSignIn } from './google';
+import { parseOAuthCookie, profileFromIdToken, safeClaimId, safeNextPath, startGoogleSignIn } from './google';
 import { SESSION_COOKIE, sessionCookieValue, verifySessionValue } from './session';
 
 const USER = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -58,6 +58,20 @@ describe('Google sign-in', () => {
     expect(saved.state).toBe(u.searchParams.get('state'));
     expect(saved.next).toBe('/my');
     expect(saved.verifier.length).toBeGreaterThan(40);
+  });
+
+  it('remembers the catalogue to adopt, and still reads cookies made without one', () => {
+    expect(safeClaimId('123456789')).toBe('123456789');
+    for (const bad of ['', '12345', '1234567890123', '12345678a', '../etc', null, undefined]) expect(safeClaimId(bad)).toBeNull();
+
+    const { cookieValue } = startGoogleSignIn('/123456789', '123456789');
+    expect(parseOAuthCookie(cookieValue)).toMatchObject({ next: '/123456789', claim: '123456789' });
+    // a sign-in already under way when the new code is deployed has the old three-part cookie
+    expect(parseOAuthCookie(startGoogleSignIn('/my').cookieValue)).toMatchObject({ next: '/my', claim: null });
+    // a claim that is not a catalogue id is dropped, not trusted
+    expect(startGoogleSignIn('/my', '../x').cookieValue.split('.')).toHaveLength(3);
+    expect(parseOAuthCookie('state.verifier..abc')?.claim).toBeNull();
+    expect(parseOAuthCookie('a.b.c.d.e')).toBeNull();
   });
 
   it('checks the ID token claims', () => {

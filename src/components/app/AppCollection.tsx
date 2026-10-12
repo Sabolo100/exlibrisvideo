@@ -51,6 +51,8 @@ import { AppFab, AppTabBar, type AppTab } from './AppTabBar';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
 import { UserAvatar } from '@/components/site/AccountMenu';
 import { useSession } from '@/components/site/SessionProvider';
+import { useSignInNudge } from '@/components/site/SignInNudge';
+import { GuestAccountCard } from '@/components/collection/GuestAccountCard';
 import { copyPickedFiles } from '@/lib/client/stable-files';
 import { AppInstallButton } from './AppInstallButton';
 import { AppSettingsSheet } from './AppSettingsSheet';
@@ -139,6 +141,7 @@ export function AppCollection() {
   const [addOpen, setAddOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const sessionUser = useSession().user;
+  const { guard, nudge } = useSignInNudge(collection.id);
   const accountLibrary = !!sessionUser && sessionUser.libraryId === collection.id;
 
   const views = useMemo(() => availableViews({ isOwner: collection.isOwner, videos: collection.videos }), [collection.isOwner, collection.videos]);
@@ -288,7 +291,10 @@ export function AppCollection() {
       ) : null}
 
       {processing ? (
-        <ProcessingPanel initial={collection} isOwner={isOwner} onReady={() => void refresh()} />
+        <>
+          <GuestAccountCard className="mx-3 mb-3" />
+          <ProcessingPanel initial={collection} isOwner={isOwner} onReady={() => void refresh()} />
+        </>
       ) : onlyUnreadSpines ? (
         // nothing could be read yet, but the owner can still name the spines
         <div className="app-screen-in">
@@ -300,6 +306,7 @@ export function AppCollection() {
         </div>
       ) : (
         <div className="app-screen-in" key={activeView}>
+          <GuestAccountCard className="mx-3 mt-3" />
           {activeFilterCount > 0 ? <ActiveFilters className="px-3 pt-3" /> : null}
           <ViewPanel view={activeView} className="px-3 pt-3" />
         </div>
@@ -362,7 +369,7 @@ export function AppCollection() {
                 label={t('app.collection.addVideo')}
                 onClick={() => {
                   setMoreOpen(false);
-                  setCameraOpen(true);
+                  guard(() => setCameraOpen(true));
                 }}
               />
               <SheetRow
@@ -370,7 +377,7 @@ export function AppCollection() {
                 label={t('book.photo.menu')}
                 onClick={() => {
                   setMoreOpen(false);
-                  setPhotoBookOpen(true);
+                  guard(() => setPhotoBookOpen(true));
                 }}
               />
               <SheetRow
@@ -378,7 +385,7 @@ export function AppCollection() {
                 label={t('app.collection.addBook')}
                 onClick={() => {
                   setMoreOpen(false);
-                  setAddBookOpen(true);
+                  guard(() => setAddBookOpen(true));
                 }}
               />
               <SheetRow
@@ -427,6 +434,7 @@ export function AppCollection() {
           <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
           <AddBookDialog open={addBookOpen} onOpenChange={setAddBookOpen} />
           <AddBookPhotoDialog open={photoBookOpen} onOpenChange={setPhotoBookOpen} />
+          {nudge}
           <CameraRecorder
             open={cameraOpen}
             onClose={() => setCameraOpen(false)}
@@ -461,10 +469,10 @@ export function AppCollection() {
           <Drawer open={addOpen} onClose={() => setAddOpen(false)} title={t('app.collection.add')} size="sm">
             <div className="flex flex-col gap-2 pb-2">
               {[
-                { key: 'record', icon: <Camera />, label: t('app.collection.addVideo'), hint: t('app.add.recordHint'), run: () => setCameraOpen(true) },
-                { key: 'gallery', icon: <Images />, label: t('app.add.gallery'), hint: t('app.add.galleryHint'), run: () => galleryRef.current?.click() },
-                { key: 'photo', icon: <ScanBarcode />, label: t('book.photo.menu'), hint: t('book.photo.menuHint'), run: () => setPhotoBookOpen(true) },
-                { key: 'manual', icon: <Plus />, label: t('app.collection.addBook'), hint: t('app.add.manualHint'), run: () => setAddBookOpen(true) },
+                { key: 'record', icon: <Camera />, label: t('app.collection.addVideo'), hint: t('app.add.recordHint'), run: () => guard(() => setCameraOpen(true)) },
+                { key: 'gallery', icon: <Images />, label: t('app.add.gallery'), hint: t('app.add.galleryHint'), run: () => guard(() => galleryRef.current?.click()) },
+                { key: 'photo', icon: <ScanBarcode />, label: t('book.photo.menu'), hint: t('book.photo.menuHint'), run: () => guard(() => setPhotoBookOpen(true)) },
+                { key: 'manual', icon: <Plus />, label: t('app.collection.addBook'), hint: t('app.add.manualHint'), run: () => guard(() => setAddBookOpen(true)) },
               ].map((a) => (
                 <button
                   key={a.key}

@@ -28,9 +28,10 @@ function hasFiles(e: DragEvent): boolean {
 }
 
 /**
- * Drag & drop area with the file pickers. Touch devices get a prominent "record video" button
- * (camera capture) next to "choose existing"; mouse devices get "choose files" plus drag & drop.
- * Pointer detection is pure CSS (`pointer-coarse:` / `pointer-fine:`), so there is no hydration flash.
+ * Drag & drop area with the file pickers. Devices with a touch screen get a prominent "record video" button
+ * (camera capture) next to "choose existing"; mouse-only devices get "choose files" plus drag & drop.
+ * The test is `any-pointer: coarse` (not the primary pointer): an iPad with a trackpad attached still has a
+ * camera in hand. Pure CSS, so there is no hydration flash.
  */
 export function DropZone({
   variant,
@@ -128,8 +129,8 @@ export function DropZone({
             <p className={cn('max-w-md text-muted text-pretty', hero ? 'text-[0.9375rem]' : 'text-sm')}>
               {touchDescription ? (
                 <>
-                  <span className="pointer-coarse:hidden">{description}</span>
-                  <span className="pointer-fine:hidden">{touchDescription}</span>
+                  <span className="any-pointer-coarse:hidden">{description}</span>
+                  <span className="not-any-pointer-coarse:hidden">{touchDescription}</span>
                 </>
               ) : (
                 description
@@ -146,7 +147,7 @@ export function DropZone({
             leftIcon={<Camera />}
             disabled={disabled}
             onClick={() => captureRef.current?.click()}
-            className="pointer-fine:hidden"
+            className="not-any-pointer-coarse:hidden"
           >
             {t('upload.action.record')}
           </Button>
@@ -156,18 +157,18 @@ export function DropZone({
             leftIcon={<FolderOpen />}
             disabled={disabled}
             onClick={() => pickRef.current?.click()}
-            className="pointer-fine:hidden"
+            className="not-any-pointer-coarse:hidden"
           >
             {t('upload.action.pickExisting')}
           </Button>
-          {/* mouse devices: choose files (drag & drop also works) */}
+          {/* mouse-only devices: choose files (drag & drop also works) */}
           <Button
             variant={hero ? 'primary' : 'secondary'}
             size={size}
             leftIcon={<FolderOpen />}
             disabled={disabled}
             onClick={() => pickRef.current?.click()}
-            className="pointer-coarse:hidden"
+            className="any-pointer-coarse:hidden"
           >
             {t('upload.action.chooseFiles')}
           </Button>

@@ -4,6 +4,34 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.7.0 – 2026-10-10
+
+### Added
+- **Sign in after filming as a guest.** A visitor who films or uploads without signing in gets a link
+  catalogue as before; signing in with Google afterwards turns that catalogue – the books of the recording
+  – into the new account's library (same id and link, nothing copied). The sign-in link carries the
+  catalogue (`claim`); the server adopts it only with the owner cookie as proof, and only for an account that
+  has no library yet. The catalogue page (web and phone app, also while it is processing) shows a "Lépj be, hogy
+  a könyveid megmaradjanak" card with the sign-in button; the "Belépés" buttons of the home page and the
+  header carry the catalogue this device made most recently.
+- **"Sign in first?" pop-up.** A guest who starts one of the add actions – film a shelf, upload, book from a
+  photo, book by hand (web add block, phone home, phone library "+" and menu) – is told once per browser tab
+  what an account gives, and can sign in or carry on without.
+
+### Changed
+- **Film right on the website where there is a camera in hand.** On devices with a touch screen (iPad – which
+  is a "tablet", not a phone, so it gets the website – and phones on the website) the recording tile of the
+  library's add block now starts the in-app camera ("Felvétel indítása"); the clip is uploaded through the
+  upload dialog, and "upload an existing video or photos" is the second choice. Mouse-only devices keep the
+  single "Feltöltés" button. The tile is titled "Videó vagy fotó" (it no longer says "upload" only).
+- The upload zone (landing page, upload dialog) offers "record" / "pick from the gallery" for any touch
+  screen (`any-pointer: coarse`) instead of only when the primary pointer is coarse – an iPad with a trackpad
+  attached has a camera too.
+
+### Known limit
+- An account that already has a library keeps it and the guest catalogue stays a separate link catalogue
+  (merging two libraries – files, duplicates – is not built).
+
 ## 1.6.1 – 2026-10-10
 
 ### Fixed

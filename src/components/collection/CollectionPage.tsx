@@ -18,6 +18,7 @@ import { BulkActionBar } from './BulkActionBar';
 import { CatalogueEmpty } from './CatalogueEmpty';
 import { CollectionHeader } from './CollectionHeader';
 import { useCollection } from './context';
+import { GuestAccountCard } from './GuestAccountCard';
 import { OwnerBanner } from './OwnerBanner';
 import { PrintCatalogue } from './PrintCatalogue';
 import { TOOLBAR_ID, Toolbar } from './Toolbar';
@@ -62,6 +63,7 @@ function Catalogue() {
     <>
       <CollectionHeader />
       <OwnerBanner onReview={() => requestAnimationFrame(scrollPanelIntoView)} />
+      <GuestAccountCard className="mt-4" />
       {collection.isOwner ? <AddPanel className="mt-4" /> : null}
 
       {books.length === 0 && collection.isOwner && unreadSpines.length > 0 ? (
@@ -133,7 +135,10 @@ export function CollectionPage() {
         </p>
       ) : null}
       {processing ? (
-        <ProcessingPanel initial={collection} isOwner={isOwner} onReady={() => void refresh()} />
+        <>
+          <GuestAccountCard className="mb-5" />
+          <ProcessingPanel initial={collection} isOwner={isOwner} onReady={() => void refresh()} />
+        </>
       ) : (
         <Catalogue />
       )}

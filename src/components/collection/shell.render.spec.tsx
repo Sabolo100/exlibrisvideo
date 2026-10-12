@@ -52,6 +52,7 @@ vi.mock('@/components/processing/ProcessingPanel', () => ({
 }));
 
 import { makeSampleBook } from '@/components/books/sample-books';
+import { SessionProvider } from '@/components/site/SessionProvider';
 import { I18nProvider } from '@/i18n/client';
 import type { BookDTO, CollectionWithBooksDTO, Locale } from '@/lib/types';
 import { CollectionPage } from './CollectionPage';
@@ -175,14 +176,48 @@ describe('CollectionPage – ready catalogue', () => {
     const html = renderPage(makeCollection({ isOwner: true }));
     const visible = text(html);
     expect(visible).toContain('Tedd fel a könyveidet');
-    expect(visible).toContain('Videó vagy fotó feltöltése');
+    expect(visible).toContain('Videó vagy fotó');
     expect(visible).toContain('Könyv fotóról');
     expect(visible).toContain('Könyv felvétele kézzel');
     for (const cta of ['Feltöltés', 'Fotózás', 'Beírás']) {
       expect(html).toMatch(new RegExp(`<button[^>]*>(?:<[^>]+>)*${cta}<`));
     }
+    // a touch screen (iPad) films right here, upload stays as the second choice; mouse-only devices see
+    // just "Feltöltés" – both chosen by CSS (any-pointer: coarse), so the server HTML holds all three
+    expect(html).toMatch(/<button[^>]*not-any-pointer-coarse:hidden[^>]*>(?:<[^>]+>)*Felvétel indítása</);
+    expect(visible).toContain('Vagy tölts fel meglévő videót, fotót');
+    expect(html).toMatch(/<button[^>]*any-pointer-coarse:hidden[^>]*>(?:<[^>]+>)*Feltöltés</);
     // the old "Hozzáadás" drop-down button is gone
     expect(visible).not.toContain('Hozzáadás');
+  });
+
+  it('asks a guest owner to sign in so the recording lands in a library – not a signed-in owner, not a visitor', () => {
+    const asGuest = (collection: CollectionWithBooksDTO, authEnabled = true) =>
+      text(
+        render(
+          <SessionProvider user={null} authEnabled={authEnabled}>
+            <CollectionProvider initial={collection}>
+              <CollectionPage />
+            </CollectionProvider>
+          </SessionProvider>,
+        ),
+      );
+    const card = asGuest(makeCollection({ isOwner: true }));
+    expect(card).toContain('Lépj be, hogy a könyveid megmaradjanak');
+    expect(card).toContain('Belépés Google-fiókkal');
+    // the sign-in link names the catalogue to adopt
+    const html = render(
+      <SessionProvider user={null} authEnabled>
+        <CollectionProvider initial={makeCollection({ isOwner: true })}>
+          <CollectionPage />
+        </CollectionProvider>
+      </SessionProvider>,
+    );
+    expect(html).toContain('href="/api/auth/google?claim=123456789"');
+    // no sign-in configured, a visitor, or the account's own library: no card
+    expect(asGuest(makeCollection({ isOwner: true }), false)).not.toContain('Lépj be, hogy a könyveid megmaradjanak');
+    expect(asGuest(makeCollection())).not.toContain('Lépj be, hogy a könyveid megmaradjanak');
+    expect(asGuest(makeCollection({ isOwner: true, isAccountLibrary: true }))).not.toContain('Lépj be, hogy a könyveid megmaradjanak');
   });
 
   it('keeps the add block away from visitors', () => {

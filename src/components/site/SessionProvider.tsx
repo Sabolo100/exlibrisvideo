@@ -35,7 +35,14 @@ export function useSession(): SessionValue {
   return useContext(SessionContext);
 }
 
-/** Where the "Sign in with Google" link points (`next`: a same-site path to open afterwards). */
-export function signInHref(next?: string | null): string {
-  return next ? `/api/auth/google?next=${encodeURIComponent(next)}` : '/api/auth/google';
+/**
+ * Where the "Sign in with Google" link points (`next`: a same-site path to open afterwards; `claim`: the id of
+ * the link-only catalogue this visitor filmed before signing in – it becomes their library).
+ */
+export function signInHref(next?: string | null, claim?: string | null): string {
+  const params = new URLSearchParams();
+  if (next) params.set('next', next);
+  if (claim) params.set('claim', claim);
+  const query = params.toString();
+  return query ? `/api/auth/google?${query}` : '/api/auth/google';
 }
