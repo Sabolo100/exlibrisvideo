@@ -14,13 +14,12 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
 import { READING_STATUS_META } from '@/components/books';
-import { SHELF_GEOMETRY, shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
+import { shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { useCollection } from '@/components/collection/context';
 import { Select, SegmentedControl, Switch } from '@/components/ui';
 import { useUiTranslator } from '@/components/ui/hooks';
@@ -38,7 +37,6 @@ import {
 } from './visual/hooks';
 import { ShelfCase } from './visual/ShelfCase';
 import {
-  bookendBox,
   buildShelfLayout,
   DENSITY_SIZE,
   groupShelfBooks,
@@ -46,11 +44,10 @@ import {
   SHELF_DENSITIES,
   SHELF_GROUP_BYS,
   shelfNeighbour,
-  SHELF_INNER_PADDING,
-  SPINE_GAP,
   type ShelfDensity,
   type ShelfGroupBy,
 } from './visual/shelf-layout';
+import { ShelfGhost, type GhostRow } from './visual/ShelfGhost';
 import { SpineHoverCard } from './visual/SpineHoverCard';
 
 /** Up to this many books every spine is interactive from the start (full a11y tree, no placeholders). */
@@ -281,43 +278,18 @@ export function ShelfView() {
 }
 
 function ShelfSkeleton({ books, size }: { books: readonly BookDTO[]; size: SpineSize }) {
-  const g = SHELF_GEOMETRY[size];
-  const row = shelfRowHeight(size);
-  const gap = SPINE_GAP[size];
-  const bookend = bookendBox(size);
-  const rows = useMemo(
+  const rows = useMemo<GhostRow[]>(
     () =>
-      buildShelfLayout([{ key: 'all', books: books.slice(0, SKELETON_MAX_BOOKS) }], SKELETON_WIDTH, size).rows.slice(0, SKELETON_MAX_ROWS),
+      buildShelfLayout([{ key: 'all', books: books.slice(0, SKELETON_MAX_BOOKS) }], SKELETON_WIDTH, size)
+        .rows.slice(0, SKELETON_MAX_ROWS)
+        .map((r) => ({
+          key: r.key,
+          startBookend: r.startBookend,
+          spines: r.spines.map((spine) => ({ key: spine.book.id, width: spine.width, height: spine.height })),
+        })),
     [books, size],
   );
-  const ghost = (key: string, width: number, height: number, style?: CSSProperties) => (
-    <div
-      key={key}
-      className="shrink-0 animate-pulse rounded-t-[3px]"
-      style={{ width, height, background: 'color-mix(in oklab, var(--wood-light), transparent 55%)', ...style }}
-    />
-  );
-  return (
-    <div
-      aria-hidden="true"
-      className="overflow-hidden rounded-[6px]"
-      style={{ padding: `${g.top}px ${g.side}px 0`, background: 'var(--wood-dark)' }}
-    >
-      {rows.map((r) => (
-        <div
-          key={r.key}
-          data-skeleton-row={r.key}
-          className="flex items-end overflow-hidden"
-          style={{ height: row, gap, paddingInline: SHELF_INNER_PADDING[size], borderBottom: `${g.plank}px solid var(--wood)` }}
-        >
-          {r.startBookend
-            ? ghost('bookend', bookend.width, bookend.height, { marginInlineStart: bookend.marginStart, marginInlineEnd: bookend.marginEnd })
-            : null}
-          {r.spines.map((spine) => ghost(spine.book.id, spine.width, spine.height))}
-        </div>
-      ))}
-    </div>
-  );
+  return <ShelfGhost rows={rows} size={size} />;
 }
 
 /** CSS.escape with a fallback for environments without it (ids are UUIDs, but stay safe). */

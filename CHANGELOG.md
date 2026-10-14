@@ -4,6 +4,23 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.8.1 – 2026-10-14
+
+### Fixed
+- **No more 3-shelf flash after signing in.** After the Google sign-in (and on every load of a catalogue) the
+  route-level loading skeleton of `/<id>` drew three tall walnut shelves of 38 ghost spines each; a small library
+  then arrived as ONE short shelf and the wall of planks collapsed ("pops up, then ends up as one shelf"). The
+  v1.6.1 fix had only reached the shelf view's own placeholder. The skeleton is now a ghost of the catalogue page
+  laid out like the real one – header, toolbar, view options and ONE plank (the very same `ShelfGhost` the shelf
+  view draws until it has measured its width); on a desktop screen it ends within 1 px of where the real shelf
+  stands and is as tall as the real page, so neither the shelf nor the footer moves. A bigger library only
+  grows downwards.
+- A signed-in visitor – who almost always lands on their own library – also gets the ghost of the owner's
+  "Tedd fel a könyveidet" block, so the page no longer jumps by its height when the real catalogue arrives (the
+  phone app and visitors without an account have no such block, and get no such ghost).
+- The skeleton **fades in only after ~160 ms** (`.exl-loading-fade`): a load that finishes quickly – on a hard
+  navigation the real page streams in right behind the skeleton – never shows it at all.
+
 ## 1.8.0 – 2026-10-14
 
 ### Added

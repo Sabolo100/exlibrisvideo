@@ -2,6 +2,8 @@
  * `/[id]` Server Component and metadata with the data layer mocked. JSX module → run with
  *   npx vitest run <this file>  (root vitest.config.ts compiles JSX)
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { isValidElement, type ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,8 +32,10 @@ vi.mock('@/components/app/ui-mode.server', () => ({ getUiMode: mocks.uiMode }));
 vi.mock('@/components/app/AppCollection', () => ({ AppCollection: function AppCollection() { return null; } }));
 vi.mock('@/components/app/AppPinGate', () => ({ AppPinGate: function AppPinGate() { return null; } }));
 
+import { UiModeProvider } from '@/components/app/UiModeProvider';
 import { makeSampleBook } from '@/components/books/sample-books';
-import type { CollectionWithBooksDTO } from '@/lib/types';
+import { SessionProvider } from '@/components/site/SessionProvider';
+import type { CollectionWithBooksDTO, SessionUserDTO } from '@/lib/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import CollectionLoading from './loading';
 import CollectionRoute, { dynamic, generateMetadata } from './page';
@@ -121,14 +125,50 @@ describe('/[id] page', () => {
 });
 
 describe('/[id] loading skeleton', () => {
-  it('renders an accessible, deterministic shelf skeleton', async () => {
-    const first = renderToStaticMarkup(await CollectionLoading());
-    const second = renderToStaticMarkup(await CollectionLoading());
+  const user: SessionUserDTO = { id: 'u1', email: 'anna@example.com', name: 'Anna', picture: null, libraryId: '334345435' };
+  const renderSkeleton = async (who: SessionUserDTO | null = null, mode: 'web' | 'app' = 'web') =>
+    renderToStaticMarkup(
+      <UiModeProvider mode={mode}>
+        <SessionProvider user={who} authEnabled>
+          {await CollectionLoading()}
+        </SessionProvider>
+      </UiModeProvider>,
+    );
+
+  it('renders an accessible, deterministic ghost of the catalogue', async () => {
+    const first = await renderSkeleton();
+    const second = await renderSkeleton();
     expect(first).toBe(second);
     expect(first).toContain('role="status"');
     expect(first).toContain('aria-busy="true"');
     expect(first).toContain('A könyvtár betöltése…');
-    expect(first.match(/rounded-t-\[3px\]/g)?.length).toBe(38 * 3);
+  });
+
+  it('draws ONE plank, never a wall of planks that collapses when a small library arrives', async () => {
+    const html = await renderSkeleton();
+    expect(html.match(/data-skeleton-row=/g)?.length).toBe(1);
+    // twelve ghost spines and the ghost bookend on that plank
+    expect(html.match(/rounded-t-\[3px\]/g)?.length).toBe(12 + 1);
+  });
+
+  it('shows up only after a short wait, so a quick load never flashes it', async () => {
+    expect(await renderSkeleton()).toContain('exl-loading-fade');
+    const css = fs.readFileSync(path.join(process.cwd(), 'src/app/globals.css'), 'utf8');
+    expect(css).toMatch(/\.exl-loading-fade\s*\{[^}]*animation:[^;]*\b\d+ms ease-out (\d+)ms backwards/);
+    const delay = Number(/\.exl-loading-fade\s*\{[^}]*animation:[^;]*\b\d+ms ease-out (\d+)ms backwards/.exec(css)?.[1]);
+    expect(delay).toBeGreaterThanOrEqual(100);
+    expect(delay).toBeLessThanOrEqual(300);
+  });
+
+  it('includes the ghost of the owner add block only for a signed-in visitor on the website', async () => {
+    // the add block ghost is the only place with three 164 px tiles
+    const tiles = (html: string) => html.match(/h-\[10\.25rem\]/g)?.length ?? 0;
+    expect(tiles(await renderSkeleton(null))).toBe(0);
+    expect(tiles(await renderSkeleton(user))).toBe(3);
+    // the phone app has no such block
+    expect(tiles(await renderSkeleton(user, 'app'))).toBe(0);
+    // still one plank either way
+    expect((await renderSkeleton(user)).match(/data-skeleton-row=/g)?.length).toBe(1);
   });
 });
 

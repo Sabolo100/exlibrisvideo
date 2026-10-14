@@ -192,7 +192,7 @@ Global: `SiteHeader` (logo mark = stylised bookplate, nav: Új katalógus, Kolle
 ### 5.3 other pages
 * `/my` — centred header, the Google sign-in card, then **three numbered twin cards** ("1. lehetőség / Option 1" …) side by side from `lg` (stacked below; heads and bodies line up via subgrid): ① **this device** – the collections stored in this browser (title, count, created; open, open-as-owner, remove from list; a long list scrolls inside its card), ② **open by id** or pasted link, ③ **recover links by e-mail** form.
 * `/privacy`, `/terms` — localized, plain, GDPR-friendly (data stored in the EU on Hetzner, source videos deleted after processing, AI providers used for recognition, deletion anytime, contact).
-* `not-found.tsx`, `error.tsx`, loading skeletons.
+* `not-found.tsx`, `error.tsx`, loading skeletons. The `/<id>` one (`[id]/loading.tsx`) is a **ghost of the catalogue page laid out like the real one** – header, the owner's add block (only for a signed-in visitor), toolbar, view options and ONE plank of the bookcase (the same `ShelfGhost` the shelf view draws until it has measured its width) – so the real page takes its place without a jump (a bigger library only grows downwards, never a wall of planks that collapses); it fades in only after ~160 ms (`.exl-loading-fade`), so a quick load never flashes it.
 
 ---
 

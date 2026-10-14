@@ -351,3 +351,19 @@ html.app-mode select {
     -webkit-text-fill-color: currentColor;
   }
 }
+
+/* ── Route loading skeletons ─────────────────────────────────────────────────
+   A skeleton fades in only after a short wait: a load that finishes within the first ~160 ms (the usual case on
+   a hard navigation, where the real page streams in right behind the skeleton) never shows it, so nothing
+   flashes and then jumps. `backwards` keeps it invisible during the delay; afterwards the plain styles apply. */
+.exl-loading-fade {
+  animation: exl-loading-in 260ms ease-out 160ms backwards;
+}
+@keyframes exl-loading-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
