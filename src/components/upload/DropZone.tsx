@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/components/ui/cn';
 import { copyPickedFiles } from '@/lib/client/stable-files';
 import { CAPTURE_ACCEPT, PICK_ACCEPT } from './validate';
+import { heroZoneFrame, heroZoneIdle, heroZoneNote, heroZoneText, heroZoneTitle, HeroZoneIcon } from './zone-chrome';
 
 export interface DropZoneProps {
   variant: 'hero' | 'compact';
@@ -87,10 +88,12 @@ export function DropZone({
   };
 
   const size = hero ? 'lg' : 'md';
+  const dragActive = 'border-accent bg-accent-soft/70 shadow-[inset_0_0_0_4px_color-mix(in_oklab,var(--accent)_18%,transparent)]';
 
-  // the compact zone lives in narrow sidebars and wide dialogs alike: its layout follows the container width
+  // The zone lives in narrow sidebars, wide dialogs and half-page cards alike: its layout follows the width of its
+  // container, not the window. The hero zone fills the height of its card (it sits next to the phone / QR card).
   return (
-    <div className={cn('@container', className)}>
+    <div className={cn('@container', hero && 'flex flex-1 flex-col', className)}>
       <div
         role="group"
         aria-labelledby={headingId}
@@ -99,34 +102,35 @@ export function DropZone({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={cn(
-          'relative flex flex-col items-center rounded-[calc(var(--radius-card)-4px)] border-2 border-dashed text-center transition-[border-color,background-color,box-shadow] duration-200',
-          hero ? 'gap-3.5 px-4 py-6 sm:gap-4 sm:px-8 sm:py-9' : 'gap-3 px-4 py-5 @lg:flex-row @lg:text-left',
-          dragging
-            ? 'border-accent bg-accent-soft/70 shadow-[inset_0_0_0_4px_color-mix(in_oklab,var(--accent)_18%,transparent)]'
-            : 'border-[color-mix(in_oklab,var(--line),var(--accent)_35%)] bg-surface-2/40',
+          hero
+            ? heroZoneFrame
+            : 'relative flex flex-col items-center gap-3 rounded-[calc(var(--radius-card)-4px)] border-2 border-dashed px-4 py-5 text-center transition-[border-color,background-color,box-shadow] duration-200 @lg:flex-row @lg:text-left',
+          dragging ? dragActive : heroZoneIdle,
           disabled && 'opacity-60',
         )}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'flex shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent ring-1 ring-accent/25',
-            hero ? 'size-12 [&_svg]:size-6 sm:size-14 sm:[&_svg]:size-7' : 'size-11 [&_svg]:size-5',
-            dragging && 'scale-110 transition-transform',
-          )}
-        >
-          <CloudUpload />
-        </span>
+        {hero ? (
+          <HeroZoneIcon active={dragging}>
+            <CloudUpload />
+          </HeroZoneIcon>
+        ) : (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent ring-1 ring-accent/25 [&_svg]:size-5',
+              dragging && 'scale-110 transition-transform',
+            )}
+          >
+            <CloudUpload />
+          </span>
+        )}
 
         <div className={cn('flex min-w-0 flex-col', hero ? 'items-center gap-1.5' : 'flex-1 gap-0.5 @lg:items-start')}>
-          <Heading
-            id={headingId}
-            className={cn('font-display font-semibold text-ink text-balance', hero ? 'text-2xl sm:text-[1.75rem]' : 'text-lg leading-tight')}
-          >
+          <Heading id={headingId} className={hero ? heroZoneTitle : 'font-display text-lg leading-tight font-semibold text-balance text-ink'}>
             {dragging ? t('upload.drop.active') : title}
           </Heading>
           {description || touchDescription ? (
-            <p className={cn('max-w-md text-muted text-pretty', hero ? 'text-[0.9375rem]' : 'text-sm')}>
+            <p className={hero ? heroZoneText : 'max-w-md text-sm text-pretty text-muted'}>
               {touchDescription ? (
                 <>
                   <span className="any-pointer-coarse:hidden">{description}</span>
@@ -139,7 +143,7 @@ export function DropZone({
           ) : null}
         </div>
 
-        <div className={cn('flex w-full flex-col gap-2.5', hero ? 'max-w-sm sm:max-w-none sm:flex-row sm:justify-center' : '@lg:w-auto @lg:shrink-0 @lg:flex-row')}>
+        <div className={cn('flex flex-col gap-2.5', hero ? 'w-fit max-w-full @md:flex-row' : 'w-full @lg:w-auto @lg:shrink-0 @lg:flex-row')}>
           {/* touch devices: film right now */}
           <Button
             variant="primary"
@@ -174,7 +178,7 @@ export function DropZone({
           </Button>
         </div>
 
-        {footnote ? <p className={cn('text-xs text-muted', hero ? 'max-w-md' : '@lg:hidden')}>{footnote}</p> : null}
+        {footnote ? <p className={hero ? heroZoneNote : 'text-xs text-muted @lg:hidden'}>{footnote}</p> : null}
 
         <input
           ref={captureRef}

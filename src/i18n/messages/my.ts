@@ -8,9 +8,15 @@ export const my = defineMessages({
       'Az ezen az eszközön létrehozott és megnyitott könyvkatalógusaid – és ha elveszett a link, itt kérhetsz újat e-mailben.',
     title: 'Kollekcióim',
     intro:
-      'Az ebben a böngészőben létrehozott vagy megnyitott katalógusok. A lista csak ezen az eszközön létezik: másik telefonon vagy böngészőben a katalógus linkjével, illetve e-mailben kért belépő linkkel éred el őket.',
+      'Itt éred el a katalógusaidat. Ha belépsz, a könyvtárad a fiókodhoz kötődik; belépés nélkül az alábbi három lehetőség közül választhatsz.',
+
+    'ways.eyebrow': 'Három lehetőség',
+    'ways.title': 'Így éred el a katalógusaidat',
+    'ways.lead': 'Három lehetőség van – válaszd azt, amihez most hozzáférsz: ehhez az eszközhöz, a katalógus azonosítójához vagy az e-mail-címedhez.',
+    'ways.option': '{n}. lehetőség',
 
     'list.title': 'Ezen az eszközön',
+    'list.hint': 'Az ebben a böngészőben létrehozott vagy megnyitott katalógusok. A lista csak ezen az eszközön létezik.',
     'list.count': '{count} katalógus',
     'list.count_one': '{count} katalógus',
     'list.loading': 'Katalógusok betöltése…',
@@ -77,9 +83,15 @@ export const my = defineMessages({
       'The book catalogues you created or opened on this device – and if you lost a link, request a new one by e-mail here.',
     title: 'My collections',
     intro:
-      'Catalogues created or opened in this browser. The list only exists on this device: on another phone or browser, open them with the catalogue link or with a sign-in link requested by e-mail.',
+      'This is where you reach your catalogues. If you sign in, your library belongs to your account; without signing in you can choose one of the three options below.',
+
+    'ways.eyebrow': 'Three options',
+    'ways.title': 'How to reach your catalogues',
+    'ways.lead': 'There are three ways – pick the one you can use right now: this device, the catalogue’s ID, or your e-mail address.',
+    'ways.option': 'Option {n}',
 
     'list.title': 'On this device',
+    'list.hint': 'Catalogues created or opened in this browser. The list only exists on this device.',
     'list.count': '{count} catalogues',
     'list.count_one': '{count} catalogue',
     'list.loading': 'Loading catalogues…',

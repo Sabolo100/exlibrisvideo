@@ -4,6 +4,48 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.8.0 – 2026-10-14
+
+### Added
+- **The brand name once more, large, at the top of the landing page.** "Ex Libris Video" with the bookplate mark
+  and "by DarwinAI" (a link to www.darwinai.hu) opens the page like the title card of a book: the mark is stamped
+  in, "Ex Libris" rises letter by letter out of a blur, "Video" is written in gold with a glint that runs across it
+  now and then, the rules grow out from the credit line. Pure CSS (`.wm-*` in `globals.css`), runs on first
+  paint, off with "reduce motion".
+- **The promo video under the recording block** ("Egy perc alatt – Így lesz a polcodból katalógus"). Self-hosted
+  (`public/promo/`, 720p H.264/AAC, 6.7 MB, `+faststart`; the file names carry the version and are cached
+  for a year), no third party, no cookies. It does not slow the page: the first paint holds only a lazy 66 KB
+  poster; the file is requested ~800 px before the player scrolls into view and plays at once, muted, when about
+  half of it is visible; it pauses when scrolled away or the tab is hidden. "Hang be" turns the sound on, plus
+  pause / full screen / a progress line; at the end it stops and offers "Újra". With "reduce motion", the data
+  saver or a browser that refuses autoplay the poster waits for a tap. English pages note that the video's text is
+  Hungarian.
+- **/my: three numbered options.** "1. lehetőség – Ezen az eszközön", "2. – Megnyitás azonosító alapján",
+  "3. – Elvesztetted a linket?" are now three twin bookplate cards side by side (stacked on small screens),
+  under a centred header and the sign-in card. Heads and bodies line up (subgrid); a long list of catalogues
+  scrolls inside its card instead of stretching the row.
+
+### Changed
+- **The phone card and the upload card are twins joined by "vagy".** The "record with your phone" (QR code)
+  and "upload here" blocks share one look (bookplate card, dashed zone, gold icon, heading, text, action,
+  note) – built from the same classes (`upload/zone-chrome.tsx`) – side by side on wide screens with a "vagy /
+  or" medallion between them, one under the other with a horizontal "vagy" below `lg`. The sentence "Or upload
+  here…" is gone (the divider says it). On a touch screen below `lg` the phone card and the "vagy" are hidden:
+  that device already has the camera, and the upload card offers "record" and "pick". While files are listed
+  the phone card shrinks to its own height instead of stretching. The zone's layout follows its container
+  width, not the window.
+- **The sign-in card is centred** on the website (text and the "Javasolt" tag on the middle of the top edge);
+  the phone app keeps its left-aligned card.
+- The upload card no longer keeps an empty strip under its zone when there is no alert to show.
+
+## 1.7.1 – 2026-10-13
+
+### Added
+- **"by DarwinAI" credit.** Ex Libris Video is a project of [DarwinAI](https://www.darwinai.hu): the site header
+  wordmark and the top bar of the phone app's home screen carry a small "by DarwinAI" line, and the footer says
+  "Az Ex Libris Video a DarwinAI projektje" / "Ex Libris Video is a project of DarwinAI" with a link to
+  www.darwinai.hu.
+
 ## 1.7.0 – 2026-10-10
 
 ### Added

@@ -76,6 +76,18 @@ export function SiteFooter() {
           </span>
           {t('common.footer.madeWith')}
         </p>
+        <p className="text-sm text-muted">
+          {t('common.footer.projectPrefix')}
+          <a
+            href="https://www.darwinai.hu"
+            target="_blank"
+            rel="noopener"
+            className={cn(linkClass, 'font-medium text-ink')}
+          >
+            DarwinAI
+          </a>
+          {t('common.footer.projectSuffix')}
+        </p>
         <p className="font-mono text-[0.6875rem] text-muted/80" title={t('common.footer.version')}>
           {versionLabel()}
         </p>

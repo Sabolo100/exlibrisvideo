@@ -1,15 +1,33 @@
 'use client';
 
 /**
- * /my – collections remembered on this device (localStorage via my-collections.ts): open, open as owner,
- * copy link, forget (with undo); open by id; recover owner links by e-mail (no-enumeration answer).
+ * /my – three ways to reach your catalogues, as three twin cards side by side (stacked on a phone):
+ *   1 · on this device: the collections remembered in this browser (localStorage via my-collections.ts) – open,
+ *       open as owner, copy link, forget (with undo);
+ *   2 · by id or pasted link;
+ *   3 · lost the link: owner links by e-mail (no-enumeration answer).
+ * Above them the Google sign-in, the better way when it is configured.
  */
-import { Copy, ExternalLink, KeyRound, Library, Lock, MailCheck, Plus, Send, Trash2 } from 'lucide-react';
+import {
+  Copy,
+  ExternalLink,
+  Hash,
+  KeyRound,
+  Library,
+  Lock,
+  Mail,
+  MailCheck,
+  MonitorSmartphone,
+  Plus,
+  Send,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import type { MessageKey } from '@/i18n';
 import { useI18n } from '@/i18n/client';
 import { OpenByIdForm } from '@/components/landing/OpenByIdForm';
+import { SectionHeading } from '@/components/landing/SectionHeading';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -168,17 +186,17 @@ function EntryCard({ entry, remote }: { entry: MyCollectionEntry; remote: Remote
   };
 
   return (
-    <Card as="article" aria-labelledby={`my-entry-${entry.id}`} className="p-4 sm:p-5">
+    <Card as="article" variant="inset" aria-labelledby={`my-entry-${entry.id}`} className="p-3.5">
       <div className="flex items-start gap-3">
         <span
           aria-hidden="true"
-          className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] [&_svg]:size-5"
+          className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] [&_svg]:size-[1.125rem]"
         >
           <Library />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h3 id={`my-entry-${entry.id}`} className="min-w-0 font-display text-lg leading-tight font-semibold text-ink">
+            <h3 id={`my-entry-${entry.id}`} className="min-w-0 font-display text-base leading-tight font-semibold text-ink">
               {gone ? (
                 <span className="text-muted line-through decoration-muted/60">{title}</span>
               ) : (
@@ -204,7 +222,7 @@ function EntryCard({ entry, remote }: { entry: MyCollectionEntry; remote: Remote
           </p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line/70 pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
         {!gone ? (
           <Button href={`/${entry.id}`} size="sm" variant={ownerHref ? 'secondary' : 'primary'} leftIcon={<ExternalLink />}>
             {t('my.entry.open')}
@@ -322,6 +340,59 @@ export function RecoverForm() {
   );
 }
 
+/** One of the three ways to your catalogues: a numbered bookplate card with an icon, what it is and a hint when to use it. */
+function WayCard({
+  n,
+  id,
+  icon,
+  title,
+  hint,
+  aside,
+  children,
+}: {
+  n: number;
+  id: string;
+  icon: ReactNode;
+  title: string;
+  hint: string;
+  aside?: ReactNode;
+  children: ReactNode;
+}) {
+  const { t } = useI18n();
+  return (
+    // side by side the cards share two rows (subgrid): the heads and the bodies line up whatever their length
+    <Card
+      as="section"
+      variant="bookplate"
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="flex scroll-mt-24 flex-col p-5 sm:p-6 lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:gap-y-5"
+    >
+      <div>
+        <p className="text-[0.6875rem] font-semibold tracking-[0.16em] text-accent uppercase">{t('my.ways.option', { n })}</p>
+        <div className="mt-2.5 flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent ring-1 ring-accent/25 [&_svg]:size-5"
+          >
+            {icon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 id={`${id}-title`} className="font-display text-xl leading-tight font-semibold text-ink">
+                {title}
+              </h3>
+              {aside}
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted text-pretty">{hint}</p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 flex flex-col lg:mt-0">{children}</div>
+    </Card>
+  );
+}
+
 export function MyCollections() {
   const { t, tp } = useI18n();
   const mounted = useMounted();
@@ -331,77 +402,82 @@ export function MyCollections() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="max-w-2xl">
+      <header className="mx-auto max-w-2xl text-center">
         <h1 className="font-display text-3xl leading-tight font-semibold text-ink sm:text-4xl">{t('my.title')}</h1>
         <p className="mt-2 text-base leading-relaxed text-muted text-pretty">{t('my.intro')}</p>
-        <AccountLibraryCard className="mt-6" />
+        <AccountLibraryCard className="mx-auto mt-8 max-w-xl text-left" />
       </header>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-8">
-        <section aria-labelledby="my-list-title" aria-busy={!mounted}>
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 id="my-list-title" className="font-display text-xl font-semibold text-ink">
-              {t('my.list.title')}
-            </h2>
-            {mounted && entries.length > 0 ? <span className="text-sm text-muted">{tp('my.list.count', entries.length)}</span> : null}
-          </div>
+      <section aria-labelledby="my-ways-title" className="mt-12 sm:mt-14">
+        <SectionHeading id="my-ways-title" eyebrow={t('my.ways.eyebrow')} title={t('my.ways.title')} lead={t('my.ways.lead')} />
 
-          {!mounted ? (
-            <div className="flex flex-col gap-3">
-              <span className="sr-only">{t('my.list.loading')}</span>
-              {[0, 1].map((i) => (
-                <Card key={i} className="p-5">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="size-10 rounded-lg" />
-                    <div className="flex flex-1 flex-col gap-2">
-                      <Skeleton className="h-5 w-2/3" />
-                      <Skeleton className="h-3 w-1/2" />
+        <div className="mt-8 grid gap-5 sm:mt-10 lg:grid-cols-3 lg:grid-rows-[auto_1fr] lg:gap-x-6 lg:gap-y-0">
+          {/* 1 · this device */}
+          <WayCard
+            n={1}
+            id="my-list"
+            icon={<MonitorSmartphone />}
+            title={t('my.list.title')}
+            hint={t('my.list.hint')}
+            aside={mounted && entries.length > 0 ? <span className="shrink-0 text-xs text-muted">{tp('my.list.count', entries.length)}</span> : null}
+          >
+            <div aria-busy={!mounted} className="flex flex-1 flex-col">
+              {!mounted ? (
+                <div className="flex flex-col gap-3">
+                  <span className="sr-only">{t('my.list.loading')}</span>
+                  <Card variant="inset" className="p-3.5">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="size-9 rounded-lg" />
+                      <div className="flex flex-1 flex-col gap-2">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                </div>
+              ) : entries.length === 0 ? (
+                <EmptyState
+                  size="sm"
+                  className="flex-1 rounded-xl border border-dashed border-line bg-surface-2/40"
+                  title={t('my.empty.title')}
+                  description={t('my.empty.description')}
+                  action={
+                    <Button href="/#upload" variant="primary" size="sm" leftIcon={<Plus />}>
+                      {t('my.empty.cta')}
+                    </Button>
+                  }
+                />
+              ) : (
+                // side by side the three cards keep one height: a long list scrolls inside its card (focusable for the keyboard)
+                <div
+                  tabIndex={0}
+                  role="group"
+                  aria-label={t('my.list.title')}
+                  className="-mx-1 px-1 py-1 [scrollbar-width:thin] lg:max-h-[27rem] lg:overflow-y-auto"
+                >
+                  <ul className="flex flex-col gap-3">
+                    {entries.map((entry) => (
+                      <li key={entry.id}>
+                        <EntryCard entry={entry} remote={statuses.get(entry.id)} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-          ) : entries.length === 0 ? (
-            <Card variant="inset" className="py-4">
-              <EmptyState
-                title={t('my.empty.title')}
-                description={t('my.empty.description')}
-                action={
-                  <Button href="/#upload" variant="primary" leftIcon={<Plus />}>
-                    {t('my.empty.cta')}
-                  </Button>
-                }
-              />
-            </Card>
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {entries.map((entry) => (
-                <li key={entry.id}>
-                  <EntryCard entry={entry} remote={statuses.get(entry.id)} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          </WayCard>
 
-        <div className="flex flex-col gap-5">
-          <Card as="section" aria-labelledby="my-open-title" className="p-5">
-            <h2 id="my-open-title" className="font-display text-lg leading-tight font-semibold text-ink">
-              {t('my.open.title')}
-            </h2>
-            <p className="mt-1 text-sm text-muted text-pretty">{t('my.open.description')}</p>
-            <OpenByIdForm className="mt-4" layout="stacked" hideLabel />
-          </Card>
+          {/* 2 · by id or link */}
+          <WayCard n={2} id="my-open" icon={<Hash />} title={t('my.open.title')} hint={t('my.open.description')}>
+            <OpenByIdForm layout="stacked" hideLabel />
+          </WayCard>
 
-          <Card as="section" id="recover" variant="bookplate" aria-labelledby="my-recover-title" className="scroll-mt-24 p-5">
-            <h2 id="my-recover-title" className="font-display text-lg leading-tight font-semibold text-ink">
-              {t('my.recover.title')}
-            </h2>
-            <p className="mt-1 mb-4 text-sm text-muted text-pretty">{t('my.recover.description')}</p>
+          {/* 3 · lost the link */}
+          <WayCard n={3} id="recover" icon={<Mail />} title={t('my.recover.title')} hint={t('my.recover.description')}>
             <RecoverForm />
-          </Card>
+          </WayCard>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

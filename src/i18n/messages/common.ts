@@ -46,6 +46,8 @@ export const common = defineMessages({
     'footer.madeWith': 'Könyvszeretőknek készült',
     'footer.version': 'Verzió és build-azonosító',
     'footer.contact': 'Kapcsolat',
+    'footer.projectPrefix': 'Az Ex Libris Video a ',
+    'footer.projectSuffix': ' projektje',
 
     // --- ui-kit (additive) ---
     'aria.home': 'Ex Libris Video – kezdőlap',
@@ -142,6 +144,8 @@ export const common = defineMessages({
     'footer.madeWith': 'Made for book lovers',
     'footer.version': 'Version and build id',
     'footer.contact': 'Contact',
+    'footer.projectPrefix': 'Ex Libris Video is a project of ',
+    'footer.projectSuffix': '',
 
     // --- ui-kit (additive) ---
     'aria.home': 'Ex Libris Video – home',

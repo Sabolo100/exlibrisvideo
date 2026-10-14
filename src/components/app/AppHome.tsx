@@ -129,6 +129,7 @@ function HomeContent() {
         <AppTopBar
           leading={<LogoMark className="ml-2 h-8 w-7" />}
           title={t('app.name')}
+          subtitle="by DarwinAI"
           actions={
             <>
               <AppInstallButton onNeedHelp={() => setSettingsOpen(true)} />

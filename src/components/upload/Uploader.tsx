@@ -432,6 +432,7 @@ export function Uploader({
   );
 
   const hasFilesListed = totalCount > 0;
+  const hasAlerts = slotsFull || (!online && anyActive) || rejections.length > 0 || createState.status === 'error';
 
   const details = (
     <>
@@ -563,12 +564,11 @@ export function Uploader({
     );
   }
 
-
-
+  // `data-uploader-open`: the landing page lets the card next to this one step aside while files are listed
   return (
-    <Card variant="bookplate" className={cn('p-2.5 sm:p-3', className)}>
+    <Card variant="bookplate" data-uploader-open={hasFilesListed ? '' : undefined} className={cn('flex flex-col p-2.5 sm:p-3', className)}>
       {zone}
-      <div className="flex flex-col gap-3 px-2 pt-3 sm:px-3">{alerts}</div>
+      {hasAlerts ? <div className="flex flex-col gap-3 px-2 pt-3 sm:px-3">{alerts}</div> : null}
 
       <AnimatePresence initial={false}>
         {hasFilesListed ? (

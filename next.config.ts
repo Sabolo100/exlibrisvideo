@@ -39,6 +39,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_BUILD_ID: process.env.BUILD_ID || contentHash(),
   },
+  // public/promo: the promo video and its poster carry their version in the file name → cache them for good
+  async headers() {
+    return [{ source: '/promo/:file*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] }];
+  },
   images: {
     // Covers come from Open Library / Google Books; spine crops are served by /api/media.
     remotePatterns: [

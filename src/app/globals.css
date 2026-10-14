@@ -209,3 +209,145 @@ html.app-mode textarea,
 html.app-mode select {
   font-size: max(16px, 1em);
 }
+
+/* ── Landing wordmark ────────────────────────────────────────────────────────
+   The brand name written out once more, large, at the top of the landing page (HeroWordmark): the bookplate
+   mark is stamped in, "Ex Libris" rises letter by letter out of a blur, "Video" is written in gold with a
+   glint that runs across it every now and then, the rules grow out from "by DarwinAI". Pure CSS, runs on first paint.
+   All keyframes use fill-mode `backwards`: once finished (or with animations off) the plain styles apply. */
+.wm-stamp {
+  animation: wm-stamp 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms backwards;
+}
+@keyframes wm-stamp {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.82) rotate(-5deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.04) rotate(1deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wm-halo {
+  animation: wm-halo 2400ms ease-out backwards;
+}
+@keyframes wm-halo {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.wm-letter {
+  display: inline-block;
+  animation: wm-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(300ms + var(--i, 0) * 60ms) backwards;
+}
+@keyframes wm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em) scale(0.94);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+.wm-gilt {
+  display: inline-block;
+  /* room for the italic overhang of the V and the o while the text is clipped to the background */
+  padding: 0.04em 0.14em 0.1em 0.02em;
+  margin: 0 -0.14em 0 -0.06em;
+  background-image: linear-gradient(
+    100deg,
+    var(--accent) 0%,
+    var(--accent) 40%,
+    color-mix(in oklab, var(--accent) 28%, #fff) 50%,
+    var(--accent) 60%,
+    var(--accent) 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation:
+    wm-wipe 1100ms cubic-bezier(0.3, 0.1, 0.1, 1) 800ms backwards,
+    wm-glint 12s ease-in-out 2200ms infinite;
+}
+@keyframes wm-wipe {
+  from {
+    clip-path: inset(-0.2em 100% -0.2em -0.1em);
+    opacity: 0.3;
+  }
+  to {
+    clip-path: inset(-0.2em -0.4em -0.2em -0.1em);
+    opacity: 1;
+  }
+}
+@keyframes wm-glint {
+  0% {
+    background-position: 100% 0;
+  }
+  20%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+.wm-by {
+  animation: wm-fade 900ms ease 1700ms backwards;
+}
+@keyframes wm-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.wm-rule {
+  transform-origin: right center;
+  animation: wm-rule 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) 1500ms backwards;
+}
+.wm-rule-r {
+  transform-origin: left center;
+}
+@keyframes wm-rule {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wm-stamp,
+  .wm-halo,
+  .wm-letter,
+  .wm-gilt,
+  .wm-by,
+  .wm-rule {
+    animation: none;
+  }
+}
+/* Windows high-contrast mode drops backgrounds: the gilt text must be ordinary text there */
+@media (forced-colors: active) {
+  .wm-gilt {
+    background: none;
+    color: CanvasText;
+    -webkit-text-fill-color: currentColor;
+  }
+}

@@ -57,9 +57,12 @@ export function Logo({ markOnly = false, size = 'md', href = '/', label = 'Ex Li
     >
       <LogoMark className={cn('transition-transform duration-300 group-hover:-rotate-3', size === 'sm' ? 'h-7 w-auto' : 'h-9 w-auto')} />
       {!markOnly ? (
-        <span className={cn('font-display leading-none tracking-[-0.01em] whitespace-nowrap', size === 'sm' ? 'text-base' : 'text-[1.3125rem]')}>
-          <span className="font-semibold">Ex Libris</span>{' '}
-          <span className="font-normal text-accent italic">Video</span>
+        <span className="flex flex-col gap-[3px]">
+          <span className={cn('font-display leading-none tracking-[-0.01em] whitespace-nowrap', size === 'sm' ? 'text-base' : 'text-[1.3125rem]')}>
+            <span className="font-semibold">Ex Libris</span>{' '}
+            <span className="font-normal text-accent italic">Video</span>
+          </span>
+          <span className="text-[0.625rem] leading-none tracking-[0.12em] whitespace-nowrap text-muted">by DarwinAI</span>
         </span>
       ) : null}
     </Link>

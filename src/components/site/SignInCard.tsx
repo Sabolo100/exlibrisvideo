@@ -14,6 +14,8 @@ import { SignInButton } from './SignInButton';
 /**
  * The recommended start: sign in with Google, the library stays with the account. The link-only uploader
  * below it is plan B. Renders nothing when the sign-in is not configured or the user is signed in.
+ * On the website the text is centred (and the "recommended" tag sits on the middle of the top edge); the
+ * phone app's variant stays left-aligned.
  */
 export function SignInCard({ variant = 'hero', className }: { variant?: 'hero' | 'app'; className?: string }) {
   const { t } = useI18n();
@@ -25,11 +27,16 @@ export function SignInCard({ variant = 'hero', className }: { variant?: 'hero' |
       aria-labelledby="signin-card-title"
       className={cn(
         'relative rounded-2xl border border-accent/40 bg-surface p-4 shadow-[0_6px_20px_-14px_hsl(var(--shadow-color)/0.55)]',
-        app ? 'app-chrome' : 'sm:p-6',
+        app ? 'app-chrome' : 'text-center sm:p-6',
         className,
       )}
     >
-      <span className="absolute -top-2.5 left-4 rounded-full bg-accent px-2 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-[#2a1c08] uppercase">
+      <span
+        className={cn(
+          'absolute -top-2.5 rounded-full bg-accent px-2 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-[#2a1c08] uppercase',
+          app ? 'left-4' : 'left-1/2 -translate-x-1/2',
+        )}
+      >
         {t('account.signIn.recommended')}
       </span>
       <h2 id="signin-card-title" className={cn('font-display font-semibold text-ink', app ? 'text-[1.0625rem]' : 'text-lg')}>
