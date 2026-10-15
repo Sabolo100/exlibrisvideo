@@ -4,15 +4,23 @@
  * View 2 – the cover wall: a responsive grid of 2:3 covers (real or generated) that flip to a
  * catalogue card. Sorted by author or title it gets initial-letter headers and a letter jump bar.
  * Rendered in chunks: far-away chunks are colour placeholders until they approach the viewport.
+ * A new order or filter re-shelves the covers one by one (reshelve.ts); in the phone app the order
+ * (shelf / author / title) is chosen in the bottom submenu.
  */
 import { memo, useCallback, useMemo } from 'react';
+import { AppSubmenu, SubmenuChip, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { useCollection } from '@/components/collection/context';
+import type { SortKey } from '@/components/collection/context';
 import { useUiTranslator } from '@/components/ui/hooks';
 import type { BookDTO, Locale } from '@/lib/types';
 import { VisualEmptyState } from './visual/common';
 import { CoverCard, CoverGhost } from './visual/CoverCard';
 import { chunk, coverGridMetrics, initialGroups, type InitialGroup } from './visual/covers-layout';
 import { scrollBehavior, useElementWidth, useLatest, useNearViewport, useViewportHeight } from './visual/hooks';
+import { reshelveStyle, useReshelve } from './visual/reshelve';
+
+/** orders offered in the phone app's submenu */
+const APP_SORTS: readonly SortKey[] = ['shelf', 'author', 'title'];
 
 /** Up to this many books all cards mount immediately. */
 const EAGER_LIMIT = 240;
@@ -22,8 +30,11 @@ const ROWS_PER_CHUNK = 2;
 const CAPTION_HEIGHT = 62;
 
 export function CoversView() {
-  const { visibleBooks, sort, locale, openBookId, openBook } = useCollection();
+  const { visibleBooks: liveBooks, sort, setSort, filters, locale, openBookId, openBook } = useCollection();
   const { t, tp } = useUiTranslator();
+  const inApp = useAppSubmenu();
+  const signature = useMemo(() => JSON.stringify([filters, sort]), [filters, sort]);
+  const { shown: visibleBooks, className: reshelveClass } = useReshelve(liveBooks, signature);
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const viewportHeight = useViewportHeight();
 
@@ -42,13 +53,33 @@ export function CoversView() {
   const openRef = useLatest(openBook);
   const onOpen = useCallback((id: string) => openRef.current(id), [openRef]);
 
-  if (visibleBooks.length === 0) return <VisualEmptyState />;
+  const submenu = inApp ? (
+    <AppSubmenu>
+      <SubmenuGroup label={t('collection.sort.label')}>
+        {APP_SORTS.map((key) => (
+          <SubmenuChip key={key} active={sort === key} onClick={() => setSort(key)}>
+            {t(`collection.sort.${key}`)}
+          </SubmenuChip>
+        ))}
+      </SubmenuGroup>
+    </AppSubmenu>
+  ) : null;
+
+  if (visibleBooks.length === 0)
+    return (
+      <>
+        {submenu}
+        <VisualEmptyState />
+      </>
+    );
 
   let chunkIndex = 0;
+  let bookIndex = 0;
   return (
     <section aria-label={t('visual.covers.label')} className="exl-covers-view">
+      {submenu}
       {lettered && groups.length >= 3 ? <LetterBar groups={groups} /> : null}
-      <div ref={ref} className="flex flex-col">
+      <div ref={ref} className={`flex flex-col ${reshelveClass}`}>
         {width === null ? (
           <CoversSkeleton />
         ) : (
@@ -58,6 +89,8 @@ export function CoversView() {
               <div role="list" aria-label={lettered ? groupTitle(group.key, t) : t('visual.covers.label')} className="flex flex-col" style={{ gap: metrics.gap }}>
                 {chunks.map((books, i) => {
                   const index = chunkIndex++;
+                  const first = bookIndex;
+                  bookIndex += books.length;
                   return (
                     <CoverChunk
                       key={`${group.key}:${i}:${metrics.columns}`}
@@ -71,6 +104,7 @@ export function CoversView() {
                       live={eager}
                       initiallyNear={index < eagerChunks}
                       priority={index === 0}
+                      first={first}
                     />
                   );
                 })}
@@ -154,9 +188,11 @@ interface CoverChunkProps {
   live: boolean;
   initiallyNear: boolean;
   priority: boolean;
+  /** place of the chunk's first book in reading order (re-shelving animation) */
+  first: number;
 }
 
-const CoverChunk = memo(function CoverChunk({ books, columns, cardWidth, gap, locale, activeId, onOpen, live, initiallyNear, priority }: CoverChunkProps) {
+const CoverChunk = memo(function CoverChunk({ books, columns, cardWidth, gap, locale, activeId, onOpen, live, initiallyNear, priority, first }: CoverChunkProps) {
   const [ref, near] = useNearViewport<HTMLDivElement>({ rootMargin: '120% 0px', initial: live || initiallyNear });
   const mounted = live || near;
 
@@ -188,20 +224,15 @@ const CoverChunk = memo(function CoverChunk({ books, columns, cardWidth, gap, lo
       className="grid"
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, columnGap: gap, rowGap: gap }}
     >
-      {books.map((book, i) =>
-        mounted ? (
-          <CoverCard
-            key={book.id}
-            book={book}
-            locale={locale}
-            onOpen={onOpen}
-            active={activeId === book.id}
-            priority={priority && i < columns * 2}
-          />
-        ) : (
-          <CoverGhost key={book.id} book={book} />
-        ),
-      )}
+      {books.map((book, i) => (
+        <div key={book.id} className="exl-rs flex min-w-0 flex-col" style={reshelveStyle(first + i)}>
+          {mounted ? (
+            <CoverCard book={book} locale={locale} onOpen={onOpen} active={activeId === book.id} priority={priority && i < columns * 2} />
+          ) : (
+            <CoverGhost book={book} />
+          )}
+        </div>
+      ))}
     </div>
   );
 });

@@ -3,15 +3,19 @@
 /**
  * One bookcase of the shelf view: the UI kit's walnut <Shelf> (top board, brass label plate,
  * planks) filled with pre-packed plank rows. Rows far from the viewport render cheap colour
- * blocks instead of interactive spines, so 2000+ books stay smooth.
+ * blocks instead of interactive spines, so 2000+ books stay smooth. <StackCase> is the same
+ * bookcase with the books lying in piles. Every book carries its re-shelving place (reshelve.ts).
  */
-import { memo, type ReactNode } from 'react';
+import { memo, type CSSProperties, type ReactNode } from 'react';
 import { BookSpine, Shelf } from '@/components/books';
-import { shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
+import { SHELF_GEOMETRY, SPINE_SIZES, shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { spineColor } from '@/lib/book-utils';
 import type { BookDTO } from '@/lib/types';
 import { Bookend } from './Bookend';
+import { FlatSpine } from './FlatSpine';
 import { useNearViewport } from './hooks';
+import { reshelveStyle } from './reshelve';
+import type { BookStack, StackGroupLayout } from './stack-layout';
 import { plankContentHeight, sameShelfRow, type ShelfGroupLayout, type ShelfRow } from './shelf-layout';
 
 export interface ShelfCaseProps {
@@ -32,6 +36,8 @@ export interface ShelfCaseProps {
   keepMountedRow: string | null;
   /** rows with index below this start mounted (first paint without placeholders) */
   initialRows: number;
+  /** row key → place of its first book in reading order (re-shelving animation) */
+  rowOffsets: ReadonlyMap<string, number>;
 }
 
 export const ShelfCase = memo(function ShelfCase({
@@ -48,6 +54,7 @@ export const ShelfCase = memo(function ShelfCase({
   eager,
   keepMountedRow,
   initialRows,
+  rowOffsets,
 }: ShelfCaseProps) {
   const rowHeight = shelfRowHeight(size);
   return (
@@ -71,6 +78,7 @@ export const ShelfCase = memo(function ShelfCase({
               eager={eager}
               keepMounted={keepMountedRow === row.key}
               initiallyNear={row.index < initialRows}
+              offset={rowOffsets.get(row.key) ?? 0}
             />
           ))}
         </Shelf>
@@ -90,6 +98,7 @@ interface PlankRowProps {
   eager: boolean;
   keepMounted: boolean;
   initiallyNear: boolean;
+  offset: number;
 }
 
 /** Re-render a plank only when what it draws (or its state) changed – not on every relayout. */
@@ -104,11 +113,12 @@ function samePlankProps(a: PlankRowProps, b: PlankRowProps): boolean {
     a.eager === b.eager &&
     a.keepMounted === b.keepMounted &&
     a.initiallyNear === b.initiallyNear &&
+    a.offset === b.offset &&
     sameShelfRow(a.row, b.row)
   );
 }
 
-const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId, onOpen, eager, keepMounted, initiallyNear }: PlankRowProps) {
+const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId, onOpen, eager, keepMounted, initiallyNear, offset }: PlankRowProps) {
   const [ref, near] = useNearViewport<HTMLDivElement>({ rootMargin: '140% 0px', initial: eager || initiallyNear });
   const live = eager || near || keepMounted;
   return (
@@ -119,14 +129,15 @@ const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId
       style={{ width: plank, height: plankContentHeight(size), columnGap: gap }}
     >
       {row.startBookend ? <Bookend side="start" size={size} /> : null}
-      {row.spines.map((s) => {
+      {row.spines.map((s, i) => {
         if (!live) {
           return (
             <span
               key={s.book.id}
               aria-hidden="true"
-              className="block shrink-0 rounded-t-[3px] rounded-b-[2px]"
+              className="exl-rs block shrink-0 rounded-t-[3px] rounded-b-[2px]"
               style={{
+                '--rs-i': offset + i,
                 width: s.width,
                 height: s.height,
                 marginLeft: s.lean ? s.lean.margin : undefined,
@@ -134,7 +145,7 @@ const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId
                 transformOrigin: '0 100%',
                 backgroundColor: spineColor(s.book),
                 boxShadow: 'inset 3px 0 4px rgb(0 0 0 / 0.25), inset -3px 0 4px rgb(0 0 0 / 0.3)',
-              }}
+              } as CSSProperties}
             />
           );
         }
@@ -146,6 +157,8 @@ const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId
             photo={photo}
             pulled={pulledId === s.book.id}
             onClick={onOpen}
+            className="exl-rs"
+            style={reshelveStyle(offset + i)}
           />
         );
         if (!s.lean) return spine;
@@ -160,6 +173,7 @@ const PlankRow = memo(function PlankRow({ row, size, plank, gap, photo, pulledId
         );
       })}
       {row.endBookend ? <Bookend side="end" size={size} /> : null}
+      <span aria-hidden="true" className="exl-dust" style={{ '--rs-plank': '0px' } as CSSProperties} />
     </div>
   );
 }, samePlankProps);
@@ -196,3 +210,89 @@ function LampLight({ rowHeight }: { rowHeight: number }) {
     </>
   );
 }
+
+export interface StackCaseProps {
+  group: StackGroupLayout;
+  size: SpineSize;
+  stackWidth: number;
+  scale: number;
+  label?: ReactNode;
+  count?: number;
+  ariaLabel: string;
+  photo: boolean;
+  openBookId: string | null;
+  onOpen: (book: BookDTO) => void;
+  eager: boolean;
+  /** piles with index below this start mounted */
+  initialStacks: number;
+}
+
+/**
+ * One bookcase of the lying arrangement: the walnut <Shelf> with piles of books lying on their sides. The planks
+ * are only as high as the case's tallest pile needs (a few short piles do not stand in tall empty bays).
+ */
+export const StackCase = memo(function StackCase({ group, size, stackWidth, scale, label, count, ariaLabel, photo, openBookId, onOpen, eager, initialStacks }: StackCaseProps) {
+  const tallest = group.stacks.reduce((max, s) => Math.max(max, s.height), 0);
+  const contentHeight = Math.min(SPINE_SIZES[size].height, tallest + 4);
+  const rowHeight = contentHeight + SHELF_GEOMETRY[size].headroom + SHELF_GEOMETRY[size].plank;
+  return (
+    <div className="-mx-2 overflow-x-clip px-2">
+      <div className="exl-shelf-case relative">
+        <LampLight rowHeight={rowHeight} />
+        <Shelf size={size} label={label} count={count} aria-label={ariaLabel} photo={photo} contentHeight={contentHeight}>
+          {group.stacks.map((stack, i) => (
+            <Pile
+              key={stack.key}
+              stack={stack}
+              width={stackWidth}
+              scale={scale}
+              pulledId={openBookId && stack.books.some((b) => b.book.id === openBookId) ? openBookId : null}
+              onOpen={onOpen}
+              eager={eager}
+              initiallyNear={i < initialStacks}
+            />
+          ))}
+        </Shelf>
+      </div>
+    </div>
+  );
+});
+
+const Pile = memo(function Pile({
+  stack,
+  width,
+  scale,
+  pulledId,
+  onOpen,
+  eager,
+  initiallyNear,
+}: {
+  stack: BookStack;
+  width: number;
+  scale: number;
+  pulledId: string | null;
+  onOpen: (book: BookDTO) => void;
+  eager: boolean;
+  initiallyNear: boolean;
+}) {
+  const [ref, near] = useNearViewport<HTMLDivElement>({ rootMargin: '140% 0px', initial: eager || initiallyNear });
+  const live = eager || near;
+  return (
+    <div ref={ref} className="relative flex flex-col-reverse items-center" style={{ width }}>
+      {stack.books.map((b) => (
+        <FlatSpine
+          key={b.book.id}
+          book={b.book}
+          scale={scale}
+          shift={b.shift}
+          pulled={pulledId === b.book.id}
+          onOpen={onOpen}
+          placeholder={!live}
+          className="exl-rs"
+          style={reshelveStyle(b.index)}
+        />
+      ))}
+      <span aria-hidden="true" className="exl-dust" style={{ '--rs-plank': '0px' } as CSSProperties} />
+    </div>
+  );
+});

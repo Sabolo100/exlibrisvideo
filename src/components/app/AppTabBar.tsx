@@ -5,8 +5,9 @@
  * action (the record button) sits between them like a native FAB tab.
  */
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/components/ui';
+import { AppSubmenuSlot, useAppSubmenuActive } from './AppSubmenu';
 
 export interface AppTab {
   key: string;
@@ -90,6 +91,111 @@ export function AppFab({ label, icon, onClick }: { label: string; icon: ReactNod
       aria-label={label}
       onClick={onClick}
       className="-mt-5 flex size-[60px] items-center justify-center rounded-full bg-primary text-primary-ink shadow-[0_8px_24px_-6px_hsl(var(--shadow-color)/0.55)] ring-4 ring-bg transition-transform duration-150 active:scale-95 [&_svg]:size-7"
+    >
+      {icon}
+    </button>
+  );
+}
+
+/**
+ * The catalogue's bottom menu: every view in one strip the thumb can swipe sideways, sliding behind the fixed
+ * + button in the middle (owners); the active view's submenu (<AppSubmenu>) sits glued on top of it.
+ * At rest two tabs stand on each side of the + button (the strip starts with a gap exactly under it);
+ * the active tab is scrolled out from under the button when it changes.
+ */
+export function AppViewBar({
+  tabs,
+  fab,
+  label,
+  submenuLabel,
+}: {
+  tabs: readonly AppTab[];
+  /** the + button (fixed in the middle; the strip passes behind it) */
+  fab?: ReactNode;
+  label: string;
+  submenuLabel: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const activeKey = tabs.find((tab) => tab.active)?.key ?? null;
+  const submenu = useAppSubmenuActive();
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const el = scroller?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!scroller || !el) return;
+    const box = scroller.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const mid = box.left + box.width / 2;
+    const half = fab ? FAB_ZONE / 2 : 0;
+    let delta = 0;
+    if (r.left < box.left) delta = r.left - box.left - 8;
+    else if (r.right > box.right) delta = r.right - box.right + 8;
+    else if (fab && r.right > mid - half && r.left < mid + half) delta = (r.left + r.right) / 2 < mid ? r.right - (mid - half) : r.left - (mid + half);
+    if (delta !== 0) scroller.scrollBy({ left: delta, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  }, [activeKey, fab]);
+
+  // two tabs on each side of the + button at rest; without it five tabs share the width
+  const itemStyle = fab ? { flex: `0 0 calc((50% - ${FAB_ZONE / 2}px) / 2)` } : { flex: `0 0 ${tabs.length <= 5 ? 100 / Math.max(1, tabs.length) : 20}%` };
+  const renderTab = (tab: AppTab) => (
+    <button
+      key={tab.key}
+      type="button"
+      onClick={tab.onClick}
+      aria-current={tab.active ? 'page' : undefined}
+      className="flex min-w-0 flex-col items-center justify-center pt-1.5 pb-1 active:opacity-70"
+      style={itemStyle}
+    >
+      <TabInner tab={tab} />
+    </button>
+  );
+
+  return (
+    <nav aria-label={label} className="app-chrome app-glass relative z-30 shrink-0 border-t border-line/70 pb-safe">
+      <AppSubmenuSlot label={submenuLabel} className="border-b border-black/10" />
+      <div className="relative h-16 pr-safe pl-safe">
+        {tabs.length > 0 ? (
+          <div ref={scrollerRef} className={cn('app-scroll flex h-full overflow-x-auto overscroll-x-contain', fab && 'app-view-strip')}>
+            {fab ? (
+              <>
+                {tabs.slice(0, 2).map(renderTab)}
+                <span aria-hidden="true" className="shrink-0" style={{ flex: `0 0 ${FAB_ZONE}px` }} />
+                {tabs.slice(2).map(renderTab)}
+              </>
+            ) : (
+              tabs.map(renderTab)
+            )}
+          </div>
+        ) : null}
+        {fab ? (
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center transition-transform duration-200',
+              !submenu && tabs.length > 0 && '-translate-y-3.5',
+            )}
+          >
+            <div className="pointer-events-auto">{fab}</div>
+          </div>
+        ) : null}
+      </div>
+    </nav>
+  );
+}
+
+/** width kept free for the + button in the middle of the strip (px) */
+const FAB_ZONE = 76;
+
+function prefersReducedMotion(): boolean {
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** The + button of the catalogue's bottom menu (sits inside the bar; raised a little when no submenu is shown). */
+export function AppViewFab({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="flex size-[58px] items-center justify-center rounded-full bg-primary text-primary-ink shadow-[0_8px_24px_-6px_hsl(var(--shadow-color)/0.55)] ring-4 ring-bg transition-transform duration-150 active:scale-95 [&_svg]:size-7"
     >
       {icon}
     </button>

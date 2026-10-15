@@ -5,8 +5,11 @@
  * topic, author initial or reading status, each group its own case with a brass label plate),
  * packed plank by plank from the measured width. Real spine photos, compact / comfortable size,
  * hover pull-out, arrow-key navigation, lamp light in dark mode, bookends and a leaning last book.
+ * The "lying" arrangement puts the books on their sides in piles, two per plank on a phone, with the
+ * titles readable left to right. A filter, order or setting change re-shelves the books with an
+ * animation (reshelve.ts). In the phone app the options live in the bottom submenu (AppSubmenu).
  */
-import { Rows3, Rows4 } from 'lucide-react';
+import { RectangleHorizontal, RectangleVertical, Rows3, Rows4 } from 'lucide-react';
 import {
   useCallback,
   useDeferredValue,
@@ -18,6 +21,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
+import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { READING_STATUS_META } from '@/components/books';
 import { shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { useCollection } from '@/components/collection/context';
@@ -35,7 +39,8 @@ import {
   useStoredState,
   useViewportHeight,
 } from './visual/hooks';
-import { ShelfCase } from './visual/ShelfCase';
+import { useReshelve } from './visual/reshelve';
+import { ShelfCase, StackCase } from './visual/ShelfCase';
 import {
   buildShelfLayout,
   DENSITY_SIZE,
@@ -47,7 +52,9 @@ import {
   type ShelfDensity,
   type ShelfGroupBy,
 } from './visual/shelf-layout';
-import { ShelfGhost, type GhostRow } from './visual/ShelfGhost';
+import { buildStackLayout } from './visual/stack-layout';
+import { ShelfGhosts, type GhostRow } from './visual/ShelfGhost';
+import { SHELF_DENSITY_DATASET, SHELF_DENSITY_KEY } from './visual/shelf-density';
 import { SpineHoverCard } from './visual/SpineHoverCard';
 
 /** Up to this many books every spine is interactive from the start (full a11y tree, no placeholders). */
@@ -65,17 +72,34 @@ const SKELETON_MAX_BOOKS = 200;
 /** target of the "skip past the bookcase" link (one shelf view per page) */
 const SHELF_END_ID = 'exl-shelf-end';
 
+/** standing spines, or books lying on their sides in piles */
+type ShelfArrangement = 'standing' | 'lying';
+const SHELF_ARRANGEMENTS: readonly ShelfArrangement[] = ['standing', 'lying'];
+
 const isGroupBy = isOneOf(SHELF_GROUP_BYS);
 const isDensity = isOneOf(SHELF_DENSITIES);
+const isArrangement = isOneOf(SHELF_ARRANGEMENTS);
 
 export function ShelfView() {
-  const { books, visibleBooks, locale, openBookId, openBook } = useCollection();
+  const { books, visibleBooks: liveBooks, locale, openBookId, openBook, filters, sort } = useCollection();
   const { t, tp } = useUiTranslator();
+  const inApp = useAppSubmenu();
 
   const [groupBy, setGroupBy] = useStoredState<ShelfGroupBy>('exl.visual.shelf.groupBy', 'none', isGroupBy);
-  const [density, setDensity] = useStoredState<ShelfDensity>('exl.visual.shelf.density', 'comfortable', isDensity);
+  const [density, setDensity] = useStoredState<ShelfDensity>(SHELF_DENSITY_KEY, 'comfortable', isDensity);
   const [photoPref, setPhoto] = useStoredState<boolean>('exl.visual.shelf.photo', false, isBoolean);
+  const [arrangement, setArrangement] = useStoredState<ShelfArrangement>('exl.visual.shelf.arrangement', 'standing', isArrangement);
   const size = DENSITY_SIZE[density];
+  const lying = arrangement === 'lying';
+
+  // anything that rearranges the books takes them off the shelf and puts them back one by one
+  const signature = useMemo(() => JSON.stringify([filters, sort, groupBy, density, arrangement]), [filters, sort, groupBy, density, arrangement]);
+  const { shown: visibleBooks, className: reshelveClass } = useReshelve(liveBooks, signature);
+
+  // the ghost bookcases (here, and in the loading skeleton of the next catalogue) follow the reader's density
+  useEffect(() => {
+    document.documentElement.dataset[SHELF_DENSITY_DATASET] = density;
+  }, [density]);
 
   const hasSpinePhotos = useMemo(() => books.some((b) => Boolean(b.spineImage)), [books]);
   const photo = photoPref && hasSpinePhotos;
@@ -94,9 +118,23 @@ export function ShelfView() {
   const layoutWidth = useDeferredValue(width);
   const groups = useMemo(() => groupShelfBooks(visibleBooks, groupBy, locale), [visibleBooks, groupBy, locale]);
   const layout = useMemo(
-    () => (layoutWidth === null ? null : buildShelfLayout(groups, layoutWidth, size)),
-    [groups, layoutWidth, size],
+    () => (layoutWidth === null || lying ? null : buildShelfLayout(groups, layoutWidth, size)),
+    [groups, layoutWidth, size, lying],
   );
+  const stacks = useMemo(
+    () => (layoutWidth === null || !lying ? null : buildStackLayout(groups, layoutWidth, size)),
+    [groups, layoutWidth, size, lying],
+  );
+  /** place of each plank's first book in reading order (re-shelving animation) */
+  const rowOffsets = useMemo(() => {
+    const offsets = new Map<string, number>();
+    let n = 0;
+    for (const row of layout?.rows ?? []) {
+      offsets.set(row.key, n);
+      n += row.spines.length;
+    }
+    return offsets;
+  }, [layout]);
   const booksById = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   const viewportHeight = useViewportHeight();
@@ -174,7 +212,43 @@ export function ShelfView() {
     groupBy === 'topic' ? topicLabel(key, locale) : groupBy === 'none' ? t('common.aria.bookshelf') : groupLabel(key);
 
   /* ---------------- render ---------------- */
-  const options = (
+  const options = inApp ? (
+    <AppSubmenu>
+      <SubmenuGroup label={t('visual.shelf.arrangement')}>
+        <SubmenuChip active={!lying} onClick={() => setArrangement('standing')} icon={<RectangleVertical aria-hidden="true" />}>
+          {t('visual.shelf.arrangement.standing')}
+        </SubmenuChip>
+        <SubmenuChip active={lying} onClick={() => setArrangement('lying')} icon={<RectangleHorizontal aria-hidden="true" />}>
+          {t('visual.shelf.arrangement.lying')}
+        </SubmenuChip>
+      </SubmenuGroup>
+      <SubmenuDivider />
+      <SubmenuGroup label={t('visual.shelf.groupBy')}>
+        {SHELF_GROUP_BYS.map((g) => (
+          <SubmenuChip key={g} active={groupBy === g} onClick={() => setGroupBy(g)}>
+            {t(`visual.shelf.groupShort.${g}`)}
+          </SubmenuChip>
+        ))}
+      </SubmenuGroup>
+      <SubmenuDivider />
+      <SubmenuGroup label={t('visual.shelf.size')}>
+        <SubmenuChip active={density === 'compact'} onClick={() => setDensity('compact')} icon={<Rows4 aria-hidden="true" />}>
+          {t('visual.shelf.size.compact')}
+        </SubmenuChip>
+        <SubmenuChip active={density === 'comfortable'} onClick={() => setDensity('comfortable')} icon={<Rows3 aria-hidden="true" />}>
+          {t('visual.shelf.size.comfortable')}
+        </SubmenuChip>
+      </SubmenuGroup>
+      {hasSpinePhotos ? (
+        <>
+          <SubmenuDivider />
+          <SubmenuChip active={photo} onClick={() => setPhoto(!photo)}>
+            {t('visual.shelf.realSpines')}
+          </SubmenuChip>
+        </>
+      ) : null}
+    </AppSubmenu>
+  ) : (
     <ViewOptionsBar
       aside={
         visibleBooks.length > 0 ? (
@@ -192,6 +266,16 @@ export function ShelfView() {
           wrapperClassName="min-w-[10.5rem]"
         />
       </label>
+      <SegmentedControl<ShelfArrangement>
+        aria-label={t('visual.shelf.arrangement')}
+        size="sm"
+        value={arrangement}
+        onChange={setArrangement}
+        options={[
+          { value: 'standing', label: t('visual.shelf.arrangement.standing'), icon: <RectangleVertical aria-hidden="true" /> },
+          { value: 'lying', label: t('visual.shelf.arrangement.lying'), icon: <RectangleHorizontal aria-hidden="true" /> },
+        ]}
+      />
       <SegmentedControl<ShelfDensity>
         aria-label={t('visual.shelf.size')}
         size="sm"
@@ -241,9 +325,30 @@ export function ShelfView() {
       >
         {t('visual.shelf.skip')}
       </a>
-      <div ref={setContainer} className="relative flex flex-col gap-10 pt-2" onKeyDown={onKeyDown} onFocus={onFocus}>
-        {layout === null ? (
-          <ShelfSkeleton books={visibleBooks} size={size} />
+      <div ref={setContainer} className={`relative flex flex-col gap-10 pt-2 ${reshelveClass}`} onKeyDown={onKeyDown} onFocus={onFocus}>
+        {stacks !== null ? (
+          stacks.groups.map((group) => (
+            <StackCase
+              key={`${groupBy}:${group.key}`}
+              group={group}
+              size={size}
+              stackWidth={stacks.stackWidth}
+              scale={stacks.scale}
+              label={groupBy === 'none' ? undefined : groupLabel(group.key)}
+              count={groupBy === 'none' ? undefined : group.books.length}
+              ariaLabel={t('visual.shelf.caseLabel', {
+                label: groupPlainLabel(group.key),
+                books: tp('visual.books', group.books.length),
+              })}
+              photo={photo}
+              openBookId={openBookId}
+              onOpen={onOpen}
+              eager={eager}
+              initialStacks={initialRows * stacks.perPlank}
+            />
+          ))
+        ) : layout === null ? (
+          <ShelfSkeleton books={visibleBooks} />
         ) : (
           layout.groups.map((group) => {
             const labelText = groupBy === 'none' ? undefined : groupLabel(group.key);
@@ -266,6 +371,7 @@ export function ShelfView() {
                 eager={eager}
                 keepMountedRow={keepMountedRow}
                 initialRows={initialRows}
+                rowOffsets={rowOffsets}
               />
             );
           })
@@ -277,19 +383,21 @@ export function ShelfView() {
   );
 }
 
-function ShelfSkeleton({ books, size }: { books: readonly BookDTO[]; size: SpineSize }) {
-  const rows = useMemo<GhostRow[]>(
-    () =>
-      buildShelfLayout([{ key: 'all', books: books.slice(0, SKELETON_MAX_BOOKS) }], SKELETON_WIDTH, size)
-        .rows.slice(0, SKELETON_MAX_ROWS)
-        .map((r) => ({
-          key: r.key,
-          startBookend: r.startBookend,
-          spines: r.spines.map((spine) => ({ key: spine.book.id, width: spine.width, height: spine.height })),
-        })),
-    [books, size],
-  );
-  return <ShelfGhost rows={rows} size={size} />;
+/** The planks of the ghost bookcase at one size: the real books laid out at the desktop content width. */
+function ghostRows(books: readonly BookDTO[], size: SpineSize): GhostRow[] {
+  return buildShelfLayout([{ key: 'all', books: books.slice(0, SKELETON_MAX_BOOKS) }], SKELETON_WIDTH, size)
+    .rows.slice(0, SKELETON_MAX_ROWS)
+    .map((r) => ({
+      key: r.key,
+      startBookend: r.startBookend,
+      spines: r.spines.map((spine) => ({ key: spine.book.id, width: spine.width, height: spine.height })),
+    }));
+}
+
+/** Until the width is measured: a ghost bookcase in each density, CSS shows the one the reader chose. */
+function ShelfSkeleton({ books }: { books: readonly BookDTO[] }) {
+  const bySize = useMemo(() => new Map(SHELF_DENSITIES.map((d) => [DENSITY_SIZE[d], ghostRows(books, DENSITY_SIZE[d])] as const)), [books]);
+  return <ShelfGhosts rowsFor={(size) => bySize.get(size) ?? []} />;
 }
 
 /** CSS.escape with a fallback for environments without it (ids are UUIDs, but stay safe). */

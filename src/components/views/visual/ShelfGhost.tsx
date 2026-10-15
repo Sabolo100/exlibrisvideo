@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { SHELF_GEOMETRY, shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
-import { bookendBox, SHELF_INNER_PADDING, SPINE_GAP } from './shelf-layout';
+import { bookendBox, DENSITY_SIZE, SHELF_DENSITIES, SHELF_INNER_PADDING, SPINE_GAP } from './shelf-layout';
 
 /** One plank of a {@link ShelfGhost}: ghost spines in a row, optionally after a ghost bookend. */
 export interface GhostRow {
@@ -47,5 +47,27 @@ export function ShelfGhost({ rows, size }: { rows: readonly GhostRow[]; size: Sp
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * The ghost bookcase in BOTH densities, one after the other: the reader's choice only exists in this browser's
+ * localStorage, so the server cannot know which size the real bookcase will have. The inline boot script copies a
+ * "compact" choice onto `<html data-shelf-density>` before the first paint and CSS (`.exl-ghost-*` in globals.css)
+ * shows the matching ghost – so its height is the real bookcase's height and nothing jumps when the real one arrives.
+ * `rowsFor` supplies the planks for a size.
+ */
+export function ShelfGhosts({ rowsFor }: { rowsFor: (size: SpineSize) => readonly GhostRow[] }) {
+  return (
+    <>
+      {SHELF_DENSITIES.map((density) => {
+        const size = DENSITY_SIZE[density];
+        return (
+          <div key={density} className={`exl-ghost-${density}`}>
+            <ShelfGhost rows={rowsFor(size)} size={size} />
+          </div>
+        );
+      })}
+    </>
   );
 }

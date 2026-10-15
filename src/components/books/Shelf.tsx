@@ -32,6 +32,10 @@ export interface ShelfProps {
   'aria-label'?: string;
   /** shown when there is nothing on the shelf */
   emptyLabel?: ReactNode;
+  /** one plank that scrolls sideways instead of wrapping onto more planks */
+  scroll?: boolean;
+  /** height of the book area of a plank (px; defaults to the size's spine height) – lower planks for low piles */
+  contentHeight?: number;
   className?: string;
   style?: CSSProperties;
 }
@@ -99,12 +103,14 @@ export function Shelf({
   bookends = false,
   'aria-label': ariaLabel,
   emptyLabel,
+  scroll = false,
+  contentHeight,
   className,
   style,
 }: ShelfProps) {
   const { t, n } = useUiTranslator();
   const g = SHELF_GEOMETRY[size];
-  const row = shelfRowHeight(size);
+  const row = contentHeight === undefined ? shelfRowHeight(size) : contentHeight + g.headroom + g.plank;
   const plank = g.plank;
   const hasLabel = label !== undefined && label !== null && label !== false;
   const plateH = size === 'xs' ? 16 : size === 'sm' ? 20 : 26;
@@ -202,7 +208,8 @@ export function Shelf({
         ) : null}
         {/* back panel */}
         <div
-          className="relative overflow-visible"
+          data-shelf-scroller={scroll || undefined}
+          className={scroll ? 'relative overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden' : 'relative overflow-visible'}
           style={{
             backgroundColor: 'color-mix(in oklab, var(--wood-dark), black 38%)',
             backgroundImage:
@@ -211,7 +218,7 @@ export function Shelf({
         >
           <div
             role={empty ? undefined : 'list'}
-            className="flex flex-wrap content-start items-end"
+            className={scroll ? 'flex w-max min-w-full flex-nowrap items-end' : 'flex flex-wrap content-start items-end'}
             style={{ ...background, columnGap: size === 'xs' ? 1 : 2, paddingInline: size === 'xs' ? 4 : 10, minHeight: row }}
           >
             {bookends && !empty ? (

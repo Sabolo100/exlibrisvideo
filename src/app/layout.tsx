@@ -4,6 +4,7 @@ import { I18nProvider } from '@/i18n/client';
 import { getRequestLocale } from '@/i18n/server';
 import { translate } from '@/i18n';
 import { getSessionUser } from '@/lib/auth/users';
+import { BOOT_SCRIPT } from '@/lib/boot-script';
 import { env, googleAuthEnabled } from '@/lib/env';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -37,16 +38,14 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Applies the saved theme before paint (localStorage "exl_theme": light | dark | system). */
-const themeScript = `(function(){try{var t=localStorage.getItem('exl_theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})();`;
-
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const [locale, uiMode, user] = await Promise.all([getRequestLocale(), getUiMode(), getSessionUser()]);
   const app = uiMode === 'app';
   return (
     <html lang={locale} data-theme="light" className={app ? 'app-mode' : undefined} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* applies the saved theme and shelf density before the first paint (see lib/boot-script.ts) */}
+        <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
       </head>
       <body className={app ? 'paper app-body' : 'paper flex min-h-dvh flex-col'}>
         <I18nProvider locale={locale}>

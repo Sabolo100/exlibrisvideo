@@ -1,37 +1,37 @@
 /**
  * Loading skeleton of `/<id>`: a ghost of the catalogue page, laid out like the real one – bookplate header,
  * the add block (only for a signed-in visitor, who is nearly always looking at their own library), the toolbar,
- * the view options and ONE plank of the bookcase. The skeleton cannot know how many books there are: a library
- * of a few dozen is one plank long, a bigger one simply grows downwards when it arrives – which is far less
- * jarring than a wall of planks that collapses to one. It fades in only after a short wait (`.exl-loading-fade`),
- * so a quick load never flashes it at all.
+ * the view options and ONE plank of the bookcase, as high as the reader's density makes the real one (see
+ * ShelfGhosts). The skeleton cannot know how many books there are: a library of a few dozen is one plank long, a
+ * bigger one simply grows downwards when it arrives – which is far less jarring than a wall of planks that
+ * collapses to one. It fades in only after a short wait (`.exl-loading-fade`), so a quick load never flashes it.
  * Server Component (the add block ghost is a tiny client island that reads the session from the layout);
  * widths/heights come from a fixed pseudo-random sequence so the skeleton is identical on every render.
  */
-import { SPINE_SIZES } from '@/components/books/spine-layout';
+import { SPINE_SIZES, type SpineSize } from '@/components/books/spine-layout';
 import { AddPanelGhost } from '@/components/collection/AddPanelGhost';
 import { Skeleton } from '@/components/ui';
-import { ShelfGhost, type GhostRow } from '@/components/views/visual/ShelfGhost';
-import { DENSITY_SIZE } from '@/components/views/visual/shelf-layout';
+import { ShelfGhosts, type GhostRow } from '@/components/views/visual/ShelfGhost';
 import { getServerT } from '@/i18n/server';
 
-/** the shelf view's default size – what the real bookcase will have unless the reader chose "compact" */
-const SIZE = DENSITY_SIZE.comfortable;
-/** spines on the ghost plank: about a third of a desktop plank, between "a few books" and "a full shelf" */
-const GHOST_SPINES = 12;
+/**
+ * Spines on the ghost plank per size: about a third of a desktop plank, between "a few books" and "a full shelf"
+ * (the compact spines are thinner, so there are more of them).
+ */
+const GHOST_SPINES: Partial<Record<SpineSize, number>> = { md: 12, sm: 18 };
 
 /** One plank of ghost spines (LCG, no Math.random: server and client markup never differ). */
-function ghostPlank(): GhostRow {
+function ghostPlank(size: SpineSize): GhostRow {
   let state = 7;
   const next = () => {
     state = (state * 1664525 + 1013904223) % 4294967296;
     return state / 4294967296;
   };
-  const base = SPINE_SIZES[SIZE];
+  const base = SPINE_SIZES[size];
   return {
     key: 'ghost:0',
     startBookend: true,
-    spines: Array.from({ length: GHOST_SPINES }, (_, i) => ({
+    spines: Array.from({ length: GHOST_SPINES[size] ?? 12 }, (_, i) => ({
       key: `spine-${i}`,
       width: Math.round(base.width * (0.74 + next() * 0.6)),
       height: Math.round(base.height * (0.78 + next() * 0.22)),
@@ -99,7 +99,7 @@ export default async function CollectionLoading() {
           <Skeleton className="ml-auto h-4 w-64 max-md:hidden" />
         </div>
         <div className="pt-2">
-          <ShelfGhost rows={[ghostPlank()]} size={SIZE} />
+          <ShelfGhosts rowsFor={(size) => [ghostPlank(size)]} />
         </div>
       </div>
     </div>

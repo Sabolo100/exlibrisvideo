@@ -3,20 +3,25 @@
 /**
  * View 6 – timeline of first-publication years. Desktop: a horizontal axis with century bands and
  * decade (or century) columns in which the books lie in small piles. Mobile: the same periods as a
- * vertical list with upright spines. Histogram strip, oldest / newest markers, zoom and an
- * "unknown year" tray. Columns are capped (+N expands, the label filters by that period).
+ * vertical list, the books lying in piles two by two with their titles readable (like books stacked
+ * on a shelf – little empty room). Histogram strip, oldest / newest markers, zoom (in the phone app's
+ * bottom submenu) and an "unknown year" tray. Columns are capped (+N expands, the label filters by
+ * that period).
  */
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { SpineSize } from '@/components/books/spine-layout';
 import { BookSpine } from '@/components/books';
+import { AppSubmenu, SubmenuChip, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { useCollection } from '@/components/collection/context';
 import { EmptyState, IconButton, SegmentedControl } from '@/components/ui';
 import { cn } from '@/components/ui/cn';
 import { useMediaQuery, useUiTranslator } from '@/components/ui/hooks';
 import type { BookDTO, Locale } from '@/lib/types';
 import { ViewOptionsBar, VisualEmptyState } from './visual/common';
-import { isOneOf, scrollBehavior, useLatest, useStoredState } from './visual/hooks';
+import { FlatSpine } from './visual/FlatSpine';
+import { isOneOf, scrollBehavior, useElementWidth, useLatest, useStoredState } from './visual/hooks';
+import { flatScale, pileUp } from './visual/stack-layout';
 import { SpineHoverCard } from './visual/SpineHoverCard';
 import {
   bandGapYears,
@@ -50,6 +55,7 @@ function decadesOf(column: Pick<TimelineColumn, 'start' | 'span'>): number[] {
 export function TimelineView() {
   const { collection, visibleBooks, locale, isOwner, openBook, openBookId, filters, setFilters } = useCollection();
   const { t, tp, n } = useUiTranslator();
+  const inApp = useAppSubmenu();
   const desktop = useMediaQuery('(min-width: 768px)');
   const [zoom, setZoom] = useStoredState<TimelineZoom>('exl.visual.timeline.zoom', 'decade', isZoom);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -121,7 +127,36 @@ export function TimelineView() {
     [desktop],
   );
 
-  const options = (
+  const summary =
+    model.oldest && model.newest && model.oldest.firstPublishedYear !== null && model.newest.firstPublishedYear !== null
+      ? t('visual.timeline.summary', {
+          books: tp('common.unit.book', model.dated),
+          from: yearLabel(model.oldest.firstPublishedYear, t),
+          to: yearLabel(model.newest.firstPublishedYear, t),
+        })
+      : null;
+
+  const options = inApp ? (
+    <>
+      <AppSubmenu>
+        <SubmenuGroup label={t('visual.timeline.zoom')}>
+          {(['century', 'decade'] as const).map((z) => (
+            <SubmenuChip
+              key={z}
+              active={zoom === z}
+              onClick={() => {
+                setZoom(z);
+                setExpanded(new Set());
+              }}
+            >
+              {t(`visual.timeline.zoom.${z}`)}
+            </SubmenuChip>
+          ))}
+        </SubmenuGroup>
+      </AppSubmenu>
+      {summary ? <p className="mb-3 text-sm text-muted">{summary}</p> : null}
+    </>
+  ) : (
     <ViewOptionsBar>
       <SegmentedControl<TimelineZoom>
         aria-label={t('visual.timeline.zoom')}
@@ -409,10 +444,19 @@ function AxisGap({ years, t }: { years: number; t: Translate }) {
 /* Mobile: vertical list                                               */
 /* ------------------------------------------------------------------ */
 
+/** gap between the two piles of a period (px) */
+const MOBILE_PILE_GAP = 12;
+/** the piles of a period are at most this tall (px) */
+const MOBILE_PILE_HEIGHT: Record<TimelineZoom, number> = { decade: 150, century: 190 };
+
 function MobileAxis({ model, zoom, locale, t, tp, n, openBookId, onOpen, expanded, onToggleExpanded, onFilter, activeDecades }: AxisProps) {
   const cfg = PILES[zoom];
+  const [widthRef, width] = useElementWidth<HTMLOListElement>();
+  // the period column sits right of the axis line (border 2 px + padding 20 px)
+  const pileWidth = width === null ? 0 : Math.max(60, Math.floor((width - 22 - MOBILE_PILE_GAP) / 2));
+  const scale = flatScale(pileWidth);
   return (
-    <ol className="relative flex flex-col gap-8">
+    <ol ref={widthRef} className="relative flex flex-col gap-8">
       {model.bands.map((band, b) => {
         const gap = b > 0 ? bandGapYears(model.bands[b - 1].century, band.century) : 0;
         const columns = band.columns.filter((c) => c.books.length > 0);
@@ -455,12 +499,29 @@ function MobileAxis({ model, zoom, locale, t, tp, n, openBookId, onOpen, expande
                       {hasOldest ? <PeriodFlag kind="oldest" /> : null}
                       {hasNewest ? <PeriodFlag kind="newest" /> : null}
                     </div>
-                    <div role="list" aria-label={t('visual.timeline.column', { label, books: tp('common.unit.book', column.books.length) })} className="flex flex-wrap items-end gap-x-0.5 gap-y-2">
-                      {shown.map((book) => (
-                        <div role="listitem" key={book.id} className="flex items-end">
-                          <BookSpine book={book} size={cfg.mobileSize} pulled={openBookId === book.id} onClick={onOpen} />
-                        </div>
-                      ))}
+                    <div
+                      role="list"
+                      aria-label={t('visual.timeline.column', { label, books: tp('common.unit.book', column.books.length) })}
+                      className="grid grid-cols-2 items-end gap-y-3"
+                      style={{ columnGap: MOBILE_PILE_GAP }}
+                    >
+                      {pileWidth > 0
+                        ? pileUp(shown, { key: column.key, width: pileWidth, scale, maxHeight: MOBILE_PILE_HEIGHT[zoom] }).map((pile) => (
+                            <div
+                              key={pile.key}
+                              className="flex flex-col-reverse items-center border-b-[5px] border-wood pb-px"
+                              style={{ boxShadow: '0 3px 4px -2px rgb(0 0 0 / 0.35)' }}
+                            >
+                              {pile.books.map((b) => (
+                                <div role="listitem" key={b.book.id}>
+                                  <FlatSpine book={b.book} scale={scale} shift={b.shift} pulled={openBookId === b.book.id} onOpen={onOpen} />
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        : null}
+                    </div>
+                    <div className="mt-2 flex">
                       {hidden > 0 || isExpanded ? (
                         <button
                           type="button"

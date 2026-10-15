@@ -8,7 +8,9 @@
  * - View / sort / filters / open book live in React state and are mirrored into the query string
  *   with the History API (Next.js syncs usePathname/useSearchParams with it) – no server round trip
  *   per keystroke. Back/forward (popstate) flows back into the state. Opening a book pushes a history
- *   entry so the phone back button closes the drawer.
+ *   entry so the phone back button closes the drawer, and so does leaving the shelf for another view
+ *   (marked `exlView` in history.state): back first returns to the shelf, and the shelf tab goes back to
+ *   that entry instead of piling up new ones.
  * - Mutations are optimistic and roll back with a toast on failure; owner only.
  */
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -37,6 +39,7 @@ import {
 } from './mutations';
 import { CollectionShellContext, SEARCH_INPUT_ID, type BulkResult, type CollectionShellValue } from './shell-context';
 import { buildSearch, filtersEqual, hrefWithSearch, parseUrlState, stateKey, type CollectionUrlState } from './url-state';
+import { isSheetPop } from '@/lib/client/back-stack';
 
 const SEARCH_DEBOUNCE_MS = 150;
 const MUTATION_CONCURRENCY = 4;
@@ -62,6 +65,20 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+}
+
+/** Our own markers on the current history entry (exlView, exlSheet) – never Next.js's internal fields. */
+function historyMarkers(): Record<string, unknown> | null {
+  const state: unknown = window.history.state;
+  if (!state || typeof state !== 'object') return null;
+  const marks = Object.entries(state).filter(([key]) => key.startsWith('exl'));
+  return marks.length > 0 ? Object.fromEntries(marks) : null;
+}
+
+/** The current entry was pushed when the reader left the shelf (the entry below it is the shelf). */
+function isViewEntry(): boolean {
+  const state: unknown = window.history.state;
+  return Boolean(state && typeof state === 'object' && (state as { exlView?: unknown }).exlView);
 }
 
 export function CollectionProvider({ initial, children }: CollectionProviderProps) {
@@ -134,21 +151,26 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
   const pendingRef = useRef<{ view: ViewKey; sort: SortKey; filters: BookFilters }>({ view: effectiveView, sort, filters });
   pendingRef.current = { view: effectiveView, sort, filters };
 
-  /** 'push' for the next URL write (opening the drawer), otherwise replace */
+  /** 'push' for the next URL write (opening the drawer, leaving the shelf), otherwise replace */
   const nextHistoryMode = useRef<'push' | 'replace'>('replace');
+  /** history.state of that pushed entry */
+  const nextPushData = useRef<Record<string, unknown> | null>(null);
+  /** sort + filters when the view entry was pushed: the shelf tab only goes back if they are unchanged */
+  const viewEntryBase = useRef<string | null>(null);
   /** the drawer entry was pushed by us: closing it goes back instead of replacing */
   const bookEntryPushed = useRef<{ baseKey: string } | null>(null);
   /** history.back() in flight: don't write the URL until popstate lands */
   const awaitingPop = useRef<number | null>(null);
 
-  const writeUrl = useCallback((state: CollectionUrlState, mode: 'push' | 'replace') => {
+  const writeUrl = useCallback((state: CollectionUrlState, mode: 'push' | 'replace', pushData: Record<string, unknown> | null = null) => {
     const current = new URLSearchParams(window.location.search);
     const search = buildSearch(current, state);
     if (search === current.toString()) return;
     const href = hrefWithSearch(window.location.pathname, search) + window.location.hash;
     try {
-      if (mode === 'push') window.history.pushState(null, '', href);
-      else window.history.replaceState(null, '', href);
+      if (mode === 'push') window.history.pushState(pushData, '', href);
+      // keep our markers (exlView, exlSheet) on the entry; Next.js adds its own fields to the object
+      else window.history.replaceState(historyMarkers(), '', href);
     } catch {
       /* Safari throttles history updates (>100 per 30 s) – the in-memory state is still correct */
     }
@@ -158,16 +180,23 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
   useEffect(() => {
     if (awaitingPop.current !== null) return;
     const mode = nextHistoryMode.current;
+    const data = nextPushData.current;
     nextHistoryMode.current = 'replace';
-    writeUrl(urlState, mode);
+    nextPushData.current = null;
+    writeUrl(urlState, mode, data);
   }, [urlState, writeUrl]);
 
   // URL -> state (back / forward)
   useEffect(() => {
-    const onPop = () => {
+    const onPop = (event: PopStateEvent) => {
       if (awaitingPop.current !== null) {
         window.clearTimeout(awaitingPop.current);
         awaitingPop.current = null;
+      }
+      if (isSheetPop(event)) {
+        // only a sheet closed: the page state stays, the entry below may hold an older URL
+        writeUrl(urlStateRef.current, 'replace');
+        return;
       }
       const parsed = parseUrlState(new URLSearchParams(window.location.search), { isOwner: isOwnerRef.current });
       setViewState(parsed.view);
@@ -182,13 +211,34 @@ export function CollectionProvider({ initial, children }: CollectionProviderProp
       window.removeEventListener('popstate', onPop);
       if (awaitingPop.current !== null) window.clearTimeout(awaitingPop.current);
     };
-  }, [setOpenBookId]);
+  }, [setOpenBookId, writeUrl]);
 
-  const setView = useCallback((next: ViewKey) => {
-    if (next === 'review' && !isOwnerRef.current) return;
-    pendingRef.current = { ...pendingRef.current, view: next };
-    setViewState(next);
-  }, []);
+  const setView = useCallback(
+    (next: ViewKey) => {
+      if (next === 'review' && !isOwnerRef.current) return;
+      const pending = pendingRef.current;
+      const base = stateKey({ view: 'shelf', sort: pending.sort, filters: pending.filters, book: null });
+      const quiet = openBookRef.current === null && awaitingPop.current === null;
+      if (quiet && pending.view === 'shelf' && next !== 'shelf') {
+        // leaving the shelf: a new history entry, so the back button returns to the shelf first
+        nextHistoryMode.current = 'push';
+        nextPushData.current = { exlView: true };
+        viewEntryBase.current = base;
+      } else if (quiet && next === 'shelf' && pending.view !== 'shelf' && isViewEntry() && viewEntryBase.current === base) {
+        // back to the shelf by its tab: return to the shelf's own entry instead of stacking another one
+        viewEntryBase.current = null;
+        awaitingPop.current = window.setTimeout(() => {
+          // popstate normally lands within a frame; if it never does, write the state instead
+          awaitingPop.current = null;
+          writeUrl(urlStateRef.current, 'replace');
+        }, 700);
+        window.history.back();
+      }
+      pendingRef.current = { ...pending, view: next };
+      setViewState(next);
+    },
+    [writeUrl],
+  );
 
   const setSort = useCallback((next: SortKey) => {
     pendingRef.current = { ...pendingRef.current, sort: next };

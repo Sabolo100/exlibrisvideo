@@ -4,6 +4,49 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.9.0 – 2026-10-15
+
+Phone app catalogue, after the owner's comments on the mobile view.
+
+### Added
+- **Lying books** – a second shelf arrangement ("Fektetve"): the books lie on their sides in piles, two piles per
+  plank on a phone, the spine turned so the title reads left to right. The planks are only as high as the tallest
+  pile. Also offered on the website (more piles per plank there).
+- **Re-shelving animation**: whenever a filter, the order or a shelf setting rearranges the books, they all leave
+  the shelf in a blink with a puff of dust, then land again one by one, left to right. The cover wall does the same.
+  Off with "reduce motion".
+- **View submenu** in the phone app: the options of the open view sit in a small bottle-green strip glued on top of
+  the bottom menu – shelf: arrangement, grouping, size, real spines; covers and table: order by shelf / author /
+  title (the table also its row density); authors: A–Z / most books; timeline: centuries / decades.
+
+### Changed
+- **Bottom menu** of a catalogue in the phone app: every view (shelf, covers, authors, table, topics, timeline,
+  statistics, frames, review) and "More" are in one strip you swipe sideways; it slides behind the big + button,
+  which stays in the middle. "More" keeps filters, adding, settings, export and e-mail; its sort block is gone (the
+  order is now chosen in the covers / table submenu).
+- **Back button**: from any other view the phone's back button now returns to the shelf first (it used to leave
+  the site for the page visited before Ex Libris), and it closes an open sheet (More, Filters, Add). The shelf tab
+  goes back to the shelf's own history entry instead of piling up new ones; the same works on the website.
+- **Authors** (phone app): no mini shelf any more – just the authors' names with every title listed, nothing to unfold.
+- **Topics** (phone app): the chosen topic's books stand on one shelf frozen at the top of the screen (swipe it
+  sideways); under it small topic chips, the most common ten first, the rest further down – instead of the large
+  percentage tiles. A new topic empties the shelf at once and fills it again from the left, book by book.
+- **Timeline** (phones): under the centuries the books lie in piles, two side by side, titles readable – far less
+  empty room than the upright spines.
+
+## 1.8.2 – 2026-10-14
+
+### Fixed
+- **The placeholder bookcase is as high as the real one – also with the compact density.** After v1.8.1 the ghost
+  bookcase (the loading skeleton of `/<id>` and the shelf view's own placeholder) was always drawn at the
+  "comfortable" size, but the reader's choice – "compact", kept only in this browser's localStorage – is applied
+  once the page is alive. A reader with the compact size therefore saw an empty bookcase 80 px too high that then
+  jumped lower while the books appeared. The inline boot script that already applies the saved theme before the first
+  paint (`lib/boot-script.ts`, now unit-tested) also copies a compact choice onto `<html data-shelf-density>`; both
+  ghosts are drawn in both densities and CSS shows the one that matches, so the ghost has exactly the height of the
+  real bookcase from the very first paint. Existing readers get it at once: no cookie, nothing to migrate. The shelf
+  view keeps the attribute in step when the reader switches the density, for the next catalogue's skeleton.
+
 ## 1.8.1 – 2026-10-14
 
 ### Fixed

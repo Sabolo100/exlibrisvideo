@@ -11,7 +11,8 @@ import {
   type KeyboardEvent,
   type UIEvent,
 } from 'react';
-import { useCollection } from '@/components/collection/context';
+import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
+import { useCollection, type SortKey } from '@/components/collection/context';
 import { TOOLBAR_ID } from '@/components/collection/Toolbar';
 import {
   Button,
@@ -80,6 +81,8 @@ const COLUMN_LABEL: Record<ColumnKey, MessageKey> = {
 };
 
 const RIGHT_ALIGNED: ReadonlySet<ColumnKey> = new Set(['shelf', 'year']);
+/** orders offered in the phone app's submenu (the column headers still sort by any column) */
+const APP_SORTS: readonly SortKey[] = ['shelf', 'author', 'title'];
 
 /** Dense, sortable, keyboard-navigable table of the (filtered) books with owner inline editing. */
 export function TableView() {
@@ -101,6 +104,7 @@ export function TableView() {
     resetFilters,
   } = useCollection();
   const { t, tp } = useI18n();
+  const inApp = useAppSubmenu();
 
   const [hidden, setHidden] = usePersistentState<ColumnKey[]>(HIDDEN_COLUMNS_KEY, [...DEFAULT_HIDDEN_COLUMNS], isHiddenColumnList);
   const [density, setDensity] = usePersistentState<Density>(DENSITY_KEY, 'comfortable', oneOf(DENSITIES));
@@ -423,8 +427,36 @@ export function TableView() {
     },
   ];
 
+  const submenu = inApp ? (
+    <AppSubmenu>
+      <SubmenuGroup label={t('collection.sort.label')}>
+        {APP_SORTS.map((key) => (
+          <SubmenuChip
+            key={key}
+            active={localSort === null && sort === key}
+            onClick={() => {
+              setLocalSort(null);
+              setSort(key);
+            }}
+          >
+            {t(`collection.sort.${key}`)}
+          </SubmenuChip>
+        ))}
+      </SubmenuGroup>
+      <SubmenuDivider />
+      <SubmenuGroup label={t('data.table.density.label')}>
+        {DENSITIES.map((v) => (
+          <SubmenuChip key={v} active={density === v} onClick={() => setDensity(v)}>
+            {t(`data.table.density.${v}`)}
+          </SubmenuChip>
+        ))}
+      </SubmenuGroup>
+    </AppSubmenu>
+  ) : null;
+
   const toolbar = (
     <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+      {submenu}
       <p className="text-sm text-muted" aria-live="polite">
         <span className="font-medium text-ink tabular-nums">{tp('common.unit.book', rows.length)}</span>
         {isOwner && selection.size > 0 ? (
@@ -435,13 +467,15 @@ export function TableView() {
         {t(isOwner ? 'data.table.hint.owner' : 'data.table.hint.viewer')}
       </p>
       <div className="ml-auto flex items-center gap-2">
-        <SegmentedControl<Density>
-          size="sm"
-          aria-label={t('data.table.density.label')}
-          value={density}
-          onChange={setDensity}
-          options={DENSITIES.map((v) => ({ value: v, label: t(`data.table.density.${v}`) }))}
-        />
+        {inApp ? null : (
+          <SegmentedControl<Density>
+            size="sm"
+            aria-label={t('data.table.density.label')}
+            value={density}
+            onChange={setDensity}
+            options={DENSITIES.map((v) => ({ value: v, label: t(`data.table.density.${v}`) }))}
+          />
+        )}
         <DropdownMenu
           aria-label={t('data.table.columns.menu')}
           trigger={

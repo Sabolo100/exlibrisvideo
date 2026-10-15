@@ -3,6 +3,7 @@
 import { ChevronDown, Filter, UserRound } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { AppSubmenu, SubmenuChip, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { BookSpine, CountryFlag } from '@/components/books';
 import { useCollection } from '@/components/collection/context';
 import { TOOLBAR_ID } from '@/components/collection/Toolbar';
@@ -26,10 +27,15 @@ const SORT_KEY = 'exl.data.authors.sort';
 /** mini spines shown on a card before "+N" */
 const MAX_SPINES = 14;
 
-/** A–Z author index with cards (flag, counts, languages, mini spines) and catalogue filtering. */
+/**
+ * A–Z author index with cards (flag, counts, languages, mini spines) and catalogue filtering. In the phone app the
+ * cards are plain name cards with every title listed (no spines, nothing to unfold) and the order sits in the
+ * bottom submenu.
+ */
 export function AuthorsView() {
   const { visibleBooks, books, locale, openBook, setFilters, setView, activeFilterCount, resetFilters } = useCollection();
   const { t, tp } = useI18n();
+  const inApp = useAppSubmenu();
   const reduced = usePrefersReducedMotion();
   const [sort, setSort] = usePersistentState<AuthorSort>(SORT_KEY, 'name', oneOf(AUTHOR_SORTS));
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -114,7 +120,7 @@ export function AuthorsView() {
     );
   }
 
-  const cardProps = { onToggle: toggle, onFilter: filterByAuthor, onOpen };
+  const cardProps = { onToggle: toggle, onFilter: filterByAuthor, onOpen, compact: inApp };
 
   return (
     <div className="relative" style={{ '--chrome-top': `${chromeTop}px` } as CSSProperties}>
@@ -124,14 +130,26 @@ export function AuthorsView() {
           {' · '}
           <span className="tabular-nums">{tp('common.unit.book', visibleBooks.length)}</span>
         </p>
-        <SegmentedControl<AuthorSort>
-          className="ml-auto"
-          size="sm"
-          aria-label={t('data.authors.sort.label')}
-          value={sort}
-          onChange={setSort}
-          options={AUTHOR_SORTS.map((s) => ({ value: s, label: t(`data.authors.sort.${s}`) }))}
-        />
+        {inApp ? (
+          <AppSubmenu>
+            <SubmenuGroup label={t('data.authors.sort.label')}>
+              {AUTHOR_SORTS.map((s) => (
+                <SubmenuChip key={s} active={sort === s} onClick={() => setSort(s)}>
+                  {t(`data.authors.sort.${s}`)}
+                </SubmenuChip>
+              ))}
+            </SubmenuGroup>
+          </AppSubmenu>
+        ) : (
+          <SegmentedControl<AuthorSort>
+            className="ml-auto"
+            size="sm"
+            aria-label={t('data.authors.sort.label')}
+            value={sort}
+            onChange={setSort}
+            options={AUTHOR_SORTS.map((s) => ({ value: s, label: t(`data.authors.sort.${s}`) }))}
+          />
+        )}
       </div>
 
       <div className={cn(sort === 'name' && sections.length > 0 && 'lg:grid lg:grid-cols-[2.5rem_minmax(0,1fr)] lg:items-start lg:gap-6')}>
@@ -140,7 +158,8 @@ export function AuthorsView() {
           aria-label={t('data.authors.rail.label')}
           className={cn(
             // phones: horizontal strip under the sticky chrome · desktop: vertical rail on the left
-            'sticky top-[var(--chrome-top)] z-20 -mx-4 mb-4 overflow-x-auto border-y border-line/70 bg-bg/90 px-4 py-1.5 backdrop-blur [scrollbar-width:none] sm:-mx-6 sm:px-6',
+            'sticky top-[var(--chrome-top)] z-20 mb-4 overflow-x-auto border-y border-line/70 bg-bg/90 py-1.5 backdrop-blur [scrollbar-width:none]',
+            inApp ? '-mx-3 px-3' : '-mx-4 px-4 sm:-mx-6 sm:px-6',
             'lg:top-[calc(var(--chrome-top)+1rem)] lg:mx-0 lg:mb-0 lg:max-h-[calc(100dvh-var(--chrome-top)-2rem)] lg:overflow-x-visible lg:overflow-y-auto lg:rounded-card lg:border lg:bg-surface/80 lg:px-1 lg:py-2',
           )}
         >
@@ -192,7 +211,7 @@ export function AuthorsView() {
                 </h3>
                 <span className="text-xs text-muted tabular-nums">{tp('common.unit.author', section.authors.length)}</span>
               </div>
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <ul className={cn('grid sm:grid-cols-2 xl:grid-cols-3', inApp ? 'gap-2' : 'gap-3')}>
                 {section.authors.map((a) => (
                   <li key={a.key}>
                     <AuthorCard author={a} isOpen={expanded.has(a.key)} {...cardProps} />
@@ -202,7 +221,7 @@ export function AuthorsView() {
             </section>
           ))
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className={cn('grid sm:grid-cols-2 xl:grid-cols-3', inApp ? 'gap-2' : 'gap-3')}>
             {byCount.map((a, i) => (
               <li key={a.key}>
                 <AuthorCard author={a} rank={i + 1} isOpen={expanded.has(a.key)} {...cardProps} />
@@ -212,7 +231,14 @@ export function AuthorsView() {
         )}
 
         {anonymous.length > 0 ? (
-          <AnonymousSection books={anonymous} expanded={expanded.has('__anonymous')} onToggle={() => toggle('__anonymous')} onOpen={onOpen} reduced={reduced} />
+          <AnonymousSection
+            books={anonymous}
+            expanded={inApp || expanded.has('__anonymous')}
+            onToggle={() => toggle('__anonymous')}
+            onOpen={onOpen}
+            reduced={reduced}
+            compact={inApp}
+          />
         ) : null}
       </div>
       </div>
@@ -227,15 +253,60 @@ interface AuthorCardProps {
   onToggle: (key: string) => void;
   onFilter: (name: string) => void;
   onOpen: (book: BookDTO) => void;
+  /** phone app: the name and every title, no spines and no unfolding */
+  compact?: boolean;
 }
 
-const AuthorCard = memo(function AuthorCard({ author, rank, isOpen, onToggle, onFilter, onOpen }: AuthorCardProps) {
+const AuthorCard = memo(function AuthorCard({ author, rank, isOpen, onToggle, onFilter, onOpen, compact }: AuthorCardProps) {
   const { t, tp, n, locale } = useI18n();
   const reduced = usePrefersReducedMotion();
   const listId = useId();
   const spines = author.books.slice(0, MAX_SPINES);
   const more = author.books.length - spines.length;
   const languages = author.languages.slice(0, 3).map((l) => languageName(l, locale));
+
+  if (compact) {
+    return (
+      <article className="rounded-card border border-line bg-surface px-3.5 pt-2.5 pb-1.5 shadow-soft">
+        <header className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <h4 className="font-display text-[1.0625rem] leading-snug font-semibold text-balance text-ink">
+              {rank ? <span className="mr-1.5 text-sm font-normal text-muted tabular-nums">{n(rank)}.</span> : null}
+              {author.name}
+            </h4>
+            {author.country || languages.length > 0 ? (
+              <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                {author.country ? <CountryFlag code={author.country} showName /> : null}
+                {author.country && languages.length > 0 ? <span aria-hidden="true">·</span> : null}
+                {languages.length > 0 ? <span>{languages.join(', ')}</span> : null}
+              </p>
+            ) : null}
+          </div>
+          <span className="mt-0.5 shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[0.6875rem] font-semibold whitespace-nowrap text-[#7a561b] tabular-nums dark:text-accent">
+            {tp('common.unit.book', author.count)}
+          </span>
+          <button
+            type="button"
+            onClick={() => onFilter(author.name)}
+            aria-label={t('data.authors.filterAria', { name: author.name })}
+            className="-mt-0.5 -mr-1.5 flex size-8 shrink-0 items-center justify-center rounded-full text-muted active:bg-surface-2 [&_svg]:size-4"
+          >
+            <Filter aria-hidden="true" />
+          </button>
+        </header>
+        <ol className="mt-1 divide-y divide-line/60">
+          {author.books.map((b) => (
+            <li key={b.id}>
+              <button type="button" onClick={() => onOpen(b)} className="flex w-full items-baseline gap-3 py-1.5 text-left text-[0.875rem] active:bg-surface-2">
+                <span className="min-w-0 flex-1 leading-snug text-ink">{b.title}</span>
+                <span className="shrink-0 text-xs text-muted tabular-nums">{b.firstPublishedYear ?? ''}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </article>
+    );
+  }
 
   return (
     <article className="flex h-full flex-col rounded-card border border-line bg-surface p-4 shadow-soft transition-shadow hover:shadow-lift">
@@ -328,12 +399,15 @@ function AnonymousSection({
   onToggle,
   onOpen,
   reduced,
+  compact,
 }: {
   books: BookDTO[];
   expanded: boolean;
   onToggle: () => void;
   onOpen: (book: BookDTO) => void;
   reduced: boolean;
+  /** phone app: the titles only, always listed */
+  compact?: boolean;
 }) {
   const { t, tp, n } = useI18n();
   const listId = useId();
@@ -354,6 +428,8 @@ function AnonymousSection({
           {tp('common.unit.book', books.length)}
         </span>
       </div>
+      {compact ? null : (
+        <>
       <div className="mt-3 flex min-h-[4.5rem] flex-wrap items-end gap-[3px]" role="group" aria-label={t('data.authors.noAuthor.title')}>
         {spines.map((b) => (
           <BookSpine key={b.id} book={b} size="xs" onClick={onOpen} />
@@ -373,6 +449,8 @@ function AnonymousSection({
       >
         {t(expanded ? 'data.authors.hideTitles' : 'data.authors.showTitles', { count: n(books.length) })}
       </Button>
+        </>
+      )}
       <AnimatePresence initial={false}>
         {expanded ? (
           <motion.ol

@@ -39,6 +39,7 @@ vi.mock('@/lib/client/api', () => ({
 }));
 
 import { makeSampleBook, SAMPLE_BOOKS } from '@/components/books/sample-books';
+import { shelfRowHeight } from '@/components/books/spine-layout';
 import { CollectionContext, EMPTY_FILTERS, type CollectionContextValue, type SortKey } from '@/components/collection/context';
 import { CoversView } from '@/components/views/CoversView';
 import { FramesView } from '@/components/views/FramesView';
@@ -208,14 +209,26 @@ describe('ShelfView', () => {
   it('draws the skeleton as a ghost of the real shelf: one plank for a small library, two at most', () => {
     env.width = null;
     const one = render(<ShelfView />, makeCtx([books[0]]));
-    expect(count(one, 'data-skeleton-row=')).toBe(1);
-    // one ghost spine + the start bookend, not a fixed wall of twelve
-    expect(count(one, 'animate-pulse')).toBe(2);
+    // the ghost comes in both densities (CSS shows the reader's), each with one plank
+    expect(count(one, 'data-skeleton-row=')).toBe(2);
+    // one ghost spine + the start bookend per density, not a fixed wall of twelve
+    expect(count(one, 'animate-pulse')).toBe(2 * 2);
     const many = Array.from({ length: 400 }, (_, i) => makeSampleBook({ title: `Könyv ${i + 1}`, author: `Szerző ${i % 31}`, pageCount: 120 + ((i * 53) % 500) }));
     const wall = render(<ShelfView />, makeCtx(many));
-    expect(count(wall, 'data-skeleton-row=')).toBe(2);
+    expect(count(wall, 'data-skeleton-row=')).toBe(2 * 2);
     // the real shelf is not drawn yet
     expect(count(one, 'data-plank-row=') + count(wall, 'data-plank-row=')).toBe(0);
+  });
+
+  it('draws the ghost bookcase in both densities, as high as the real one in that density', () => {
+    env.width = null;
+    const html = render(<ShelfView />, makeCtx([books[0]]));
+    // one wrapper per density; the CSS in globals.css shows the reader's (html[data-shelf-density])
+    expect(count(html, 'class="exl-ghost-compact"')).toBe(1);
+    expect(count(html, 'class="exl-ghost-comfortable"')).toBe(1);
+    const rowHeights = [...html.matchAll(/data-skeleton-row="[^"]*"[^>]*style="height:(\d+)px/g)].map((m) => Number(m[1]));
+    // compact (sm) planks are lower than comfortable (md) ones – exactly the real planks' heights
+    expect(rowHeights).toEqual([shelfRowHeight('sm'), shelfRowHeight('md')]);
   });
 
   it('shows the filtered empty state with a reset button, or the empty-shelf state', () => {

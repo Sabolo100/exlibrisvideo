@@ -2,12 +2,13 @@
 
 /**
  * A catalogue as a phone app screen (inside <CollectionProvider>): top bar with back, title, search and
- * share; the active view in the scrollable content; a bottom tab bar with the four main views and
- * "More" (other views, sort, filters, export, e-mail, add book / shelf, settings). While the catalogue
- * is being processed the live processing panel fills the screen.
+ * share; the active view in the scrollable content; a bottom menu with every view in a strip that swipes
+ * sideways behind the + button, the active view's own options (grouping, order, layout) in a small submenu
+ * glued on top of it, and "More" (filters, export, e-mail, add book / shelf, settings). The phone's back
+ * button closes the sheets and returns from another view to the shelf. While the catalogue is being
+ * processed the live processing panel fills the screen.
  */
 import {
-  ArrowDownUp,
   Camera,
   ChevronRight,
   Download,
@@ -37,7 +38,7 @@ import { collectionTitle } from '@/components/collection/labels';
 import { SettingsDialog } from '@/components/collection/SettingsDialog';
 import { ShareDialog } from '@/components/collection/ShareDialog';
 import { useCollectionShell } from '@/components/collection/shell-context';
-import { EXPORT_META, EXPORT_ORDER, SORT_LABELS, VIEW_META, availableViews } from '@/components/collection/view-meta';
+import { EXPORT_META, EXPORT_ORDER, VIEW_META, availableViews } from '@/components/collection/view-meta';
 import { ViewPanel } from '@/components/collection/ViewPanel';
 import '@/components/collection/collection.css';
 import { ProcessingPanel } from '@/components/processing/ProcessingPanel';
@@ -47,7 +48,9 @@ import { api } from '@/lib/client/api';
 import { uploadStore } from '@/lib/client/upload-store';
 import type { ViewKey } from '@/lib/types';
 import { AppScreen } from './AppScreen';
-import { AppFab, AppTabBar, type AppTab } from './AppTabBar';
+import { AppViewBar, AppViewFab, type AppTab } from './AppTabBar';
+import { AppSubmenuProvider } from './AppSubmenu';
+import { useBackDismiss } from '@/lib/client/back-stack';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
 import { UserAvatar } from '@/components/site/AccountMenu';
 import { useSession } from '@/components/site/SessionProvider';
@@ -57,12 +60,10 @@ import { copyPickedFiles } from '@/lib/client/stable-files';
 import { AppInstallButton } from './AppInstallButton';
 import { AppSettingsSheet } from './AppSettingsSheet';
 
-/** The views with their own tab; the rest live under "More". */
 const GALLERY_ACCEPT = 'video/*,image/jpeg,image/png,image/webp,.mp4,.m4v,.mov,.webm,.mkv,.3gp,.jpg,.jpeg,.png,.webp';
 
-const PRIMARY_VIEWS: readonly ViewKey[] = ['shelf', 'covers', 'authors', 'stats'];
-/** owners: the add button takes the middle of the tab bar, statistics moves into "More" */
-const OWNER_PRIMARY_VIEWS: readonly ViewKey[] = ['shelf', 'covers', 'authors'];
+/** Order of the views in the bottom strip (the first two stand left of the + button). */
+const STRIP_ORDER: readonly ViewKey[] = ['shelf', 'covers', 'authors', 'table', 'topics', 'timeline', 'stats', 'frames', 'review'];
 
 function SheetSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -120,8 +121,7 @@ function SheetRow({
 export function AppCollection() {
   const { t, tp, locale } = useI18n();
   const { toast } = useToast();
-  const { collection, books, view, setView, filters, setFilters, activeFilterCount, sort, setSort, isOwner, refresh, visibleBooks } =
-    useCollection();
+  const { collection, books, view, setView, filters, setFilters, activeFilterCount, isOwner, refresh, visibleBooks } = useCollection();
   const { counts, pendingReview, duplicateCount, unreadSpineCount } = useCollectionShell();
   const reviewBadge = pendingReview + duplicateCount + unreadSpineCount;
   const onlyUnreadSpines = books.length === 0 && isOwner && unreadSpineCount > 0;
@@ -144,6 +144,11 @@ export function AppCollection() {
   const { guard, nudge } = useSignInNudge(collection.id);
   const accountLibrary = !!sessionUser && sessionUser.libraryId === collection.id;
 
+  // the phone's back button closes these sheets instead of leaving the catalogue
+  useBackDismiss(moreOpen, () => setMoreOpen(false));
+  useBackDismiss(filtersOpen, () => setFiltersOpen(false));
+  useBackDismiss(addOpen, () => setAddOpen(false));
+
   const views = useMemo(() => availableViews({ isOwner: collection.isOwner, videos: collection.videos }), [collection.isOwner, collection.videos]);
   const activeView: ViewKey = views.includes(view) ? view : 'shelf';
   const title = collectionTitle(collection, t);
@@ -162,13 +167,7 @@ export function AppCollection() {
     [collection.id, refresh],
   );
 
-  const pickView = useCallback(
-    (next: ViewKey) => {
-      setMoreOpen(false);
-      setView(next);
-    },
-    [setView],
-  );
+  const pickView = useCallback((next: ViewKey) => setView(next), [setView]);
 
   const share = async () => {
     const url = collection.publicUrl;
@@ -183,27 +182,33 @@ export function AppCollection() {
     setShareOpen(true);
   };
 
-  const primaryViews = isOwner ? OWNER_PRIMARY_VIEWS : PRIMARY_VIEWS;
   const tabs: AppTab[] = [
-    ...primaryViews.filter((v) => views.includes(v)).map((v) => {
+    ...STRIP_ORDER.filter((v) => views.includes(v)).map((v) => {
       const Icon = VIEW_META[v].icon;
-      return { key: v, label: t(VIEW_META[v].labelKey), icon: <Icon />, active: activeView === v, onClick: () => pickView(v) };
+      return {
+        key: v,
+        label: t(VIEW_META[v].labelKey),
+        icon: <Icon />,
+        active: activeView === v && !moreOpen,
+        badge: v === 'review' && reviewBadge > 0 ? reviewBadge : undefined,
+        onClick: () => pickView(v),
+      };
     }),
     {
       key: 'more',
       label: t('app.collection.more'),
       icon: <Ellipsis />,
-      active: !primaryViews.includes(activeView) || moreOpen,
-      badge: isOwner && reviewBadge > 0 ? reviewBadge : undefined,
+      active: moreOpen,
+      badge: activeFilterCount > 0 ? activeFilterCount : undefined,
       onClick: () => setMoreOpen(true),
     },
   ];
-
-  const secondaryViews = views.filter((v) => !primaryViews.includes(v));
+  const showTabs = !processing && books.length > 0;
   const emptyDraft = collection.status === 'draft' && books.length === 0 && collection.videos.length === 0;
   const subtitle = emptyDraft ? t('app.collection.empty') : processing ? t('app.collection.processing') : `${tp('collection.header.books', counts.books)} · ${tp('collection.header.authors', counts.authors)}`;
 
   return (
+    <AppSubmenuProvider>
     <AppScreen
       mainRef={mainRef}
       top={
@@ -272,14 +277,15 @@ export function AppCollection() {
       }
       bottom={
         isOwner ? (
-          <AppTabBar
+          <AppViewBar
             label={t('app.collection.views.label')}
-            tabs={processing || books.length === 0 ? [] : tabs}
-            center={<AppFab label={t('app.collection.add')} icon={<Plus />} onClick={() => setAddOpen(true)} />}
+            submenuLabel={t('app.collection.submenu')}
+            tabs={showTabs ? tabs : []}
+            fab={<AppViewFab label={t('app.collection.add')} icon={<Plus />} onClick={() => setAddOpen(true)} />}
           />
-        ) : processing || books.length === 0 ? undefined : (
-          <AppTabBar label={t('app.collection.views.label')} tabs={tabs} />
-        )
+        ) : showTabs ? (
+          <AppViewBar label={t('app.collection.views.label')} submenuLabel={t('app.collection.submenu')} tabs={tabs} />
+        ) : undefined
       }
       mainClassName={processing ? 'px-3 pt-3 pb-6' : 'pb-6'}
     >
@@ -315,43 +321,6 @@ export function AppCollection() {
       <BookDrawer />
 
       <Drawer open={moreOpen} onClose={() => setMoreOpen(false)} title={t('app.collection.moreTitle')} size="md">
-        {secondaryViews.length > 0 ? (
-          <SheetSection title={t('app.collection.views')}>
-            {secondaryViews.map((v) => {
-              const Icon = VIEW_META[v].icon;
-              return (
-                <SheetRow
-                  key={v}
-                  icon={<Icon />}
-                  label={t(VIEW_META[v].labelKey)}
-                  active={activeView === v}
-                  badge={v === 'review' && reviewBadge > 0 ? reviewBadge : undefined}
-                  onClick={() => pickView(v)}
-                />
-              );
-            })}
-          </SheetSection>
-        ) : null}
-
-        <SheetSection title={t('collection.sort.label')}>
-          <div className="flex flex-wrap gap-2 p-3">
-            {(Object.keys(SORT_LABELS) as (keyof typeof SORT_LABELS)[]).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSort(key)}
-                aria-pressed={sort === key}
-                className={`app-chrome inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[0.875rem] font-medium ${
-                  sort === key ? 'border-primary bg-primary text-primary-ink' : 'border-line bg-bg text-ink active:bg-surface-2'
-                }`}
-              >
-                {sort === key ? <ArrowDownUp aria-hidden="true" className="size-4" /> : null}
-                {t(SORT_LABELS[key])}
-              </button>
-            ))}
-          </div>
-        </SheetSection>
-
         <SheetSection title={t('app.collection.actions')}>
           <SheetRow
             icon={<SlidersHorizontal />}
@@ -495,5 +464,6 @@ export function AppCollection() {
         </>
       ) : null}
     </AppScreen>
+    </AppSubmenuProvider>
   );
 }

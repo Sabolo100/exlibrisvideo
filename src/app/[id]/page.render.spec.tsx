@@ -34,6 +34,7 @@ vi.mock('@/components/app/AppPinGate', () => ({ AppPinGate: function AppPinGate(
 
 import { UiModeProvider } from '@/components/app/UiModeProvider';
 import { makeSampleBook } from '@/components/books/sample-books';
+import { shelfRowHeight } from '@/components/books/spine-layout';
 import { SessionProvider } from '@/components/site/SessionProvider';
 import type { CollectionWithBooksDTO, SessionUserDTO } from '@/lib/types';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -146,9 +147,19 @@ describe('/[id] loading skeleton', () => {
 
   it('draws ONE plank, never a wall of planks that collapses when a small library arrives', async () => {
     const html = await renderSkeleton();
-    expect(html.match(/data-skeleton-row=/g)?.length).toBe(1);
-    // twelve ghost spines and the ghost bookend on that plank
-    expect(html.match(/rounded-t-\[3px\]/g)?.length).toBe(12 + 1);
+    // the ghost bookcase comes in both densities (CSS shows the reader's), each with exactly one plank
+    const variants = html.split('class="exl-ghost-').slice(1);
+    expect(variants.map((v) => v.split('"')[0])).toEqual(['compact', 'comfortable']);
+    for (const variant of variants) expect(variant.match(/data-skeleton-row=/g)?.length).toBe(1);
+    // ghost spines + the ghost bookend on each plank: more of the thinner compact ones
+    expect(variants.map((v) => v.match(/rounded-t-\[3px\]/g)?.length)).toEqual([18 + 1, 12 + 1]);
+  });
+
+  it('is as high as the real bookcase in the reader\'s density (compact planks are lower)', async () => {
+    const html = await renderSkeleton();
+    const heights = [...html.matchAll(/data-skeleton-row="[^"]*"[^>]*style="height:(\d+)px/g)].map((m) => Number(m[1]));
+    expect(heights).toEqual([shelfRowHeight('sm'), shelfRowHeight('md')]);
+    expect(heights[0]).toBeLessThan(heights[1]);
   });
 
   it('shows up only after a short wait, so a quick load never flashes it', async () => {
@@ -160,6 +171,14 @@ describe('/[id] loading skeleton', () => {
     expect(delay).toBeLessThanOrEqual(300);
   });
 
+  it('shows only the ghost bookcase of the reader\'s density (globals.css, keyed by html[data-shelf-density])', () => {
+    const css = fs.readFileSync(path.join(process.cwd(), 'src/app/globals.css'), 'utf8');
+    // compact is hidden by default; a "compact" choice swaps the two
+    expect(css).toMatch(/\.exl-ghost-compact\s*\{\s*display:\s*none;\s*\}/);
+    expect(css).toMatch(/html\[data-shelf-density='compact'\]\s+\.exl-ghost-comfortable\s*\{\s*display:\s*none;\s*\}/);
+    expect(css).toMatch(/html\[data-shelf-density='compact'\]\s+\.exl-ghost-compact\s*\{\s*display:\s*block;\s*\}/);
+  });
+
   it('includes the ghost of the owner add block only for a signed-in visitor on the website', async () => {
     // the add block ghost is the only place with three 164 px tiles
     const tiles = (html: string) => html.match(/h-\[10\.25rem\]/g)?.length ?? 0;
@@ -168,7 +187,7 @@ describe('/[id] loading skeleton', () => {
     // the phone app has no such block
     expect(tiles(await renderSkeleton(user, 'app'))).toBe(0);
     // still one plank either way
-    expect((await renderSkeleton(user)).match(/data-skeleton-row=/g)?.length).toBe(1);
+    expect((await renderSkeleton(user)).match(/data-skeleton-row=/g)?.length).toBe(2); // one per density, as for everybody
   });
 });
 

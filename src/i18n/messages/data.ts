@@ -87,6 +87,9 @@ export const data = defineMessages({
     'topics.display.covers': 'Borítók',
     'topics.filter': 'Szűrés erre a témára',
     'topics.showMore': 'Még {count} könyv',
+    'topics.app.top': 'Leggyakoribb témák',
+    'topics.app.more': 'További témák',
+    'topics.app.shelf': '{label} – könyvek a polcon',
 
     /* ---------------- stats ---------------- */
     'stats.label': 'Statisztika',
@@ -329,6 +332,9 @@ export const data = defineMessages({
     'topics.display.covers': 'Covers',
     'topics.filter': 'Filter to this topic',
     'topics.showMore': 'Show {count} more',
+    'topics.app.top': 'Most common topics',
+    'topics.app.more': 'More topics',
+    'topics.app.shelf': '{label} – books on the shelf',
 
     /* ---------------- stats ---------------- */
     'stats.label': 'Statistics',

@@ -39,6 +39,13 @@ export const visual = defineMessages({
     'shelf.plank': '{index}. polc',
     'shelf.keyboard': 'A nyilakkal a könyvek között lépkedhetsz, Enterrel nyitod meg a kiválasztottat.',
     'shelf.skip': 'Ugrás a könyvespolc után',
+    'shelf.arrangement': 'Elrendezés',
+    'shelf.arrangement.standing': 'Álló',
+    'shelf.arrangement.lying': 'Fektetve',
+    'shelf.groupShort.none': 'Nincs',
+    'shelf.groupShort.topic': 'Téma',
+    'shelf.groupShort.author': 'Szerző',
+    'shelf.groupShort.status': 'Állapot',
 
     // covers
     'covers.label': 'Borítófal',
@@ -156,6 +163,13 @@ export const visual = defineMessages({
     'shelf.plank': 'Shelf {index}',
     'shelf.keyboard': 'Use the arrow keys to move between books and Enter to open the selected one.',
     'shelf.skip': 'Skip past the bookcase',
+    'shelf.arrangement': 'Arrangement',
+    'shelf.arrangement.standing': 'Standing',
+    'shelf.arrangement.lying': 'Lying',
+    'shelf.groupShort.none': 'None',
+    'shelf.groupShort.topic': 'Topic',
+    'shelf.groupShort.author': 'Author',
+    'shelf.groupShort.status': 'Status',
 
     // covers
     'covers.label': 'Cover wall',

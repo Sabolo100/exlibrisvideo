@@ -3,6 +3,7 @@
 import { Filter, Hourglass, Info, Layers, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useAppSubmenu } from '@/components/app/AppSubmenu';
 import { BookCover, BookSpine, Shelf } from '@/components/books';
 import { useCollection } from '@/components/collection/context';
 import { Button, cn, EmptyState, IconButton, SegmentedControl } from '@/components/ui';
@@ -11,6 +12,7 @@ import type { BookDTO } from '@/lib/types';
 import { oneOf, usePersistentState, usePrefersReducedMotion } from './data/hooks';
 import { percent } from './data/stats';
 import { buildTopicsView, tileTier, type TileTier, type TopicTileData } from './data/topics';
+import { reshelveStyle, useReshelve } from './visual/reshelve';
 
 type Display = 'spines' | 'covers';
 const DISPLAYS: readonly Display[] = ['spines', 'covers'];
@@ -51,10 +53,11 @@ const TINT_STRONG =
   'bg-[hsl(var(--th)_calc(50%*var(--ts))_85%)] dark:bg-[hsl(var(--th)_calc(32%*var(--ts))_23%)]';
 const TINT_RING = 'ring-[hsl(var(--th)_calc(45%*var(--ts))_38%)] dark:ring-[hsl(var(--th)_calc(50%*var(--ts))_70%)]';
 
-/** Topic groups as treemap-like tile mosaics; a tile expands to its books. */
+/** Topic groups as treemap-like tile mosaics; a tile expands to its books. The phone app has its own layout (TopicsApp). */
 export function TopicsView() {
   const { visibleBooks, books, locale, openBook, openBookId, setFilters, setView, activeFilterCount, resetFilters } = useCollection();
   const { t, tp } = useI18n();
+  const inApp = useAppSubmenu();
   const reduced = usePrefersReducedMotion();
   const data = useMemo(() => buildTopicsView(visibleBooks, locale), [visibleBooks, locale]);
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -110,6 +113,8 @@ export function TopicsView() {
       />
     );
   }
+
+  if (inApp) return <TopicsApp data={data} />;
 
   const panel = (tile: TopicTileData) => (
     <TopicPanel
@@ -416,5 +421,153 @@ function TopicPanel({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Phone app                                                           */
+/* ------------------------------------------------------------------ */
+
+/** topic chips shown right under the shelf; the rest follow further down */
+const APP_TOP_TOPICS = 10;
+
+/**
+ * Phone app: the chosen topic's books stand on one shelf frozen at the top of the screen (swipe it sideways),
+ * the topics are small chips under it – the most common first, the rest further down. Choosing another topic
+ * empties the shelf in a puff of dust and fills it again from the left, book by book.
+ */
+function TopicsApp({ data }: { data: ReturnType<typeof buildTopicsView> }) {
+  const { openBook, openBookId, setFilters, setView } = useCollection();
+  const { t, tp, n } = useI18n();
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const tiles = useMemo(() => {
+    const all = data.sections.flatMap((s) => s.tiles).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+    if (data.unclassified.length > 0) {
+      all.push({
+        key: UNCLASSIFIED,
+        def: undefined,
+        label: t(data.classificationPending ? 'data.topics.unclassified.pending' : 'data.topics.unclassified.title'),
+        icon: data.classificationPending ? '⏳' : '🗂️',
+        hue: 35,
+        neutral: true,
+        count: data.unclassified.length,
+        share: data.total ? data.unclassified.length / data.total : 0,
+        books: data.unclassified,
+        span: { col: 1, row: 1 },
+        layout: { base: { col: 1, row: 1 }, sm: { col: 1, row: 1 }, lg: { col: 1, row: 1 } },
+      });
+    }
+    return all;
+  }, [data, t]);
+
+  const [picked, setPicked] = useState<string | null>(null);
+  const current = tiles.find((tile) => tile.key === picked) ?? tiles[0] ?? null;
+  const { shown, className } = useReshelve(current, current?.key ?? '');
+
+  // a new topic starts at the left end of the shelf
+  useEffect(() => {
+    const scroller = wrapRef.current?.querySelector<HTMLElement>('[data-shelf-scroller]');
+    if (scroller) scroller.scrollLeft = 0;
+  }, [shown?.key]);
+
+  if (!current || !shown) return null;
+  const top = tiles.slice(0, APP_TOP_TOPICS);
+  const rest = tiles.slice(APP_TOP_TOPICS);
+
+  const chip = (tile: TopicTileData) => {
+    const active = tile.key === current.key;
+    return (
+      <li key={tile.key}>
+        <button
+          type="button"
+          aria-pressed={active}
+          aria-label={t('data.topics.tileAria', { label: tile.label, books: tp('common.unit.book', tile.count), percent: n(percent(tile.count, data.total)) })}
+          onClick={() => setPicked(tile.key)}
+          style={tileVars(tile.hue, tile.neutral)}
+          className={cn(
+            'inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border pr-3 pl-2 text-[0.8125rem] font-medium transition-shadow active:scale-[0.98]',
+            TINT,
+            active && cn('ring-2 ring-offset-1 ring-offset-bg', TINT_RING),
+          )}
+        >
+          <span aria-hidden="true" className="text-base leading-none">
+            {tile.icon}
+          </span>
+          <span className="truncate">{tile.label}</span>
+          <span aria-hidden="true" className="text-[0.75rem] font-semibold tabular-nums opacity-70">
+            {n(tile.count)}
+          </span>
+        </button>
+      </li>
+    );
+  };
+
+  return (
+    <div>
+      <div
+        ref={wrapRef}
+        className="sticky top-0 z-20 -mx-3 -mt-3 bg-bg/95 px-3 pt-3 pb-3 shadow-[0_10px_16px_-14px_hsl(var(--shadow-color)/0.6)] backdrop-blur"
+      >
+        <div className="mb-2 flex items-center gap-2" style={tileVars(shown.hue, shown.neutral)}>
+          <span aria-hidden="true" className={cn('flex size-8 shrink-0 items-center justify-center rounded-full text-lg leading-none', TINT_STRONG)}>
+            {shown.icon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-lg leading-tight font-semibold text-ink">{shown.label}</h3>
+            <p className="text-xs text-muted tabular-nums">
+              {tp('common.unit.book', shown.count)} · {t('data.topics.share', { percent: n(percent(shown.count, data.total)) })}
+            </p>
+          </div>
+          {shown.key !== UNCLASSIFIED ? (
+            <IconButton
+              size="sm"
+              variant="secondary"
+              icon={<Filter />}
+              aria-label={t('data.topics.filter')}
+              onClick={() => {
+                setFilters({ topics: [shown.key] });
+                setView('shelf');
+              }}
+            />
+          ) : null}
+        </div>
+        <div className={cn('relative', className)} data-rs="slide" style={{ '--rs-step': '32ms' } as CSSProperties}>
+          <Shelf size="sm" scroll aria-label={t('data.topics.app.shelf', { label: shown.label })}>
+            {shown.books.map((b, i) => (
+              <BookSpine
+                key={b.id}
+                book={b}
+                size="sm"
+                pulled={openBookId === b.id}
+                onClick={(book) => openBook(book.id)}
+                className="exl-rs"
+                style={reshelveStyle(i)}
+              />
+            ))}
+          </Shelf>
+          <span aria-hidden="true" className="exl-dust" style={{ '--rs-plank': '11px' } as CSSProperties} />
+        </div>
+      </div>
+
+      <section aria-labelledby="topics-app-top" className="pt-4">
+        <h3 id="topics-app-top" className="mb-2 text-[0.75rem] font-semibold tracking-wide text-muted uppercase">
+          {t('data.topics.app.top')}
+        </h3>
+        <ul className="flex flex-wrap gap-1.5">{top.map(chip)}</ul>
+      </section>
+      {rest.length > 0 ? (
+        <section aria-labelledby="topics-app-more" className="pt-6 pb-2">
+          <h3 id="topics-app-more" className="mb-2 text-[0.75rem] font-semibold tracking-wide text-muted uppercase">
+            {t('data.topics.app.more')}
+          </h3>
+          <ul className="flex flex-wrap gap-1.5">{rest.map(chip)}</ul>
+        </section>
+      ) : null}
+      <p className="mt-5 flex items-start gap-1.5 text-xs text-muted">
+        <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+        {t('data.topics.multiNote')}
+      </p>
+    </div>
   );
 }
