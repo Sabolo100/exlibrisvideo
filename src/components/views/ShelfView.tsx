@@ -9,7 +9,7 @@
  * titles readable left to right. A filter, order or setting change re-shelves the books with an
  * animation (reshelve.ts). In the phone app the options live in the bottom submenu (AppSubmenu).
  */
-import { RectangleHorizontal, RectangleVertical, Rows3, Rows4 } from 'lucide-react';
+import { BookCheck, BookOpen, Library, RectangleHorizontal, RectangleVertical, Rows3, Rows4 } from 'lucide-react';
 import {
   useCallback,
   useDeferredValue,
@@ -21,8 +21,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
-import type { SortKey } from '@/components/collection/context';
+import { AppSubmenu, SubmenuChip, SubmenuCycle, SubmenuDivider, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { READING_STATUS_META } from '@/components/books';
 import { shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { useCollection } from '@/components/collection/context';
@@ -80,15 +79,21 @@ const SHELF_ARRANGEMENTS: readonly ShelfArrangement[] = ['standing', 'lying'];
 const isGroupBy = isOneOf(SHELF_GROUP_BYS);
 const isDensity = isOneOf(SHELF_DENSITIES);
 const isArrangement = isOneOf(SHELF_ARRANGEMENTS);
-/** orders offered in the phone app's submenu (shelf order, or alphabetical by author / title) */
-const APP_SORTS: readonly SortKey[] = ['shelf', 'author', 'title'];
+/** phone app: which books stand on the shelf – all of them, the read ones, or the not-yet-read ones */
+type ReadFilter = 'all' | 'read' | 'unread';
+const READ_FILTERS: readonly ReadFilter[] = ['all', 'read', 'unread'];
+const isReadFilter = isOneOf(READ_FILTERS);
 
 export function ShelfView() {
   const { books, visibleBooks: liveBooks, locale, openBookId, openBook, filters, sort, setSort } = useCollection();
   const { t, tp } = useUiTranslator();
   const inApp = useAppSubmenu();
 
-  const [groupBy, setGroupBy] = useStoredState<ShelfGroupBy>('exl.visual.shelf.groupBy', 'none', isGroupBy);
+  const [groupByPref, setGroupBy] = useStoredState<ShelfGroupBy>('exl.visual.shelf.groupBy', 'none', isGroupBy);
+  // the phone app's shelf is never grouped (its submenu has the read / unread switch instead)
+  const groupBy: ShelfGroupBy = inApp ? 'none' : groupByPref;
+  const [readPref, setReadFilter] = useStoredState<ReadFilter>('exl.visual.shelf.read', 'all', isReadFilter);
+  const readFilter: ReadFilter = inApp ? readPref : 'all';
   const [density, setDensity] = useStoredState<ShelfDensity>(SHELF_DENSITY_KEY, 'comfortable', isDensity);
   const [photoPref, setPhoto] = useStoredState<boolean>('exl.visual.shelf.photo', false, isBoolean);
   const [arrangement, setArrangement] = useStoredState<ShelfArrangement>('exl.visual.shelf.arrangement', 'standing', isArrangement);
@@ -96,8 +101,15 @@ export function ShelfView() {
   const lying = arrangement === 'lying';
 
   // anything that rearranges the books takes them off the shelf and puts them back one by one
-  const signature = useMemo(() => JSON.stringify([filters, sort, groupBy, density, arrangement]), [filters, sort, groupBy, density, arrangement]);
-  const { shown: visibleBooks, className: reshelveClass } = useReshelve(liveBooks, signature);
+  const shelfBooks = useMemo(
+    () => (readFilter === 'all' ? liveBooks : liveBooks.filter((b) => (b.readingStatus === 'read') === (readFilter === 'read'))),
+    [liveBooks, readFilter],
+  );
+  const signature = useMemo(
+    () => JSON.stringify([filters, sort, groupBy, density, arrangement, readFilter]),
+    [filters, sort, groupBy, density, arrangement, readFilter],
+  );
+  const { shown: visibleBooks, className: reshelveClass } = useReshelve(shelfBooks, signature);
 
   // the ghost bookcases (here, and in the loading skeleton of the next catalogue) follow the reader's density
   useEffect(() => {
@@ -226,23 +238,6 @@ export function ShelfView() {
           ['lying', t('visual.shelf.arrangement.lying'), <RectangleHorizontal key="i" aria-hidden="true" />],
         ]}
       />
-      <SubmenuDivider />
-      <SubmenuGroup label={t('collection.sort.label')}>
-        {APP_SORTS.map((key) => (
-          <SubmenuChip key={key} active={sort === key} onClick={() => setSort(key)}>
-            {t(`collection.sort.${key}`)}
-          </SubmenuChip>
-        ))}
-      </SubmenuGroup>
-      <SubmenuDivider />
-      <SubmenuGroup label={t('visual.shelf.groupBy')}>
-        {SHELF_GROUP_BYS.map((g) => (
-          <SubmenuChip key={g} active={groupBy === g} onClick={() => setGroupBy(g)}>
-            {t(`visual.shelf.groupShort.${g}`)}
-          </SubmenuChip>
-        ))}
-      </SubmenuGroup>
-      <SubmenuDivider />
       <SubmenuToggle<ShelfDensity>
         label={t('visual.shelf.size')}
         value={density}
@@ -260,6 +255,27 @@ export function ShelfView() {
           </SubmenuChip>
         </>
       ) : null}
+      <SubmenuDivider />
+      {/* alphabetical by author or by title (any other order counts as "author" until switched) */}
+      <SubmenuToggle<'author' | 'title'>
+        label={t('collection.sort.label')}
+        value={sort === 'title' ? 'title' : 'author'}
+        onChange={(next) => setSort(sort === 'author' || sort === 'title' ? next : 'author')}
+        options={[
+          ['author', t('collection.sort.author')],
+          ['title', t('collection.sort.title')],
+        ]}
+      />
+      <SubmenuCycle<ReadFilter>
+        label={t('visual.shelf.read')}
+        value={readFilter}
+        onChange={setReadFilter}
+        options={[
+          ['all', t('visual.shelf.read.all'), <Library key="i" aria-hidden="true" />],
+          ['read', t('visual.shelf.read.read'), <BookCheck key="i" aria-hidden="true" />],
+          ['unread', t('visual.shelf.read.unread'), <BookOpen key="i" aria-hidden="true" />],
+        ]}
+      />
     </AppSubmenu>
   ) : (
     <ViewOptionsBar

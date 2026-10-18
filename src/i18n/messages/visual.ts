@@ -46,6 +46,10 @@ export const visual = defineMessages({
     'shelf.groupShort.topic': 'Téma',
     'shelf.groupShort.author': 'Szerző',
     'shelf.groupShort.status': 'Állapot',
+    'shelf.read': 'Olvasottság',
+    'shelf.read.all': 'Mind',
+    'shelf.read.read': 'Olvasott',
+    'shelf.read.unread': 'Nem olvasott',
 
     // covers
     'covers.label': 'Borítófal',
@@ -170,6 +174,10 @@ export const visual = defineMessages({
     'shelf.groupShort.topic': 'Topic',
     'shelf.groupShort.author': 'Author',
     'shelf.groupShort.status': 'Status',
+    'shelf.read': 'Read',
+    'shelf.read.all': 'All',
+    'shelf.read.read': 'Read',
+    'shelf.read.unread': 'Not read',
 
     // covers
     'covers.label': 'Cover wall',

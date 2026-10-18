@@ -7,7 +7,7 @@
  * the thumb instead of on top of the content. Outside the app shell <AppSubmenu> renders nothing and
  * `useAppSubmenu()` reports `false`, so views keep their web option bars there.
  */
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight, RotateCw } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/components/ui';
@@ -115,6 +115,40 @@ export function SubmenuToggle<T extends string>({
       {current[2]}
       {current[1]}
       <ArrowLeftRight aria-hidden="true" className="!size-3.5 opacity-55" />
+    </button>
+  );
+}
+
+/**
+ * A setting with a few choices as ONE chip that steps through them in a circle (all → read → unread → all …);
+ * only the current choice is shown.
+ */
+export function SubmenuCycle<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  /** the choices in cycle order: [value, text, icon?] */
+  options: readonly (readonly [T, string, ReactNode?])[];
+  onChange: (next: T) => void;
+  label: string;
+}) {
+  const index = Math.max(0, options.findIndex((o) => o[0] === value));
+  const current = options[index];
+  const next = options[(index + 1) % options.length];
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(next[0])}
+      aria-label={`${label}: ${current[1]}`}
+      title={`${label}: ${options.map((o) => o[1]).join(' → ')}`}
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--submenu-active)] pr-2 pl-3 text-[0.8125rem] font-medium text-[var(--submenu-active-ink)] shadow-[0_1px_2px_rgb(0_0_0/0.18)] transition-transform duration-150 active:scale-95 [&_svg]:size-4"
+    >
+      {current[2]}
+      {current[1]}
+      <RotateCw aria-hidden="true" className="!size-3.5 opacity-55" />
     </button>
   );
 }

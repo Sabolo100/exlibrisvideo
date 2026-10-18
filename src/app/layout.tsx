@@ -10,6 +10,7 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { Providers } from '@/components/site/Providers';
 import { PwaStart } from '@/components/site/PwaStart';
+import { InstallBanner } from '@/components/site/InstallBanner';
 import { SessionProvider } from '@/components/site/SessionProvider';
 import { UiModeProvider } from '@/components/app/UiModeProvider';
 import { getUiMode } from '@/components/app/ui-mode.server';
@@ -46,12 +47,22 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         {/* applies the saved theme and shelf density before the first paint (see lib/boot-script.ts) */}
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
+        {/*
+          The app manifest and the home-screen tags are written here by hand: Next 15.5 streams the metadata into
+          the <body> for ordinary browsers, and Chrome only takes a manifest from the <head> – without these lines
+          the site was not installable ("no-manifest") and the install prompt never came.
+        */}
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Ex Libris" />
       </head>
       <body className={app ? 'paper app-body' : 'paper flex min-h-dvh flex-col'}>
         <I18nProvider locale={locale}>
           <Providers>
             <SessionProvider user={user} authEnabled={googleAuthEnabled()}>
             <PwaStart />
+            <InstallBanner />
             <UiModeProvider mode={uiMode}>
               {app ? (
                 // phone app: every page renders its own full-screen <AppScreen> (top bar, content, tab bar)

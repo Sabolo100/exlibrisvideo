@@ -217,19 +217,24 @@ export function AppViewBar({
   );
 }
 
-/** A small chevron at an end of the strip: more tabs are waiting on that side. */
+/**
+ * A small chevron at an end of the strip, in the + button's colour, vertically centred: more tabs are waiting on
+ * that side. It stands in front of the tabs on a fade of the bar's background, so a tab sliding off the screen
+ * does not show through it.
+ */
 function EdgeHint({ side, shown }: { side: 'left' | 'right'; shown: boolean }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight;
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'pointer-events-none absolute top-0 flex h-10 w-5 items-center text-muted transition-opacity duration-200 [&_svg]:size-4',
-        side === 'left' ? 'left-0 justify-start pl-0.5' : 'right-0 justify-end pr-0.5',
-        shown ? 'opacity-80' : 'opacity-0',
+        'pointer-events-none absolute inset-y-0 z-10 flex w-8 items-center text-primary transition-opacity duration-200 [&_svg]:size-5',
+        side === 'left' ? 'left-0 justify-start pl-1' : 'right-0 justify-end pr-1',
+        shown ? 'opacity-100' : 'opacity-0',
       )}
+      style={{ background: `linear-gradient(${side === 'left' ? '90deg' : '270deg'}, var(--bg) 0%, var(--bg) 58%, transparent 100%)` }}
     >
-      <Icon strokeWidth={2.5} />
+      <Icon strokeWidth={2.75} />
     </span>
   );
 }

@@ -4,6 +4,30 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.11.0 – 2026-10-18
+
+### Fixed
+- **The app can be installed again.** Next 15.5 streams the page metadata into the `<body>` for ordinary browsers,
+  and Chrome only takes the web app manifest from the `<head>` – so the site was not installable at all ("no
+  manifest") and no phone ever offered to put it on the home screen. The manifest link and the home-screen tags are
+  now written into the `<head>` by hand; checked with Chromium's own installability report: no errors.
+
+### Added
+- **"Put it on your home screen" card** on phones (2.5 s after the page): on Android one tap opens the browser's
+  install dialog; on iPhone / iPad – where Safari has no install dialog – it shows the two steps (Share → Add to Home
+  Screen). Never shown once the app runs installed; "Not now" hides it for two weeks.
+- **Offline page**: the installed app shows "No internet connection" with a retry button instead of the browser's
+  error screen when a page cannot be loaded (the service worker keeps a copy of `/offline`).
+- Manifest: `display_override`, `prefer_related_applications: false` and a "My catalogues" shortcut on the icon's
+  long-press menu.
+- **Read / not read on the shelf** (phone app submenu): one chip that steps All → Read → Not read → All.
+
+### Changed
+- Shelf submenu (phone app): the order is one toggle chip, Author ⇄ Title (no "Order" label, no shelf order); the
+  grouping (none / topic / author / status) is gone from the phone app – the read switch takes its place.
+- The bottom menu's edge arrows sit at the middle of the bar in the + button's colour, in front of the tabs on a fade
+  of the bar's background, so a tab sliding off the screen no longer shows through them.
+
 ## 1.10.0 – 2026-10-18
 
 Phone app, after the owner's second round of comments (with screenshots of a new recording being processed).
