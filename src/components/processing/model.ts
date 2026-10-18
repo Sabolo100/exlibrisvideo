@@ -179,9 +179,9 @@ export function sourceErrorKind(video: Pick<VideoDTO, 'uploadStatus' | 'status' 
   return isVideoErrorCode(video.error) ? video.error : 'internal';
 }
 
-/** Sources in upload order. */
+/** Sources newest first: the recording just added is on top, the oldest at the bottom. */
 export function sortSources(videos: readonly VideoDTO[]): VideoDTO[] {
-  return [...videos].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  return [...videos].sort((a, b) => b.sortOrder - a.sortOrder || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
 }
 
 /** "2 / 3 sources done": finished (done or failed) sources out of all uploaded ones. */

@@ -178,12 +178,12 @@ describe('source helpers', () => {
     expect(sourceErrorKind(video({ uploadStatus: 'failed', status: 'pending', error: null }))).toBe('upload_failed');
   });
 
-  it('sorts sources in upload order and counts finished ones', () => {
+  it('sorts sources newest first and counts finished ones', () => {
     const a = video({ id: 'a', sortOrder: 2 });
     const b = video({ id: 'b', sortOrder: 0, status: 'done' });
     const c = video({ id: 'c', sortOrder: 1, status: 'error' });
     const d = video({ id: 'd', sortOrder: 3, uploadStatus: 'uploading', status: 'pending' });
-    expect(sortSources([a, b, c, d]).map((v) => v.id)).toEqual(['b', 'c', 'a', 'd']);
+    expect(sortSources([a, b, c, d]).map((v) => v.id)).toEqual(['d', 'a', 'c', 'b']);
     expect(sourceCounts([a, b, c, d])).toEqual({ done: 2, total: 3 });
     expect(sourceCounts([])).toEqual({ done: 0, total: 0 });
   });

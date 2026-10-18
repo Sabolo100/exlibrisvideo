@@ -1,7 +1,7 @@
 'use client';
 
 /** Removable chips for every active filter value, plus "clear all". */
-import { Handshake, Heart, ScanEye, Search, Tag } from 'lucide-react';
+import { Film, Handshake, Heart, ScanEye, Search, Tag } from 'lucide-react';
 import { READING_STATUS_META, TopicChip } from '@/components/books';
 import { Button, Chip, cn } from '@/components/ui';
 import { useI18n } from '@/i18n/client';
@@ -11,7 +11,7 @@ import { decadeLabel } from './labels';
 
 export function ActiveFilters({ className }: { className?: string }) {
   const { t, locale } = useI18n();
-  const { filters, setFilters, resetFilters, activeFilterCount } = useCollection();
+  const { collection, filters, setFilters, resetFilters, activeFilterCount } = useCollection();
   if (activeFilterCount === 0) return null;
 
   const without = <T,>(list: readonly T[], value: T) => list.filter((v) => v !== value);
@@ -54,6 +54,24 @@ export function ActiveFilters({ className }: { className?: string }) {
           {tag}
         </Chip>
       ))}
+      {filters.videos.map((videoId) => {
+        const video = collection.videos.find((v) => v.id === videoId);
+        const name = video
+          ? new Intl.DateTimeFormat(locale === 'hu' ? 'hu-HU' : 'en-GB', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(video.createdAt))
+          : t('collection.filter.scanUnknown');
+        const label = t('collection.filter.scan', { name });
+        return (
+          <Chip
+            key={`v-${videoId}`}
+            size="sm"
+            icon={<Film className="size-3.5" />}
+            onRemove={() => setFilters({ videos: without(filters.videos, videoId) })}
+            removeLabel={t('common.aria.remove', { label })}
+          >
+            {label}
+          </Chip>
+        );
+      })}
       {filters.authors.map((author) => (
         <Chip
           key={`a-${author}`}

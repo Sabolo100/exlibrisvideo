@@ -3,7 +3,7 @@
 import { ChevronDown, Filter, UserRound } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { AppSubmenu, SubmenuChip, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
+import { AppSubmenu, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { BookSpine, CountryFlag } from '@/components/books';
 import { useCollection } from '@/components/collection/context';
 import { TOOLBAR_ID } from '@/components/collection/Toolbar';
@@ -132,13 +132,15 @@ export function AuthorsView() {
         </p>
         {inApp ? (
           <AppSubmenu>
-            <SubmenuGroup label={t('data.authors.sort.label')}>
-              {AUTHOR_SORTS.map((s) => (
-                <SubmenuChip key={s} active={sort === s} onClick={() => setSort(s)}>
-                  {t(`data.authors.sort.${s}`)}
-                </SubmenuChip>
-              ))}
-            </SubmenuGroup>
+            <SubmenuToggle<AuthorSort>
+              label={t('data.authors.sort.label')}
+              value={sort}
+              onChange={setSort}
+              options={[
+                ['name', t('data.authors.sort.name')],
+                ['count', t('data.authors.sort.count')],
+              ]}
+            />
           </AppSubmenu>
         ) : (
           <SegmentedControl<AuthorSort>

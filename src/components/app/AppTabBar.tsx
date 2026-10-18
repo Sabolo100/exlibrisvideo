@@ -4,8 +4,9 @@
  * Bottom tab bar (home-indicator safe area). Items are links or buttons; an optional raised centre
  * action (the record button) sits between them like a native FAB tab.
  */
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/components/ui';
 import { AppSubmenuSlot, useAppSubmenuActive } from './AppSubmenu';
 
@@ -101,23 +102,52 @@ export function AppFab({ label, icon, onClick }: { label: string; icon: ReactNod
  * The catalogue's bottom menu: every view in one strip the thumb can swipe sideways, sliding behind the fixed
  * + button in the middle (owners); the active view's submenu (<AppSubmenu>) sits glued on top of it.
  * At rest two tabs stand on each side of the + button (the strip starts with a gap exactly under it);
- * the active tab is scrolled out from under the button when it changes.
+ * the active tab is scrolled out from under the button when it changes. Small chevrons at the edges tell
+ * that more tabs wait on that side. `submenuTrailing` is pinned to the right end of the submenu strip
+ * (the scan picker) and keeps the strip visible in views without options of their own.
  */
 export function AppViewBar({
   tabs,
   fab,
   label,
   submenuLabel,
+  submenuTrailing,
 }: {
   tabs: readonly AppTab[];
   /** the + button (fixed in the middle; the strip passes behind it) */
   fab?: ReactNode;
   label: string;
   submenuLabel: string;
+  /** pinned to the right end of the submenu strip */
+  submenuTrailing?: ReactNode;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const activeKey = tabs.find((tab) => tab.active)?.key ?? null;
-  const submenu = useAppSubmenuActive();
+  const submenu = useAppSubmenuActive() || Boolean(submenuTrailing);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  // which ends of the strip still hide tabs
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const left = el.scrollLeft > 4;
+        const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+        setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+      });
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [tabs.length]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -151,7 +181,7 @@ export function AppViewBar({
 
   return (
     <nav aria-label={label} className="app-chrome app-glass relative z-30 shrink-0 border-t border-line/70 pb-safe">
-      <AppSubmenuSlot label={submenuLabel} className="border-b border-black/10" />
+      <AppSubmenuSlot label={submenuLabel} className="border-b border-black/10" trailing={submenuTrailing} />
       <div className="relative h-16 pr-safe pl-safe">
         {tabs.length > 0 ? (
           <div ref={scrollerRef} className={cn('app-scroll flex h-full overflow-x-auto overscroll-x-contain', fab && 'app-view-strip')}>
@@ -166,6 +196,12 @@ export function AppViewBar({
             )}
           </div>
         ) : null}
+        {tabs.length > 0 ? (
+          <>
+            <EdgeHint side="left" shown={edges.left} />
+            <EdgeHint side="right" shown={edges.right} />
+          </>
+        ) : null}
         {fab ? (
           <div
             className={cn(
@@ -178,6 +214,23 @@ export function AppViewBar({
         ) : null}
       </div>
     </nav>
+  );
+}
+
+/** A small chevron at an end of the strip: more tabs are waiting on that side. */
+function EdgeHint({ side, shown }: { side: 'left' | 'right'; shown: boolean }) {
+  const Icon = side === 'left' ? ChevronLeft : ChevronRight;
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'pointer-events-none absolute top-0 flex h-10 w-5 items-center text-muted transition-opacity duration-200 [&_svg]:size-4',
+        side === 'left' ? 'left-0 justify-start pl-0.5' : 'right-0 justify-end pr-0.5',
+        shown ? 'opacity-80' : 'opacity-0',
+      )}
+    >
+      <Icon strokeWidth={2.5} />
+    </span>
   );
 }
 

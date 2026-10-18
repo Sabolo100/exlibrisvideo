@@ -6,8 +6,10 @@
  * - polls api.getStatus every 2 s (10 s while nothing can change, slower when the tab is hidden or the
  *   network fails) and api.getCollection every 5 s for the "books appearing" shelf (skipped while the
  *   book count is unchanged, at least every 20 s);
- * - shows the in-flight uploads of the module-level upload store, a card per source with the stage
- *   stepper, the share block (link, QR, owner link), owner-only "add more videos" and "e-mail me";
+ * - top to bottom: the WHOLE library (title, total book count – it grows as the merge adds books), then the
+ *   processing that is running now (phase, progress), the in-flight uploads of the module-level upload store,
+ *   a card per source with the stage stepper – newest first, so the scan just recorded is right there –, the
+ *   "books appearing" shelf, the share block, owner-only "add more videos" and "e-mail me";
  * - calls onReady() once when the status becomes `ready`.
  */
 import { CircleAlert, RefreshCw, ScanBarcode, UploadCloud, WifiOff } from 'lucide-react';
@@ -109,6 +111,8 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
     publicUrl: initial.publicUrl,
   }));
   const [connection, setConnection] = useState<Connection>('ok');
+  /** books in the library when this panel appeared (the total card shows how much it has grown since) */
+  const [startBookCount] = useState(initial.books.length);
   const [photoBookOpen, setPhotoBookOpen] = useState(false);
   const [failures, setFailures] = useState(0);
   /**
@@ -298,14 +302,15 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
   const counts = sourceCounts(status.videos);
   const totals = uploadTotals(visibleUploads);
   const title = meta.title?.trim() || ownerLibraryLabel(initial.ownerName, t) || t('processing.title.fallback');
-  const booksLine = status.bookCount > 0 ? tp('processing.progress.books', status.bookCount) : t('processing.progress.noBooksYet');
+  const growth = Math.max(0, status.bookCount - startBookCount);
+  const showTotal = status.bookCount > 0 || status.videos.length > 0;
   const showBar = phase === 'uploading' || phase === 'processing' || phase === 'enriching' || phase === 'ready';
   const barValue =
     phase === 'uploading' ? totals.percent : phase === 'enriching' ? null : phase === 'ready' ? 100 : Math.max(0, Math.min(100, status.progress));
 
   // owner: add more videos (or the first one) – the main focus of an empty draft, a side tool otherwise
   const uploaderCard = isOwner ? (
-    <Card as="section" aria-label={t('upload.compact.title')} className={cn('p-3 sm:p-4', uploaderFirst ? 'order-2' : 'order-7')}>
+    <Card as="section" aria-label={t('upload.compact.title')} className={cn('p-3 sm:p-4', uploaderFirst ? 'order-3' : 'order-7')}>
       {resumable.length > 0 ? (
         <div className="mb-3 rounded-lg border border-accent/35 bg-accent-soft/50 px-3 py-2.5 text-sm">
           <p className="font-semibold text-ink">{t('processing.more.resumeTitle')}</p>
@@ -326,7 +331,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
 
   // owner: a single new book from a photo (barcode, cover, spine) – also the quickest start of an empty library
   const photoBookCard = isOwner ? (
-    <Card as="section" aria-label={t('book.photo.menu')} className={cn('flex items-center gap-3 p-3 sm:p-4', uploaderFirst ? 'order-2' : 'order-7')}>
+    <Card as="section" aria-label={t('book.photo.menu')} className={cn('flex items-center gap-3 p-3 sm:p-4', uploaderFirst ? 'order-3' : 'order-7')}>
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent [&_svg]:size-5">
         <ScanBarcode aria-hidden="true" />
       </span>
@@ -347,12 +352,40 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6">
         {/* main column (display: contents on phones, so the `order` of every card applies to one flow) */}
         <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
+          {/* the whole library: the total only ever grows, apart from the scan that is running now */}
           <Card as="section" aria-labelledby="exl-processing-title" className="order-1 overflow-hidden p-5 sm:p-7">
             <p className="text-xs font-medium tracking-[0.14em] text-accent uppercase">{t('processing.title.label', { id })}</p>
             <h1 id="exl-processing-title" className="mt-1 font-display text-2xl leading-tight font-semibold text-ink text-balance sm:text-3xl">
               {title}
             </h1>
-            <div aria-live="polite" className="mt-4">
+            {showTotal ? (
+              <div className="mt-4 flex items-end justify-between gap-3 border-t border-line pt-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold tracking-wide text-muted uppercase">{t('processing.total.label')}</p>
+                  {/* not a live region: the count changes every few seconds and would drown out everything else */}
+                  <p className="mt-0.5 font-display text-3xl leading-tight font-semibold text-ink tabular-nums">
+                    {tp('common.unit.book', status.bookCount)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted text-pretty">{t('processing.total.hint')}</p>
+                </div>
+                {growth > 0 ? (
+                  <span
+                    title={t('processing.total.growthHint')}
+                    className="shrink-0 rounded-full bg-[color-mix(in_oklab,var(--primary),transparent_85%)] px-2.5 py-1 text-sm font-semibold text-primary tabular-nums"
+                  >
+                    {t('processing.total.growth', { count: n(growth) })}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </Card>
+
+          {/* the processing running now (its sources follow right below, newest first) */}
+          <Card as="section" aria-labelledby="exl-processing-current" className="order-2 overflow-hidden p-5 sm:p-7">
+            <p id="exl-processing-current" className="text-xs font-semibold tracking-wide text-accent uppercase">
+              {t('processing.current.label')}
+            </p>
+            <div aria-live="polite" className="mt-1.5">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={phase}
@@ -385,8 +418,6 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
               />
             ) : null}
 
-            {/* not a live region: the count changes every few seconds and would drown out everything else */}
-            <p className="mt-3 text-sm font-medium text-ink tabular-nums">{booksLine}</p>
 
             {connection === 'offline' ? (
               <p role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-2 text-sm text-ink">
@@ -413,7 +444,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
           {uploaderFirst ? photoBookCard : null}
 
           {visibleUploads.length > 0 ? (
-            <Card as="section" aria-labelledby="exl-processing-uploads" className="order-2 p-4 sm:p-5">
+            <Card as="section" aria-labelledby="exl-processing-uploads" className="order-3 p-4 sm:p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <h2 id="exl-processing-uploads" className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
                   <UploadCloud aria-hidden="true" className="size-5 text-accent" />
@@ -448,7 +479,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
           ) : null}
 
           {sources.length > 0 ? (
-            <section aria-labelledby="exl-processing-sources" className="order-5 flex flex-col gap-3">
+            <section aria-labelledby="exl-processing-sources" className="order-4 flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-3 px-1">
                 <h2 id="exl-processing-sources" className="font-display text-lg font-semibold text-ink">
                   {t('processing.sources.title')}
@@ -491,13 +522,13 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
             </section>
           ) : null}
 
-          {phase !== 'empty' || books.length > 0 ? <AppearingShelf books={books} className="order-6" /> : null}
+          {phase !== 'empty' || books.length > 0 ? <AppearingShelf books={books} className="order-5" /> : null}
         </div>
 
         {/* side column */}
         <div className="contents lg:flex lg:flex-col lg:gap-5">
           {/* a signed-in user's library is reached through the account, not by keeping its link */}
-          {initial.isAccountLibrary ? null : <SharePanel collectionId={id} publicUrl={meta.publicUrl} className="order-3" />}
+          {initial.isAccountLibrary ? null : <SharePanel collectionId={id} publicUrl={meta.publicUrl} className="order-6" />}
 
           {/* a signed-in owner has the export menu (download / e-mail) instead of a notification form */}
           {isOwner && !initial.isAccountLibrary ? (
@@ -506,7 +537,7 @@ export function ProcessingPanel({ initial, isOwner, onReady, className }: Proces
               email={meta.email}
               emailSentAt={meta.emailSentAt}
               onSaved={(email) => setMeta((m) => ({ ...m, email }))}
-              className="order-4"
+              className="order-6"
             />
           ) : null}
 

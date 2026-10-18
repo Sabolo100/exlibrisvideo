@@ -3,7 +3,7 @@
  *
  *   /334345435?view=table&sort=author&q=esterhazy&topic=poetry,history&status=read
  *             &author=Esterházy%20Péter&author=Szabó%20Magda&lang=hu&decade=1960,1970
- *             &review=1&fav=1&lent=1&book=<uuid>
+ *             &review=1&fav=1&lent=1&scan=<video uuid>&book=<uuid>
  *
  * Defaults are omitted (view=shelf, sort=shelf, empty filters), so a plain `/<id>` stays clean.
  * Parameters this module does not manage (e.g. `k`, `r`, utm_*) are preserved in place.
@@ -27,6 +27,7 @@ export const URL_KEYS = {
   statuses: 'status',
   authors: 'author',
   tags: 'tag',
+  videos: 'scan',
   languages: 'lang',
   decades: 'decade',
   needsReview: 'review',
@@ -118,6 +119,7 @@ export function parseUrlState(params: SearchParamsLike, opts: { isOwner?: boolea
   const statuses = uniq(listValues(params, URL_KEYS.statuses, true).filter(isReadingStatus));
   const authors = uniq(listValues(params, URL_KEYS.authors, false).map((a) => a.slice(0, 200)));
   const tags = uniq(listValues(params, URL_KEYS.tags, false).map((a) => a.slice(0, 60)));
+  const videos = uniq(listValues(params, URL_KEYS.videos, true).filter((v) => BOOK_ID_RE.test(v)));
   const languages = uniq(
     listValues(params, URL_KEYS.languages, true)
       .filter((l) => LANGUAGE_RE.test(l))
@@ -142,6 +144,7 @@ export function parseUrlState(params: SearchParamsLike, opts: { isOwner?: boolea
       statuses,
       authors,
       tags,
+      videos,
       languages,
       decades,
       needsReview: flag(params, URL_KEYS.needsReview),
@@ -172,6 +175,7 @@ export function buildSearch(current: SearchParamsLike | null, state: CollectionU
   if (f.statuses.length) out.set(URL_KEYS.statuses, uniq(f.statuses).join(','));
   for (const a of uniq(f.authors)) out.append(URL_KEYS.authors, a);
   for (const tag of uniq(f.tags)) out.append(URL_KEYS.tags, tag);
+  if (f.videos?.length) out.set(URL_KEYS.videos, uniq(f.videos).join(','));
   if (f.languages.length) out.set(URL_KEYS.languages, uniq(f.languages).join(','));
   if (f.decades.length) out.set(URL_KEYS.decades, uniq([...f.decades].sort((a, b) => a - b)).join(','));
   if (f.needsReview) out.set(URL_KEYS.needsReview, '1');
@@ -207,6 +211,7 @@ export function filtersEqual(a: BookFilters, b: BookFilters): boolean {
     sameList(a.statuses, b.statuses) &&
     sameList(a.authors, b.authors) &&
     sameList(a.tags, b.tags) &&
+    sameList(a.videos ?? [], b.videos ?? []) &&
     sameList(a.languages, b.languages) &&
     sameList(a.decades, b.decades)
   );

@@ -260,6 +260,16 @@ describe('applyFilters', () => {
     expect(countActiveFilters(combined)).toBe(3);
     expect(applyFilters(books, { ...combined, q: 'dune' })).toEqual([]);
   });
+  it('filters by the recording a book came in with', () => {
+    const scanned = [
+      book({ title: 'Első', firstVideoId: 'v1' }),
+      book({ title: 'Második', firstVideoId: 'v2' }),
+      book({ title: 'Kézzel', firstVideoId: null }),
+    ];
+    expect(titles(applyFilters(scanned, { ...EMPTY_FILTERS, videos: ['v2'] }))).toEqual(['Második']);
+    expect(titles(applyFilters(scanned, { ...EMPTY_FILTERS, videos: ['v1', 'v2'] }))).toEqual(['Első', 'Második']);
+    expect(countActiveFilters({ ...EMPTY_FILTERS, videos: ['v2'] })).toBe(1);
+  });
 });
 
 describe('topics & years', () => {

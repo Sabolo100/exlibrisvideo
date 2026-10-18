@@ -7,6 +7,7 @@
  * the thumb instead of on top of the content. Outside the app shell <AppSubmenu> renders nothing and
  * `useAppSubmenu()` reports `false`, so views keep their web option bars there.
  */
+import { ArrowLeftRight } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/components/ui';
@@ -42,21 +43,21 @@ export function useAppSubmenuActive(): boolean {
   return (useContext(SubmenuContext)?.count ?? 0) > 0;
 }
 
-/** Where the submenu strip renders (inside the bottom bar). */
-export function AppSubmenuSlot({ label, className }: { label: string; className?: string }) {
+/**
+ * Where the submenu strip renders (inside the bottom bar): the view's options scroll sideways, `trailing`
+ * (the scan picker) stays pinned at the right end and keeps the strip shown even without view options.
+ */
+export function AppSubmenuSlot({ label, className, trailing }: { label: string; className?: string; trailing?: ReactNode }) {
   const ctx = useContext(SubmenuContext);
-  const active = (ctx?.count ?? 0) > 0;
+  const active = (ctx?.count ?? 0) > 0 || Boolean(trailing);
   return (
-    <div
-      role="group"
-      aria-label={label}
-      hidden={!active}
-      ref={ctx?.setSlot}
-      className={cn(
-        'app-chrome app-scroll app-submenu flex h-11 items-center gap-1.5 overflow-x-auto px-3 whitespace-nowrap [&>*]:shrink-0',
-        className,
-      )}
-    />
+    <div role="group" aria-label={label} hidden={!active} className={cn('app-chrome app-submenu relative flex h-11 items-center', className)}>
+      <div
+        ref={ctx?.setSlot}
+        className="app-scroll flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-3 whitespace-nowrap [&>*]:shrink-0"
+      />
+      {trailing ? <div className="flex h-full shrink-0 items-center border-l border-[var(--submenu-line)] pr-2 pl-1.5">{trailing}</div> : null}
+    </div>
   );
 }
 
@@ -82,6 +83,40 @@ export function SubmenuGroup({ label, children }: { label?: string; children: Re
 /** A thin divider between submenu groups. */
 export function SubmenuDivider() {
   return <span aria-hidden="true" className="mx-1 h-5 w-px bg-[var(--submenu-line)]" />;
+}
+
+/**
+ * A two-way setting as ONE chip: it shows the current choice and switches to the other one when tapped
+ * (standing ⇄ lying, A–Z ⇄ most books …) – half the width of two chips.
+ */
+export function SubmenuToggle<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  /** exactly two choices: [value, text, icon?] */
+  options: readonly [readonly [T, string, ReactNode?], readonly [T, string, ReactNode?]];
+  onChange: (next: T) => void;
+  /** what the setting is ("Arrangement") – for screen readers and the tooltip */
+  label: string;
+}) {
+  const current = options[0][0] === value ? options[0] : options[1];
+  const other = current === options[0] ? options[1] : options[0];
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(other[0])}
+      aria-label={`${label}: ${current[1]}`}
+      title={`${label}: ${current[1]} ⇄ ${other[1]}`}
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--submenu-active)] pr-2 pl-3 text-[0.8125rem] font-medium text-[var(--submenu-active-ink)] shadow-[0_1px_2px_rgb(0_0_0/0.18)] transition-transform duration-150 active:scale-95 [&_svg]:size-4"
+    >
+      {current[2]}
+      {current[1]}
+      <ArrowLeftRight aria-hidden="true" className="!size-3.5 opacity-55" />
+    </button>
+  );
 }
 
 export function SubmenuChip({

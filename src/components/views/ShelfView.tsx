@@ -21,7 +21,8 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
+import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
+import type { SortKey } from '@/components/collection/context';
 import { READING_STATUS_META } from '@/components/books';
 import { shelfRowHeight, type SpineSize } from '@/components/books/spine-layout';
 import { useCollection } from '@/components/collection/context';
@@ -79,9 +80,11 @@ const SHELF_ARRANGEMENTS: readonly ShelfArrangement[] = ['standing', 'lying'];
 const isGroupBy = isOneOf(SHELF_GROUP_BYS);
 const isDensity = isOneOf(SHELF_DENSITIES);
 const isArrangement = isOneOf(SHELF_ARRANGEMENTS);
+/** orders offered in the phone app's submenu (shelf order, or alphabetical by author / title) */
+const APP_SORTS: readonly SortKey[] = ['shelf', 'author', 'title'];
 
 export function ShelfView() {
-  const { books, visibleBooks: liveBooks, locale, openBookId, openBook, filters, sort } = useCollection();
+  const { books, visibleBooks: liveBooks, locale, openBookId, openBook, filters, sort, setSort } = useCollection();
   const { t, tp } = useUiTranslator();
   const inApp = useAppSubmenu();
 
@@ -214,13 +217,22 @@ export function ShelfView() {
   /* ---------------- render ---------------- */
   const options = inApp ? (
     <AppSubmenu>
-      <SubmenuGroup label={t('visual.shelf.arrangement')}>
-        <SubmenuChip active={!lying} onClick={() => setArrangement('standing')} icon={<RectangleVertical aria-hidden="true" />}>
-          {t('visual.shelf.arrangement.standing')}
-        </SubmenuChip>
-        <SubmenuChip active={lying} onClick={() => setArrangement('lying')} icon={<RectangleHorizontal aria-hidden="true" />}>
-          {t('visual.shelf.arrangement.lying')}
-        </SubmenuChip>
+      <SubmenuToggle<ShelfArrangement>
+        label={t('visual.shelf.arrangement')}
+        value={arrangement}
+        onChange={setArrangement}
+        options={[
+          ['standing', t('visual.shelf.arrangement.standing'), <RectangleVertical key="i" aria-hidden="true" />],
+          ['lying', t('visual.shelf.arrangement.lying'), <RectangleHorizontal key="i" aria-hidden="true" />],
+        ]}
+      />
+      <SubmenuDivider />
+      <SubmenuGroup label={t('collection.sort.label')}>
+        {APP_SORTS.map((key) => (
+          <SubmenuChip key={key} active={sort === key} onClick={() => setSort(key)}>
+            {t(`collection.sort.${key}`)}
+          </SubmenuChip>
+        ))}
       </SubmenuGroup>
       <SubmenuDivider />
       <SubmenuGroup label={t('visual.shelf.groupBy')}>
@@ -231,14 +243,15 @@ export function ShelfView() {
         ))}
       </SubmenuGroup>
       <SubmenuDivider />
-      <SubmenuGroup label={t('visual.shelf.size')}>
-        <SubmenuChip active={density === 'compact'} onClick={() => setDensity('compact')} icon={<Rows4 aria-hidden="true" />}>
-          {t('visual.shelf.size.compact')}
-        </SubmenuChip>
-        <SubmenuChip active={density === 'comfortable'} onClick={() => setDensity('comfortable')} icon={<Rows3 aria-hidden="true" />}>
-          {t('visual.shelf.size.comfortable')}
-        </SubmenuChip>
-      </SubmenuGroup>
+      <SubmenuToggle<ShelfDensity>
+        label={t('visual.shelf.size')}
+        value={density}
+        onChange={setDensity}
+        options={[
+          ['comfortable', t('visual.shelf.size.comfortable'), <Rows3 key="i" aria-hidden="true" />],
+          ['compact', t('visual.shelf.size.compact'), <Rows4 key="i" aria-hidden="true" />],
+        ]}
+      />
       {hasSpinePhotos ? (
         <>
           <SubmenuDivider />

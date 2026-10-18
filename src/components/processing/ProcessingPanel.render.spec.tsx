@@ -125,7 +125,11 @@ describe('ProcessingPanel', () => {
     expect(html).toContain('7 könyv');
     expect(html).toContain('Sorra vár');
     expect(html).toContain('Feldolgozási lépések');
-    expect(html).toContain('Eddig 3 könyvet találtunk');
+    // the whole library's total stands apart from the processing running now
+    expect(html).toContain('A teljes könyvtár');
+    expect(html).toContain('3 könyv');
+    expect(html).toContain('Most zajló feldolgozás');
+    expect(html.indexOf('A teljes könyvtár')).toBeLessThan(html.indexOf('Most zajló feldolgozás'));
     expect(html).toContain('Ezen a linken lesz a könyvtárad');
     expect(html).toContain('http://localhost:3000/123456789');
     expect(html).toContain('Szóljunk, ha kész?');

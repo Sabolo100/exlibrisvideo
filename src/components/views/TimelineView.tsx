@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { SpineSize } from '@/components/books/spine-layout';
 import { BookSpine } from '@/components/books';
-import { AppSubmenu, SubmenuChip, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
+import { AppSubmenu, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { useCollection } from '@/components/collection/context';
 import { EmptyState, IconButton, SegmentedControl } from '@/components/ui';
 import { cn } from '@/components/ui/cn';
@@ -139,20 +139,18 @@ export function TimelineView() {
   const options = inApp ? (
     <>
       <AppSubmenu>
-        <SubmenuGroup label={t('visual.timeline.zoom')}>
-          {(['century', 'decade'] as const).map((z) => (
-            <SubmenuChip
-              key={z}
-              active={zoom === z}
-              onClick={() => {
-                setZoom(z);
-                setExpanded(new Set());
-              }}
-            >
-              {t(`visual.timeline.zoom.${z}`)}
-            </SubmenuChip>
-          ))}
-        </SubmenuGroup>
+        <SubmenuToggle<TimelineZoom>
+          label={t('visual.timeline.zoom')}
+          value={zoom}
+          onChange={(z) => {
+            setZoom(z);
+            setExpanded(new Set());
+          }}
+          options={[
+            ['decade', t('visual.timeline.zoom.decade')],
+            ['century', t('visual.timeline.zoom.century')],
+          ]}
+        />
       </AppSubmenu>
       {summary ? <p className="mb-3 text-sm text-muted">{summary}</p> : null}
     </>

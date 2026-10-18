@@ -49,6 +49,7 @@ import { uploadStore } from '@/lib/client/upload-store';
 import type { ViewKey } from '@/lib/types';
 import { AppScreen } from './AppScreen';
 import { AppViewBar, AppViewFab, type AppTab } from './AppTabBar';
+import { AppScanPicker } from './AppScanPicker';
 import { AppSubmenuProvider } from './AppSubmenu';
 import { useBackDismiss } from '@/lib/client/back-stack';
 import { AppBackButton, AppBarButton, AppTopBar } from './AppTopBar';
@@ -204,6 +205,9 @@ export function AppCollection() {
     },
   ];
   const showTabs = !processing && books.length > 0;
+  // the recording picker only makes sense once there are at least two recordings (or one is picked)
+  const scanPicker =
+    showTabs && (collection.videos.filter((v) => v.uploadStatus === 'uploaded').length >= 2 || filters.videos.length > 0) ? <AppScanPicker /> : undefined;
   const emptyDraft = collection.status === 'draft' && books.length === 0 && collection.videos.length === 0;
   const subtitle = emptyDraft ? t('app.collection.empty') : processing ? t('app.collection.processing') : `${tp('collection.header.books', counts.books)} · ${tp('collection.header.authors', counts.authors)}`;
 
@@ -280,11 +284,12 @@ export function AppCollection() {
           <AppViewBar
             label={t('app.collection.views.label')}
             submenuLabel={t('app.collection.submenu')}
+            submenuTrailing={scanPicker}
             tabs={showTabs ? tabs : []}
             fab={<AppViewFab label={t('app.collection.add')} icon={<Plus />} onClick={() => setAddOpen(true)} />}
           />
         ) : showTabs ? (
-          <AppViewBar label={t('app.collection.views.label')} submenuLabel={t('app.collection.submenu')} tabs={tabs} />
+          <AppViewBar label={t('app.collection.views.label')} submenuLabel={t('app.collection.submenu')} submenuTrailing={scanPicker} tabs={tabs} />
         ) : undefined
       }
       mainClassName={processing ? 'px-3 pt-3 pb-6' : 'pb-6'}

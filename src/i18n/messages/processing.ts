@@ -29,6 +29,11 @@ export const processing = defineMessages({
     'progress.label': 'A feldolgozás állása',
     'progress.books': 'Eddig {count} könyvet találtunk',
     'progress.books_one': 'Eddig {count} könyvet találtunk',
+    'total.label': 'A teljes könyvtár',
+    'total.hint': 'Az eddigi összes felvételből – a mostani feldolgozás végén ehhez adódnak az új könyvek.',
+    'total.growth': '+{count} új',
+    'total.growthHint': 'Ennyivel nőtt a könyvtár, amióta ezt az oldalt nézed',
+    'current.label': 'Most zajló feldolgozás',
     'progress.noBooksYet': 'Keressük az első könyvet…',
     'progress.sources': '{done} / {total} forrás kész',
 
@@ -211,6 +216,11 @@ export const processing = defineMessages({
     'progress.label': 'Processing progress',
     'progress.books': '{count} books found so far',
     'progress.books_one': '{count} book found so far',
+    'total.label': 'The whole library',
+    'total.hint': 'From all recordings so far – the new books of this processing are added to it.',
+    'total.growth': '+{count} new',
+    'total.growthHint': 'How much the library has grown since you opened this page',
+    'current.label': 'Processing now',
     'progress.noBooksYet': 'Looking for the first book…',
     'progress.sources': '{done} of {total} sources done',
 

@@ -11,7 +11,7 @@ import {
   type KeyboardEvent,
   type UIEvent,
 } from 'react';
-import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, useAppSubmenu } from '@/components/app/AppSubmenu';
+import { AppSubmenu, SubmenuChip, SubmenuDivider, SubmenuGroup, SubmenuToggle, useAppSubmenu } from '@/components/app/AppSubmenu';
 import { useCollection, type SortKey } from '@/components/collection/context';
 import { TOOLBAR_ID } from '@/components/collection/Toolbar';
 import {
@@ -444,13 +444,15 @@ export function TableView() {
         ))}
       </SubmenuGroup>
       <SubmenuDivider />
-      <SubmenuGroup label={t('data.table.density.label')}>
-        {DENSITIES.map((v) => (
-          <SubmenuChip key={v} active={density === v} onClick={() => setDensity(v)}>
-            {t(`data.table.density.${v}`)}
-          </SubmenuChip>
-        ))}
-      </SubmenuGroup>
+      <SubmenuToggle<Density>
+        label={t('data.table.density.label')}
+        value={density}
+        onChange={setDensity}
+        options={[
+          [DENSITIES[0], t(`data.table.density.${DENSITIES[0]}`)],
+          [DENSITIES[1], t(`data.table.density.${DENSITIES[1]}`)],
+        ]}
+      />
     </AppSubmenu>
   ) : null;
 

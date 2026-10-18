@@ -300,6 +300,7 @@ export function applyFilters(books: readonly BookDTO[], filters: BookFilters): B
   const statuses = new Set(filters.statuses);
   const authors = new Set(filters.authors.map(foldForSearch));
   const tags = new Set((filters.tags ?? []).map(foldForSearch));
+  const videos = new Set(filters.videos ?? []);
   const languages = new Set(filters.languages.map((l) => l.toLowerCase()));
   const decades = new Set(filters.decades);
 
@@ -316,6 +317,8 @@ export function applyFilters(books: readonly BookDTO[], filters: BookFilters): B
       if (!authors.has(whole) && !parts.some((p) => authors.has(p))) return false;
     }
     if (tags.size > 0 && !(book.tags ?? []).some((tag) => tags.has(foldForSearch(tag)))) return false;
+    // the recording the book came in with (books found again later keep their first recording)
+    if (videos.size > 0 && !(book.firstVideoId && videos.has(book.firstVideoId))) return false;
     if (languages.size > 0 && !(book.language && languages.has(book.language.toLowerCase()))) return false;
     if (decades.size > 0) {
       const decade = decadeOf(book.firstPublishedYear);
@@ -336,6 +339,7 @@ export function countActiveFilters(filters: BookFilters): number {
     (filters.statuses.length ? 1 : 0) +
     (filters.authors.length ? 1 : 0) +
     (filters.tags?.length ? 1 : 0) +
+    (filters.videos?.length ? 1 : 0) +
     (filters.languages.length ? 1 : 0) +
     (filters.decades.length ? 1 : 0) +
     (filters.needsReview ? 1 : 0) +

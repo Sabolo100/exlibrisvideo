@@ -4,6 +4,30 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.10.0 – 2026-10-18
+
+Phone app, after the owner's second round of comments (with screenshots of a new recording being processed).
+
+### Added
+- **Books of one recording**: at the right end of the view submenu, in every view, a drop-up list – "All books" by
+  default, then every recording newest first with the number of books it brought into the catalogue. Picking one
+  (typically the latest scan) shows only those books on the shelf, the cover wall, the authors … (`?scan=` in the
+  link, removable chip "Recording: Oct 18 10:25"). A book found again in a later recording stays with the one it
+  first came in with.
+- **Shelf order in the shelf's submenu**: shelf order / author / title – the books can now be put in A–Z order by
+  title on the shelf itself, not only on the cover wall.
+- **Edge chevrons** on the bottom menu: a small arrow at the right end (and, once swiped, at the left end) shows that
+  more views wait on that side.
+
+### Changed
+- **Processing screen order**: on top the whole library with its total book count, set apart as "The whole library"
+  (it used to read like the count of the scan running now – starting at 60–90 and then hardly growing); right below
+  it the processing running now; then the recordings newest first, so the one just recorded is no longer at the very
+  bottom.
+- **Two-way settings are one toggle chip** in the submenu (standing ⇄ lying, comfortable ⇄ compact, A–Z ⇄ most books,
+  decades ⇄ centuries, table rows): it shows the current choice and switches to the other one when tapped, so the
+  strip fits a narrow screen.
+
 ## 1.9.0 – 2026-10-15
 
 Phone app catalogue, after the owner's comments on the mobile view.

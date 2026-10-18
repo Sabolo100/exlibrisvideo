@@ -24,7 +24,7 @@ describe('parseUrlState', () => {
       p(
         'view=table&sort=author&q=eszterh%C3%A1zy&topic=poetry,history&status=read&status=to_read' +
           '&author=Esterh%C3%A1zy%20P%C3%A9ter&author=Doe%2C%20John&tag=Anna&tag=Nagyi%2C%20nappali&lang=hu,EN&decade=1960,1970' +
-          '&review=1&fav=true&lent=1&book=0b4e7c9a-1d2f-4c3b-9a8e-7f6d5c4b3a21',
+          '&review=1&fav=true&lent=1&scan=v-1,bad%20id,v-2&book=0b4e7c9a-1d2f-4c3b-9a8e-7f6d5c4b3a21',
       ),
     );
     expect(state).toEqual<CollectionUrlState>({
@@ -36,6 +36,7 @@ describe('parseUrlState', () => {
         statuses: ['read', 'to_read'],
         authors: ['Esterházy Péter', 'Doe, John'],
         tags: ['Anna', 'Nagyi, nappali'],
+        videos: ['v-1', 'v-2'],
         languages: ['hu', 'en'],
         decades: [1960, 1970],
         needsReview: true,
@@ -104,6 +105,7 @@ describe('buildSearch', () => {
         statuses: ['reading'],
         authors: ['Szabó Magda', 'García Márquez, Gabriel'],
         tags: ['Gyerekszoba'],
+        videos: ['0b4e7c9a-1d2f-4c3b-9a8e-7f6d5c4b3a21'],
         languages: ['hu'],
         decades: [1970, 1950],
         needsReview: true,

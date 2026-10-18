@@ -32,6 +32,8 @@ export interface BookFilters {
   authors: string[];
   /** owner's tags (any of them, case-insensitive) */
   tags: string[];
+  /** recordings (video ids): only the books that came into the catalogue with one of them (`firstVideoId`) */
+  videos: string[];
   languages: string[];
   /** decade start years, e.g. 1960 */
   decades: number[];
@@ -46,6 +48,7 @@ export const EMPTY_FILTERS: BookFilters = {
   statuses: [],
   authors: [],
   tags: [],
+  videos: [],
   languages: [],
   decades: [],
   needsReview: false,
