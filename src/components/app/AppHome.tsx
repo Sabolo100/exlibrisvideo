@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * Home tab of the phone app: a compact hero with a little shelf, the big "record a shelf" action,
- * gallery / open-by-number tiles and the recent catalogues – all on one screen, no page scroll.
+ * Home tab of the phone app: the promo video at the very top (the same player as the landing page – only its poster
+ * is in the first paint, it plays by itself, muted, once the page is idle), then the big "record a shelf" action,
+ * gallery / open-by-number tiles and the recent catalogues (or the filming tips). The content area scrolls when
+ * the screen is too short for all of it – the document itself never does.
  */
 import { Camera, ChevronRight, Hash, Images, Lightbulb, MoveHorizontal, Ruler, Settings2, SunMedium } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { BookSpine, SAMPLE_BOOKS } from '@/components/books';
+import { PromoVideo } from '@/components/landing/PromoVideo';
 import { LogoMark } from '@/components/site/Logo';
 import { SignInCard } from '@/components/site/SignInCard';
 import type { UploadLimits } from '@/components/upload/limits';
@@ -20,26 +22,6 @@ import { AppRecordProvider, useAppRecord } from './AppRecordProvider';
 import { AppScreen } from './AppScreen';
 import { AppSettingsSheet } from './AppSettingsSheet';
 import { AppBarButton, AppTopBar } from './AppTopBar';
-
-const HERO_BOOKS = SAMPLE_BOOKS.slice(0, 11);
-
-function HeroShelf() {
-  return (
-    <div aria-hidden="true" className="relative mx-auto flex h-[84px] w-full items-end justify-center gap-[3px] overflow-hidden px-3">
-      {HERO_BOOKS.map((book, i) => (
-        <BookSpine
-          key={book.id}
-          book={book}
-          size="sm"
-          decorative
-          className="app-screen-in shrink-0 origin-bottom"
-          style={{ animationDelay: `${i * 35}ms`, height: `${62 + ((i * 37) % 22)}px` }}
-        />
-      ))}
-      <span className="absolute inset-x-2 bottom-0 h-2 rounded-sm bg-gradient-to-b from-wood-light to-wood-dark shadow-[0_2px_4px_-1px_hsl(var(--shadow-color)/0.5)]" />
-    </div>
-  );
-}
 
 function ActionTile({ icon, title, hint, onClick }: { icon: ReactNode; title: string; hint: string; onClick: () => void }) {
   return (
@@ -141,10 +123,16 @@ function HomeContent() {
       bottom={<AppMainTabBar active="home" />}
       mainClassName="flex flex-col gap-3 px-4 pt-3 pb-4"
     >
-      <section className="app-screen-in flex min-h-[180px] flex-1 flex-col justify-center overflow-hidden rounded-[22px] border border-line bg-surface pt-3 pb-3.5 shadow-[0_6px_20px_-12px_hsl(var(--shadow-color)/0.45)]">
-        <HeroShelf />
-        <div className="px-4 pt-3 text-center">
-          <h2 className="font-display text-[1.375rem] leading-tight font-semibold text-ink">{t('app.home.hero.title')}</h2>
+      {/* the promo video at the very top (replaces the small static shelf); the headline and one line sit under it */}
+      <section
+        aria-labelledby="app-home-title"
+        className="app-screen-in shrink-0 overflow-hidden rounded-[22px] border border-line bg-surface p-2 shadow-[0_6px_20px_-12px_hsl(var(--shadow-color)/0.45)]"
+      >
+        <PromoVideo />
+        <div className="px-2.5 pt-3 pb-1.5 text-center">
+          <h2 id="app-home-title" className="font-display text-[1.375rem] leading-tight font-semibold text-ink">
+            {t('app.home.hero.title')}
+          </h2>
           <p className="mt-1 text-[0.875rem] leading-snug text-muted">{t('app.home.hero.text')}</p>
         </div>
       </section>

@@ -4,6 +4,25 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.14.0 – 2026-10-19
+
+### Changed
+- **The phone's start screen opens with the promo video.** On a phone (the installed app or the browser) the home screen
+  showed a small, static bookshelf drawing above "Filmezd le a polcodat". The promo video now sits there instead – at the
+  very top, right under the app bar – with the headline and the one-line promise below it; the sign-in card, the record
+  button, the tiles and the recent catalogues follow as before. The player is the one of the website: the first paint
+  only holds the poster, the file is requested once the page is idle, it plays muted while it is on screen and pauses when
+  scrolled away, with tap controls for sound, full screen and replay. If the screen is too short for everything the
+  content area scrolls (the video scrolls out of sight and stops).
+- **The player no longer downloads the 10 MB file on a slow or metered connection.** With the browser's data saver on,
+  with "reduce motion" or on a 2G / 3G connection the file is not requested by itself any more: the poster waits with a
+  play button and a tap starts the video. (Before, those settings only stopped the autoplay – the file was fetched in the
+  background anyway.) Applies to the website and to the phone home screen.
+
+### Tests
+- `app-home.render.spec.tsx`: the order on the phone home screen (video → headline → sign-in → record action → tiles,
+  Hungarian and English), only the poster in the first paint, no shelf drawing any more.
+
 ## 1.13.0 – 2026-10-19
 
 ### Changed

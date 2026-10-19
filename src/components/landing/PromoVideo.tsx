@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * The promo video, right under the brand name at the top of the landing page. It must never slow the first paint
- * down, yet start as soon as the page is ready:
+ * The promo video, right under the brand name at the top of the landing page – and at the very top of the phone
+ * app's home screen (AppHome). It must never slow the first paint down, yet start as soon as the page is ready:
  *
  *  - the first paint only holds the poster image (a small JPEG with a high fetch priority – it is the biggest thing
  *    on screen) – no video bytes at all (`preload="none"`, no `src`);
@@ -10,8 +10,9 @@
  *    the file is requested (`src` + `preload="auto"`, 10.4 MB, `+faststart` so playback begins after the first chunk);
  *  - when about half of it is on screen it plays – muted, because browsers only autoplay silent video – and it
  *    pauses again when scrolled away or the tab is hidden;
- *  - it does NOT autoplay with "reduce motion" or the data saver on, nor when the browser refuses (iOS low-power
- *    mode): then the poster with a play button waits for a tap;
+ *  - it does NOT autoplay – and does not even request the file – with "reduce motion", the data saver or a slow
+ *    connection (2G / 3G) on, nor when the browser refuses (iOS low-power mode): then the poster with a play button
+ *    waits for a tap;
  *  - at the end it stops (no endless loop in an idle tab) and offers "watch again".
  * The file is served from this site (public/promo), no third party, no cookies, no tracking.
  */
@@ -34,8 +35,10 @@ type FullscreenVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void }
 
 function autoplayAllowed(): boolean {
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-  return !connection?.saveData;
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (connection?.saveData) return false;
+  // a 10 MB video does not belong on a slow mobile connection (phones are the main audience): wait for a tap there
+  return !/^(slow-2g|2g|3g)$/.test(connection?.effectiveType ?? '');
 }
 
 type IdleWindow = Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (handle: number) => void };
@@ -110,7 +113,10 @@ export function PromoVideo({ className }: { className?: string }) {
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
           near.disconnect();
-          cancelIdle = whenPageIdle(() => setArmed(true));
+          // nothing is requested when it would not play by itself anyway (data saver, reduced motion, slow connection) – the tap does it
+          cancelIdle = whenPageIdle(() => {
+            if (autoplayAllowed()) setArmed(true);
+          });
         }
       },
       { rootMargin: PREFETCH_MARGIN },
