@@ -4,6 +4,18 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.16.0 – 2026-10-19
+
+### Added
+- **Investor and sponsor presentation at `/deck`** (Hungarian, presentation v1.0.0): 18 fullscreen slides stepped left/right (keys, swipe, edge clicks), overview (`O`), fullscreen (`F`),
+  start gate, detail pop-ups, print to PDF one slide per page. Code-driven motion instead of slide transitions: on the cover the real 9.6 s sample shelf video plays with the real
+  recognition boxes drawn from its track data while the real spine photos land on a shelf; the app's screen recordings run in phone and browser frames with step lists synced to
+  the video time; measured accuracy, architecture, history, market, sponsorship and hand-over slides. Facts only from the repo (eval script, tests, changelog, SPEC); market
+  directions and sponsor slots are labelled as directions / concept.
+- It is a static page in `public/deck/` (sources: `deck/build.mjs`, `deck/media.mjs`, `deck/README.md`), served at `/deck` by a rewrite in `next.config.ts`, with
+  `X-Robots-Tag: noindex, nofollow` and a `noindex` meta. **Nothing in the app links to it** – it opens only by its address. Media ≈ 4 MB (re-encoded clips, WebP stills,
+  37 spine photos); the full promo video is reused from `public/promo/`. The page shows its own version and build id (gate, footer, overview).
+
 ## 1.15.0 – 2026-10-19
 
 ### Changed

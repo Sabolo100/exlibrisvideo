@@ -39,9 +39,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_BUILD_ID: process.env.BUILD_ID || contentHash(),
   },
-  // public/promo: the promo video and its poster carry their version in the file name → cache them for good
+  // public/promo: the promo video and its poster carry their version in the file name → cache them for good.
+  // /deck: the investor presentation (public/deck, built by deck/build.mjs) – reachable only by its address,
+  // never linked from the app, kept out of search engines.
   async headers() {
-    return [{ source: '/promo/:file*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] }];
+    return [
+      { source: '/promo/:file*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
+      { source: '/deck', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }, { key: 'Cache-Control', value: 'no-cache' }] },
+      { source: '/deck/:path*', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] },
+    ];
+  },
+  // /deck is a static page in public/deck; without this rewrite the [id] catalogue route would answer it (404)
+  async rewrites() {
+    return { beforeFiles: [{ source: '/deck', destination: '/deck/index.html' }], afterFiles: [], fallback: [] };
   },
   images: {
     // Covers come from Open Library / Google Books; spine crops are served by /api/media.

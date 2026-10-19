@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ex Libris Video — befektetői bemutató</title>
+<meta name="description" content="Ex Libris Video: könyvespolc-videóból könyvkatalógus. Befektetői és szponzori bemutató.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="version" content="Prezentáció v1.0.0 · 303b893 · app v1.16.0">
+<meta name="theme-color" content="#14100c">
+<link rel="icon" href="/icon.png">
+<link rel="preload" href="/deck/assets/fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/deck/assets/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/deck/assets/deck.css?v=303b893">
+</head>
+<body class="deck-body">
+
+<div class="deck-topbar">
+  <a class="deck-brand" href="https://www.exlibrisvideo.hu" target="_blank" rel="noopener" title="exlibrisvideo.hu (új lapon)"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M6.5 1.5h19a5 5 0 0 0 5 5v23a5 5 0 0 0-5 5h-19a5 5 0 0 0-5-5v-23a5 5 0 0 0 5-5Z" fill="#1f4d3a"/><path d="M8 4h16a4.5 4.5 0 0 0 4 4v20a4.5 4.5 0 0 0-4 4H8a4.5 4.5 0 0 0-4-4V8a4.5 4.5 0 0 0 4-4Z" fill="none" stroke="#dcb068" stroke-width="0.9" opacity="0.9"/><rect x="8.6" y="12.2" width="4" height="14.8" rx="0.6" fill="#fbf6ec" opacity="0.92"/><rect x="13.6" y="9" width="5.6" height="18" rx="0.7" fill="#fbf6ec"/><rect x="13.6" y="10.8" width="5.6" height="1" fill="#dcb068"/><rect x="13.6" y="24.2" width="5.6" height="1" fill="#dcb068"/><path d="M15.3 15.4v5.2l4-2.6Z" transform="translate(-0.4 0)" fill="#1f4d3a"/><rect x="21.2" y="13.2" width="3.6" height="14.4" rx="0.6" fill="#fbf6ec" opacity="0.8" transform="rotate(9 23 27.4)"/><rect x="6.8" y="27.2" width="18.4" height="1.5" rx="0.5" fill="#dcb068"/></svg><span>Ex Libris <em>Video</em></span></a>
+  <div class="deck-topbar__title" id="deckTitle"></div>
+  <div class="deck-topbar__actions">
+    <button type="button" class="deck-btn" id="ovBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Áttekintés</span></button>
+    <button type="button" class="deck-btn" id="fsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg><span>Teljes képernyő</span></button>
+    <a class="deck-btn deck-btn--accent" href="https://www.exlibrisvideo.hu" target="_blank" rel="noopener"><span>Kipróbálom</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+  </div>
+</div>
+<div class="deck-progress"><div class="deck-progress__bar" id="deckBar"></div></div>
+
+<main class="deck" id="deck">
+  <button type="button" class="deck-edge deck-edge--left" id="edgePrev" aria-label="Előző dia"></button>
+  <button type="button" class="deck-edge deck-edge--right" id="edgeNext" aria-label="Következő dia"></button>
+  <div class="stage" id="stage">
+
+<!-- 01 ─ cover -->
+<section class="slide slide--cover" id="slide-cover" data-id="cover" data-title="Elég egy videó">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="cv" data-demo="tracks">
+    <div class="cv__copy">
+      <div class="rv" style="--d:0"><span class="cv-mark"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M6.5 1.5h19a5 5 0 0 0 5 5v23a5 5 0 0 0-5 5h-19a5 5 0 0 0-5-5v-23a5 5 0 0 0 5-5Z" fill="#1f4d3a"/><path d="M8 4h16a4.5 4.5 0 0 0 4 4v20a4.5 4.5 0 0 0-4 4H8a4.5 4.5 0 0 0-4-4V8a4.5 4.5 0 0 0 4-4Z" fill="none" stroke="#dcb068" stroke-width="0.9" opacity="0.9"/><rect x="8.6" y="12.2" width="4" height="14.8" rx="0.6" fill="#fbf6ec" opacity="0.92"/><rect x="13.6" y="9" width="5.6" height="18" rx="0.7" fill="#fbf6ec"/><rect x="13.6" y="10.8" width="5.6" height="1" fill="#dcb068"/><rect x="13.6" y="24.2" width="5.6" height="1" fill="#dcb068"/><path d="M15.3 15.4v5.2l4-2.6Z" transform="translate(-0.4 0)" fill="#1f4d3a"/><rect x="21.2" y="13.2" width="3.6" height="14.4" rx="0.6" fill="#fbf6ec" opacity="0.8" transform="rotate(9 23 27.4)"/><rect x="6.8" y="27.2" width="18.4" height="1.5" rx="0.5" fill="#dcb068"/></svg><span><b>Ex Libris <em>Video</em></b><small>by DarwinAI</small></span></span></div>
+      <p class="s-k rv" style="--d:1">Befektetői és szponzori bemutató</p>
+      <h1 class="s-h1 rv" style="--d:2">Elég egy <em>videó.</em></h1>
+      <p class="s-lead rv" style="--d:3">Filmezd le a könyvespolcot — a mesterséges intelligencia elolvassa a gerinceket, és kész a katalógus.</p>
+      <div class="cv-chips"><ul class="s-chips rv" style="--d:4"><li><b>Élő</b> · exlibrisvideo.hu</li><li>Telefonon és gépen</li><li>Magyar és angol felület</li></ul></div>
+      <div class="cv-shelf rv" style="--d:5">
+        <div class="cv-shelf__head"><b class="cv-count">21</b><span>könyv felismerve<br><em class="cv-of">a polcon lévő 29 könyvből</em></span><small>valódi felvétel · valódi felismerés</small></div>
+        <div class="cv-row" style="--sh:118px"><img src="/deck/media/spines/e467bd9c.webp" alt="" data-b="e467bd9c" width="24" height="118"><img src="/deck/media/spines/ef62d9d7.webp" alt="" data-b="ef62d9d7" width="18" height="118"><img src="/deck/media/spines/0c19d1e5.webp" alt="" data-b="0c19d1e5" width="27" height="118"><img src="/deck/media/spines/42985636.webp" alt="" data-b="42985636" width="15" height="118"><img src="/deck/media/spines/0a756190.webp" alt="" data-b="0a756190" width="13" height="118"><img src="/deck/media/spines/5b721984.webp" alt="" data-b="5b721984" width="22" height="118"><img src="/deck/media/spines/9f1f95c1.webp" alt="" data-b="9f1f95c1" width="8" height="118"><img src="/deck/media/spines/a9217dd9.webp" alt="" data-b="a9217dd9" width="20" height="118"><img src="/deck/media/spines/ff39f65c.webp" alt="" data-b="ff39f65c" width="15" height="118"><img src="/deck/media/spines/0f649913.webp" alt="" data-b="0f649913" width="27" height="118"><img src="/deck/media/spines/63d0b111.webp" alt="" data-b="63d0b111" width="20" height="118"><img src="/deck/media/spines/a0d6aff3.webp" alt="" data-b="a0d6aff3" width="10" height="118"><img src="/deck/media/spines/1f397045.webp" alt="" data-b="1f397045" width="7" height="118"><img src="/deck/media/spines/f82939c6.webp" alt="" data-b="f82939c6" width="8" height="118"><img src="/deck/media/spines/cdeb3907.webp" alt="" data-b="cdeb3907" width="7" height="118"><img src="/deck/media/spines/60b1b3d3.webp" alt="" data-b="60b1b3d3" width="12" height="118"><img src="/deck/media/spines/801323ac.webp" alt="" data-b="801323ac" width="10" height="118"><img src="/deck/media/spines/f69fc6b2.webp" alt="" data-b="f69fc6b2" width="15" height="118"><img src="/deck/media/spines/b953a8a7.webp" alt="" data-b="b953a8a7" width="19" height="118"><img src="/deck/media/spines/d45ab560.webp" alt="" data-b="d45ab560" width="7" height="118"><img src="/deck/media/spines/19db8dcf.webp" alt="" data-b="19db8dcf" width="14" height="118"></div>
+        <div class="cv-plank"></div>
+      </div>
+    </div>
+    <figure class="cv-phone rv-pop" style="--d:2">
+      <div class="ph ph--916"><div class="ph__scr"><video src="/deck/media/shelf.mp4" poster="/deck/media/shelf.webp" muted playsinline preload="auto" data-auto aria-label="Valódi polcfelvétel a felismerés dobozaival"></video><svg class="cv-boxes" viewBox="0 0 1080 1920" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg><span class="cv-rec"><i></i><b>00:00</b></span></div><i class="ph__isl"></i></div>
+      <figcaption class="cv-cap">9,6 mp-es telefonos felvétel</figcaption>
+    </figure>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">01 / 18</span></div>
+</section>
+
+<!-- 02 ─ problem -->
+<section class="slide" id="slide-problem" data-id="problem" data-title="A probléma">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">01 — A probléma</p>
+  <h2 class="s-h2  rv" style="--d:1">Sok könyv. <em>Semmi lista.</em></h2>
+  <div class="pb">
+    
+    <article class="pb-p rv" style="--d:2">
+      <img class="pb-p__g" src="/deck/media/shelf-a.webp" alt="" aria-hidden="true">
+      <img class="pb-p__c" src="/deck/media/shelf-a.webp" alt="Valódi könyvespolc a mintafelvételekből" style="--i:0">
+      <div class="pb-p__b"><span class="pb-p__q">„</span><h3 class="pb-p__t">Mi van meg?</h3><p class="pb-p__p">A boltban nem tudjuk, megvan-e már. Ami megvan, kétszer is megvesszük.</p></div>
+    </article>
+    <article class="pb-p rv" style="--d:3">
+      <img class="pb-p__g" src="/deck/media/shelf-b.webp" alt="" aria-hidden="true">
+      <img class="pb-p__c" src="/deck/media/shelf-b.webp" alt="Valódi könyvespolc a mintafelvételekből" style="--i:1">
+      <div class="pb-p__b"><span class="pb-p__q">„</span><h3 class="pb-p__t">Költözés, hagyaték, biztosítás</h3><p class="pb-p__p">Ilyenkor kell a leltár — kézzel hosszú, unalmas munka.</p></div>
+    </article>
+    <article class="pb-p rv" style="--d:4">
+      <img class="pb-p__g" src="/deck/media/shelf-c.webp" alt="" aria-hidden="true">
+      <img class="pb-p__c" src="/deck/media/shelf-c.webp" alt="Valódi könyvespolc a mintafelvételekből" style="--i:2">
+      <div class="pb-p__b"><span class="pb-p__q">„</span><h3 class="pb-p__t">Kinél van?</h3><p class="pb-p__p">Kölcsönadtuk, elfelejtettük. A gyűjtemény nem látszik, nem osztható meg.</p></div>
+    </article>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">02 / 18</span></div>
+</section>
+
+<!-- 03 ─ race -->
+<section class="slide" id="slide-race" data-id="race" data-title="Kézzel vagy videóval">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">01 — A probléma</p>
+  <h2 class="s-h2  rv" style="--d:1">Gépelés helyett <em>egy pásztázás.</em></h2>
+  <span class="s-tag rc-note rv" style="--d:2">Illusztráció</span>
+  <div class="rc" data-demo="race">
+    <section class="rc-c rv" style="--d:2">
+      <div class="rc-c__h"><b>Kézzel</b><span class="rc-clock" data-clock>00:12</span></div>
+      <p class="rc-c__sub">Könyvenként gépelés vagy vonalkód-olvasás — minden könyvet kézbe kell venni.</p>
+      <ol class="rc-list" data-race="slow" data-items="[&quot;Ferrante, Elena — Az új név története&quot;,&quot;Asimov, Isaac — Az Alapítvány barátai&quot;,&quot;Móricz Zsigmond — Rokonok&quot;,&quot;Saylor, Steven — Római vér&quot;,&quot;Nguyen, Viet Thanh — The Committed&quot;]"><li><span>1</span><i style="font-style:normal">Ferrante, Elena — Az új név története</i></li><li><span>2</span><i style="font-style:normal">Asimov, Isaac — Az Alapítvány barátai</i></li><li><span>3</span><i style="font-style:normal">Móricz Zsigmond — Rokonok</i></li><li><span>4</span><i style="font-style:normal">Saylor, Steven — Római vér</i></li></ol>
+      <div class="rc-total"><b data-total>4</b><span>könyv begépelve</span></div>
+    </section>
+    <section class="rc-c rc-c--win rv" style="--d:3">
+      <div class="rc-c__h"><b>Ex Libris <em>Video</em></b><span class="rc-clock" data-clock>00:12</span></div>
+      <p class="rc-c__sub">10 mp felvétel, a többi a háttérben fut — a feldolgozás néhány perc, közben nincs teendő.</p>
+      <div class="rc-strip" aria-hidden="true"><div class="rc-strip__in"><img src="/deck/media/spines/e467bd9c.webp" alt=""><img src="/deck/media/spines/ef62d9d7.webp" alt=""><img src="/deck/media/spines/0c19d1e5.webp" alt=""><img src="/deck/media/spines/42985636.webp" alt=""><img src="/deck/media/spines/0a756190.webp" alt=""><img src="/deck/media/spines/5b721984.webp" alt=""><img src="/deck/media/spines/9f1f95c1.webp" alt=""><img src="/deck/media/spines/a9217dd9.webp" alt=""><img src="/deck/media/spines/ff39f65c.webp" alt=""><img src="/deck/media/spines/0f649913.webp" alt=""><img src="/deck/media/spines/63d0b111.webp" alt=""><img src="/deck/media/spines/a0d6aff3.webp" alt=""><img src="/deck/media/spines/1f397045.webp" alt=""><img src="/deck/media/spines/f82939c6.webp" alt=""><img src="/deck/media/spines/cdeb3907.webp" alt=""><img src="/deck/media/spines/60b1b3d3.webp" alt=""><img src="/deck/media/spines/801323ac.webp" alt=""><img src="/deck/media/spines/f69fc6b2.webp" alt=""><img src="/deck/media/spines/b953a8a7.webp" alt=""><img src="/deck/media/spines/d45ab560.webp" alt=""><img src="/deck/media/spines/19db8dcf.webp" alt=""></div><i class="rc-strip__frame"></i></div>
+      <ol class="rc-list rc-list--fast" data-race="fast" data-items="[&quot;Elena Ferrante — Az új név története&quot;,&quot;Elena Ferrante — Aki megszökik és aki marad&quot;,&quot;Elena Ferrante — Az elveszett gyerek története&quot;,&quot;Móricz Zsigmond — Rokonok&quot;,&quot;Alan Macfarlane — Levelek Lilynek&quot;,&quot;Steven Saylor — Római vér&quot;,&quot;Gerald Durrell — Istenek kertje&quot;,&quot;Viet Thanh Nguyen — The Committed&quot;,&quot;Babits Mihály — A gólyakalifa&quot;,&quot;James S. A. Corey — Abaddon kapuja&quot;,&quot;Hans Rosling — Factfulness&quot;,&quot;Jack Kerouac — On the Road&quot;,&quot;Mark Twain — Ádám és Éva naplója&quot;,&quot;Rotterdami Erasmus — A balgaság dicsérete&quot;,&quot;Niccolò Machiavelli — A fejedelem&quot;,&quot;Változás&quot;,&quot;Ray Bradbury — Szép arany álmáit a nap&quot;,&quot;William Montgomery Watt — Az iszlám rövid története&quot;,&quot;Pierre Teilhard de Chardin — Az emberi jelenség&quot;,&quot;Philip K. Dick — Az ember a Fellegvárban&quot;,&quot;Simon Sinek — Start with Why&quot;]"><li><span>16</span><i style="font-style:normal">Változás</i></li><li><span>17</span><i style="font-style:normal">Ray Bradbury — Szép arany álmáit a nap</i></li><li><span>18</span><i style="font-style:normal">William Montgomery Watt — Az iszlám rövid története</i></li><li><span>19</span><i style="font-style:normal">Pierre Teilhard de Chardin — Az emberi jelenség</i></li><li><span>20</span><i style="font-style:normal">Philip K. Dick — Az ember a Fellegvárban</i></li><li><span>21</span><i style="font-style:normal">Simon Sinek — Start with Why</i></li></ol>
+      <div class="rc-total"><b data-total>21</b><span>könyv felismerve ugyanabból a 10 másodpercből</span></div>
+    </section>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">03 / 18</span></div>
+</section>
+
+<!-- 04 ─ how -->
+<section class="slide" id="slide-how" data-id="how" data-title="Így működik">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">02 — A megoldás</p>
+  <h2 class="s-h2  rv" style="--d:1">Három lépés, <em>egy</em> mozdulat.</h2>
+  <div class="hw">
+    <i class="hw-line"></i><i class="hw-dot"></i>
+    <ol class="hw-steps">
+      
+      <li class="hw-s rv" style="--d:2;--i:0">
+        <span class="hw-s__n">1</span>
+        <h3>Filmezd le</h3><p>Lassan végigpásztázod a polcot a telefonnal — az appban vagy a böngészőben.</p>
+        <div class="hw-s__m hw-s__m--ph"><img src="/deck/media/p-camera.webp" alt="Filmezd le — képernyőkép az alkalmazásból"></div>
+      </li>
+      <li class="hw-s rv" style="--d:3;--i:1">
+        <span class="hw-s__n">2</span>
+        <h3>Az AI elolvassa</h3><p>Gerincenként kivágja és elolvassa a könyveket, kiszűri az ismétlődéseket.</p>
+        <div class="hw-s__m hw-s__m--ph"><img src="/deck/media/proc.webp" alt="Az AI elolvassa — képernyőkép az alkalmazásból"></div>
+      </li>
+      <li class="hw-s rv" style="--d:4;--i:2">
+        <span class="hw-s__n">3</span>
+        <h3>Kész a katalógus</h3><p>Saját link, kilenc nézet, export — telefonon és gépen.</p>
+        <div class="hw-s__m"><img src="/deck/media/catalogue.webp" alt="Kész a katalógus — képernyőkép az alkalmazásból"></div>
+      </li>
+    </ol>
+  </div>
+  <div class="hw-chips"><ul class="s-chips rv" style="--d:6"><li>Fiók nélkül is: <b>titkos link</b></li><li><b>Google-belépéssel</b> is</li><li>Több felvétel <b>egy könyvtárba</b></li><li>Magyar és angol felület</li></ul></div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">04 / 18</span></div>
+</section>
+
+<!-- 05 ─ capture -->
+<section class="slide" id="slide-capture" data-id="capture" data-title="Felvétel a telefonnal">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="vs">
+    <div class="vs__copy">
+      <p class="s-k rv" style="--d:0">02 — A megoldás · felvétel</p>
+      <h2 class="s-h2  rv" style="--d:1">Felvétel: egy <em>lassú pásztázás.</em></h2>
+      <ol class="sy " data-for="v-cam"><li class="rv" style="--d:2" data-t="0"><span class="sy__n">01</span><div><b>Polc felvétele</b><em>Egy koppintás a kezdőképernyőn — az app maga nyitja a kamerát.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:3" data-t="2.2"><span class="sy__n">02</span><div><b>Rövid útmutató</b><em>30–40 cm-re a gerincektől, lassan, polcsoronként.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:4" data-t="11.4"><span class="sy__n">03</span><div><b>Felvétel</b><em>Egy egyenletes pásztázás a polc hosszában.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:5" data-t="16.6"><span class="sy__n">04</span><div><b>Kész — vagy még egy polc</b><em>Annyi felvétel, ahány polc; mind egy könyvtárba kerül.</em></div><i class="sy__bar"></i></li></ol>
+      <p class="s-note rv" style="--d:7">Galériából is feltölthető videó vagy fotó; egyetlen könyv borítójáról is felismer (vonalkód).</p>
+    </div>
+    <div class="vs__media rv-pop" style="--d:2"><div class="ph "><div class="ph__scr"><video id="v-cam" src="/deck/media/cam.mp4" poster="/deck/media/cam.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div></div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">05 / 18</span></div>
+</section>
+
+<!-- 06 ─ process -->
+<section class="slide" id="slide-process" data-id="process" data-title="Feldolgozás">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="vs vs--rev">
+    <div class="vs__media rv-pop" style="--d:2"><div class="ph "><div class="ph__scr"><video id="v-proc" src="/deck/media/proc.mp4" poster="/deck/media/proc.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div></div>
+    <div class="vs__copy">
+      <p class="s-k rv" style="--d:0">02 — A megoldás · feldolgozás</p>
+      <h2 class="s-h2  rv" style="--d:1">Már feldolgozás közben <em>megtelik a polc.</em></h2>
+      <ol class="sy " data-for="v-proc"><li class="rv" style="--d:2" data-t="0"><span class="sy__n">01</span><div><b>A teljes könyvtár</b><em>Fent az összes felvétel könyvei együtt — a régiek is.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:3" data-t="3.5"><span class="sy__n">02</span><div><b>Gerincek olvasása</b><em>Kockáról kockára, élő százalékkal; a háttérben fut.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:4" data-t="8"><span class="sy__n">03</span><div><b>Így telik meg a polcod</b><em>A felismert könyvek azonnal megjelennek a polcon.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:5" data-t="22.6"><span class="sy__n">04</span><div><b>Böngészhető katalógus</b><em>Kész: polc, borítók, szerzők — és e-mail, ha kérted.</em></div><i class="sy__bar"></i></li></ol>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">06 / 18</span></div>
+</section>
+
+<!-- 07 ─ reading -->
+<section class="slide" id="slide-reading" data-id="reading" data-title="Gerincenként olvas">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">03 — A technológia</p>
+  <h2 class="s-h2 s-h2--wide rv" style="--d:1">Gerincenként olvas, <em>nem találgat.</em></h2>
+  <div class="rd">
+    <div class="rd-pile rv-pop" style="--d:2">
+      <i class="rd-scan" aria-hidden="true"></i>
+      
+      <div class="rd-row" style="--i:0">
+        <span class="rd-sp" style="--i:0"><img src="/deck/media/spines/read-e467bd9c.webp" alt="Kivágott gerincfotó: Az új név története"></span>
+        <span class="rd-lbl" style="--i:0"><b>Az új név története</b><span>Elena Ferrante</span><span class="rd-conf" style="--i:0"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:1">
+        <span class="rd-sp" style="--i:1"><img src="/deck/media/spines/read-19db8dcf.webp" alt="Kivágott gerincfotó: Start with Why"></span>
+        <span class="rd-lbl" style="--i:1"><b>Start with Why</b><span>Simon Sinek</span><span class="rd-conf" style="--i:1"><i style="--c:90%"></i><small>90 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:2">
+        <span class="rd-sp" style="--i:2"><img src="/deck/media/spines/read-42985636.webp" alt="Kivágott gerincfotó: Rokonok"></span>
+        <span class="rd-lbl" style="--i:2"><b>Rokonok</b><span>Móricz Zsigmond</span><span class="rd-conf" style="--i:2"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:3">
+        <span class="rd-sp" style="--i:3"><img src="/deck/media/spines/read-5b721984.webp" alt="Kivágott gerincfotó: Római vér"></span>
+        <span class="rd-lbl" style="--i:3"><b>Római vér</b><span>Steven Saylor</span><span class="rd-conf" style="--i:3"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:4">
+        <span class="rd-sp" style="--i:4"><img src="/deck/media/spines/read-a9217dd9.webp" alt="Kivágott gerincfotó: The Committed"></span>
+        <span class="rd-lbl" style="--i:4"><b>The Committed</b><span>Viet Thanh Nguyen</span><span class="rd-conf" style="--i:4"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:5">
+        <span class="rd-sp" style="--i:5"><img src="/deck/media/spines/read-ff39f65c.webp" alt="Kivágott gerincfotó: A gólyakalifa"></span>
+        <span class="rd-lbl" style="--i:5"><b>A gólyakalifa</b><span>Babits Mihály</span><span class="rd-conf" style="--i:5"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:6">
+        <span class="rd-sp" style="--i:6"><img src="/deck/media/spines/read-0f649913.webp" alt="Kivágott gerincfotó: Abaddon kapuja"></span>
+        <span class="rd-lbl" style="--i:6"><b>Abaddon kapuja</b><span>James S. A. Corey</span><span class="rd-conf" style="--i:6"><i style="--c:95%"></i><small>95 %</small></span></span>
+      </div>
+      <div class="rd-row" style="--i:7">
+        <span class="rd-sp" style="--i:7"><img src="/deck/media/spines/read-63d0b111.webp" alt="Kivágott gerincfotó: Factfulness"></span>
+        <span class="rd-lbl" style="--i:7"><b>Factfulness</b><span>Hans Rosling</span><span class="rd-conf" style="--i:7"><i style="--c:90%"></i><small>90 %</small></span></span>
+      </div>
+    </div>
+    <div class="rd__side">
+      <ol class="rd-flow">
+        <li class="rv" style="--d:2;--i:0"><span>1</span><div><b>Éles kockák</b><em>Másodpercenként ~3 kulcskocka, a bemozdultak kiesnek.</em></div></li><li class="rv" style="--d:3;--i:1"><span>2</span><div><b>Polcsávok, gerinchatárok</b><em>Geometria: a gerincek egyenként, dőlésszöggel.</em></div></li><li class="rv" style="--d:4;--i:2"><span>3</span><div><b>Követés</b><em>A kamera mozgásából tudja, melyik gerinc melyik.</em></div></li><li class="rv" style="--d:5;--i:3"><span>4</span><div><b>Olvasás</b><em>Az AI a kivágott gerincet mindkét irányba fordítva kapja.</em></div></li><li class="rv" style="--d:6;--i:4"><span>5</span><div><b>Összefésülés</b><em>Ismétlődés-szűrés, bizonytalannál második olvasás.</em></div></li><li class="rv" style="--d:7;--i:5"><span>6</span><div><b>Gazdagítás</b><em>Borító, téma, év, leírás — Open Library + AI.</em></div></li>
+      </ol>
+      <div class="s-acts rv" style="--d:9"><button type="button" class="s-btn" data-open="pipeline" aria-haspopup="dialog"><span>Részletek</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">07 / 18</span></div>
+</section>
+
+<!-- 08 ─ accuracy -->
+<section class="slide" id="slide-accuracy" data-id="accuracy" data-title="Mérve, nem becsülve">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">03 — A technológia · mérés</p>
+  <h2 class="s-h2  rv" style="--d:1">Mérve, <em>nem becsülve.</em></h2>
+  <div class="ms">
+    <div class="ms-rows">
+      
+      <div class="ms-r rv" style="--d:2">
+        <div class="ms-r__h"><div><b>Pontosság</b><small>a talált tételekből ennyi valódi könyv</small></div><div class="ms-r__v"><s>54,4</s><span data-count="77.7" data-from="54.4" data-dec="1" data-suffix=" %" data-delay="1.20">77,7 %</span></div></div>
+        <div class="ms-bars"><i class="ms-bar ms-bar--a" style="--w:54.4%;--i:0"></i><i class="ms-bar ms-bar--b" style="--w:77.7%;--i:0"></i></div>
+      </div>
+      <div class="ms-r rv" style="--d:3">
+        <div class="ms-r__h"><div><b>Pontos cím</b><small>a megtalált könyvek címe betűre egyezik</small></div><div class="ms-r__v"><s>88,3</s><span data-count="93.5" data-from="88.3" data-dec="1" data-suffix=" %" data-delay="1.45">93,5 %</span></div></div>
+        <div class="ms-bars"><i class="ms-bar ms-bar--a" style="--w:88.3%;--i:1"></i><i class="ms-bar ms-bar--b" style="--w:93.5%;--i:1"></i></div>
+      </div>
+      <div class="ms-r rv" style="--d:4">
+        <div class="ms-r__h"><div><b>Megtalálás</b><small>a jól látható gerincekből ennyit talál meg</small></div><div class="ms-r__v"><s>79,0</s><span data-count="81.5" data-from="79" data-dec="1" data-suffix=" %" data-delay="1.70">81,5 %</span></div></div>
+        <div class="ms-bars"><i class="ms-bar ms-bar--a" style="--w:79%;--i:2"></i><i class="ms-bar ms-bar--b" style="--w:81.5%;--i:2"></i></div>
+      </div>
+      <div class="ms-r rv" style="--d:5">
+        <div class="ms-r__h"><div><b>Feldolgozási idő</b><small>az öt mintafelvételre együtt</small></div><div class="ms-r__v"><s>5:15</s><span>2:50</span></div></div>
+      </div>
+      <p class="ms-key rv" style="--d:6"><span><i></i>korábbi: egész képkockák olvasása</span><span><i class="b"></i>most: gerincenkénti felismerés</span></p>
+    </div>
+    <div class="ms__side">
+      <div class="ms-safe rv" style="--d:3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.3-2.5 3.8M12 17.2v.1"/></svg><div><b>Bizonytalan? Rákérdez.</b><em>A gyenge olvasatok az „Átnézés” nézetbe kerülnek, egy kattintással javíthatók.</em></div></div><div class="ms-safe rv" style="--d:4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="11.5" y="6" width="4" height="14" rx="1"/><path d="m17 7.5 3.2.9-3.4 11.8-3-.9"/></svg><div><b>Olvashatatlan gerinc</b><em>Fotóval a tulajdonos elé kerül — nem tűnik el, nem talál ki címet.</em></div></div><div class="ms-safe rv" style="--d:5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="10" height="16" rx="1.5"/><path d="M14 7h4.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 1-1.5 1.5H10"/></svg><div><b>Ismétlődés</b><em>Ugyanaz a polc kétszer? Összefésüli; egyedül álló egyezésnél megkérdezi.</em></div></div>
+      <p class="s-note rv" style="--d:7">Saját mérés: 5 mintafelvétel, 158 kézzel ellenőrzött könyv, deepseek-flash modellel (2026. 09. 16.).</p>
+      <div class="s-acts rv" style="--d:8;margin-top:4px"><button type="button" class="s-btn" data-open="accuracy" aria-haspopup="dialog"><span>A mérésről</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">08 / 18</span></div>
+</section>
+
+<!-- 09 ─ views -->
+<section class="slide" id="slide-views" data-id="views" data-title="Kilenc nézet">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="vc">
+    <div class="vc__copy">
+      <p class="s-k rv" style="--d:0">04 — A katalógus</p>
+      <h2 class="s-h2  rv" style="--d:1">Kilenc nézet, <em>egy</em> könyvtár.</h2>
+      <p class="s-lead s-lead--sm rv" style="--d:2">Keresés ékezet nélkül is, szűrők (téma, olvasottság, kölcsönadva, címke), sötét téma.</p>
+      <ul class="vc-pills rv" style="--d:3"><li style="--k:0"><i></i>Polc</li><li style="--k:1"><i></i>Borítófal</li><li style="--k:2"><i></i>Táblázat</li><li style="--k:3"><i></i>Szerzők</li><li style="--k:4"><i></i>Témák</li><li style="--k:5"><i></i>Idővonal</li><li style="--k:6"><i></i>Statisztika</li><li class="is-x"><i></i>Képkockák</li><li class="is-x"><i></i>Átnézés</li></ul>
+    </div>
+    <div class="rv-pop" style="--d:2"><div class="br"><div class="br__bar"><i></i><i></i><i></i><span>exlibrisvideo.hu</span></div><div class="br__scr "><div class="vc-stack"><img src="/deck/media/v-shelf.webp" alt="Polc nézet" style="--k:0" loading="eager"><img src="/deck/media/v-covers.webp" alt="Borítófal nézet" style="--k:1" loading="eager"><img src="/deck/media/v-table.webp" alt="Táblázat nézet" style="--k:2" loading="eager"><img src="/deck/media/v-authors.webp" alt="Szerzők nézet" style="--k:3" loading="eager"><img src="/deck/media/v-topics.webp" alt="Témák nézet" style="--k:4" loading="eager"><img src="/deck/media/v-timeline.webp" alt="Idővonal nézet" style="--k:5" loading="eager"><img src="/deck/media/v-stats.webp" alt="Statisztika nézet" style="--k:6" loading="eager"></div></div></div></div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">09 / 18</span></div>
+</section>
+
+<!-- 10 ─ bookpage -->
+<section class="slide" id="slide-bookpage" data-id="bookpage" data-title="Valódi gerincek, könyvlap">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="vw">
+    <div class="vw__copy">
+      <p class="s-k rv" style="--d:0">04 — A katalógus</p>
+      <h2 class="s-h2  rv" style="--d:1">A saját polcod, <em>valódi gerincekkel.</em></h2>
+      <ol class="sy " data-for="v-desk"><li class="rv" style="--d:2" data-t="0"><span class="sy__n">01</span><div><b>Rajzolt vagy valódi gerinc</b><em>Egy kapcsoló: a felvételből kivágott gerincfotók a polcon.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:3" data-t="4.6"><span class="sy__n">02</span><div><b>Rámutatva: cím, szerző, év</b><em>Böngészés, mint egy igazi polc előtt.</em></div><i class="sy__bar"></i></li><li class="rv" style="--d:4" data-t="11.6"><span class="sy__n">03</span><div><b>Könyvlap</b><em>Borító, leírás, téma, olvasottság, értékelés, kölcsön — és hogyan ismertük fel.</em></div><i class="sy__bar"></i></li></ol>
+    </div>
+    <div class="vw__media rv-pop" style="--d:2"><div class="br"><div class="br__bar"><i></i><i></i><i></i><span>exlibrisvideo.hu</span></div><div class="br__scr br__scr--v"><video id="v-desk" src="/deck/media/shelfdesk.mp4" poster="/deck/media/shelfdesk.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div>
+      <span class="cb" data-cb="v-desk" data-from="0.9" data-to="4.4" style="left:262px;top:96px">„Valódi gerincek” bekapcsolva</span>
+      <span class="cb" data-cb="v-desk" data-from="12.2" data-to="16.8" style="left:430px;top:420px">Így ismertük fel: a gerincfotó</span>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">10 / 18</span></div>
+</section>
+
+<!-- 11 ─ app -->
+<section class="slide" id="slide-app" data-id="app" data-title="Telefonon">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="ap">
+    <div class="ap__copy">
+      <p class="s-k rv" style="--d:0">04 — A katalógus · telefonon</p>
+      <h2 class="s-h2  rv" style="--d:1">Zsebben <em>a könyvtár.</em></h2>
+      <ol class="sy sy--compact" data-for="v-lib"><li class="rv" style="--d:2" data-t="0"><span class="sy__n">01</span><div><b>Polc</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:3" data-t="0.9"><span class="sy__n">02</span><div><b>Borítók</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:4" data-t="2"><span class="sy__n">03</span><div><b>Szerzők</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:5" data-t="5.8"><span class="sy__n">04</span><div><b>Idővonal</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:6" data-t="9.6"><span class="sy__n">05</span><div><b>Keresés</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:7" data-t="14.6"><span class="sy__n">06</span><div><b>Szűrők</b></div><i class="sy__bar"></i></li><li class="rv" style="--d:8" data-t="20"><span class="sy__n">07</span><div><b>Felvételenként</b></div><i class="sy__bar"></i></li></ol>
+      <div class="s-acts rv" style="--d:9"><ul class="s-chips rv" style="--d:9"><li>Telepíthető app (PWA)</li><li>Google-belépés</li></ul></div>
+    </div>
+    <div class="rv-pop" style="--d:2"><div class="ph "><div class="ph__scr"><video id="v-lib" src="/deck/media/lib.mp4" poster="/deck/media/lib.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div></div>
+    <div class="ap__inst rv" style="--d:4"><div class="ph "><div class="ph__scr"><video id="v-inst" src="/deck/media/install.mp4" poster="/deck/media/install.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div><p><b>Bolt nélkül</b>a kezdőképernyőre telepíthető, teljes képernyőn fut</p></div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">11 / 18</span></div>
+</section>
+
+<!-- 12 ─ export -->
+<section class="slide" id="slide-export" data-id="export" data-title="Megosztás és export">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="vw">
+    <div class="vw__copy">
+      <p class="s-k rv" style="--d:0">04 — A katalógus · az adat a tiéd</p>
+      <h2 class="s-h2  rv" style="--d:1">Megosztható, exportálható, <em>a tiéd.</em></h2>
+      <ul class="ex-fmt"><li class="rv" style="--d:2" data-light="v-exp" data-at="9.4"><b>Excel</b><span>xlsx, minden mezővel</span></li><li class="rv" style="--d:3" data-light="v-exp" data-at="9.4"><b>PDF</b><span>nyomtatható katalógus</span></li><li class="rv" style="--d:4" data-light="v-exp" data-at="9.4"><b>CSV</b><span>bármilyen táblázatba</span></li><li class="rv" style="--d:5" data-light="v-exp" data-at="9.4"><b>Goodreads</b><span>egy kattintással át</span></li><li class="rv" style="--d:6" data-light="v-exp" data-at="9.4"><b>JSON</b><span>fejlesztőknek</span></li><li class="rv" style="--d:7" data-light="v-exp" data-at="9.4"><b>E-mail</b><span>Excellel csatolva</span></li></ul>
+      <div class="ex-share"><ul class="s-chips rv" style="--d:8"><li>Saját rövid link</li><li>QR-kód</li><li>PIN-nel zárható</li><li>Tulajdonosi adatok rejtve</li></ul></div>
+    </div>
+    <div class="vw__media rv-pop" style="--d:2"><div class="br"><div class="br__bar"><i></i><i></i><i></i><span>exlibrisvideo.hu</span></div><div class="br__scr br__scr--v"><video id="v-exp" src="/deck/media/export.mp4" poster="/deck/media/export.webp" muted playsinline preload="metadata" data-auto loop aria-label="Képernyőfelvétel az alkalmazásból"></video></div></div>
+      <span class="cb" data-cb="v-exp" data-from="1.6" data-to="5.6" style="left:330px;top:70px">Szűrés témára: Klasszikusok</span>
+      <span class="cb" data-cb="v-exp" data-from="9.2" data-to="13" style="left:300px;top:240px">Export: Excel, PDF, CSV, Goodreads, JSON</span>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">12 / 18</span></div>
+</section>
+
+<!-- 13 ─ arch -->
+<section class="slide" id="slide-arch" data-id="arch" data-title="Felépítés és adatvédelem">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">05 — Üzem és adatvédelem</p>
+  <h2 class="s-h2 s-h2--wide rv" style="--d:1">Egyszerű, cserélhető, <em>EU-ban fut.</em></h2>
+  <div class="ar rv" style="--d:2">
+    <svg viewBox="0 0 1152 250" role="img" aria-label="Felépítés: telefon vagy böngésző, web, feladatsor, feldolgozó, AI-szolgáltatók és Open Library">
+      <path class="ar-line ar-line--main" d="M196 107H246"/><path class="ar-line ar-line--main" d="M426 107H476"/><path class="ar-line ar-line--main" d="M656 107H706"/>
+      <path class="ar-line" d="M906 107C936 107 936 52 966 52"/><path class="ar-line" d="M906 107C936 107 936 162 966 162"/>
+      <path class="ar-line" d="M806 144V206H336V144"/>
+      <circle class="ar-pulse" r="4.5" style="offset-path:path('M196 107H246');--i:0"/><circle class="ar-pulse" r="4.5" style="offset-path:path('M426 107H476');--i:1"/><circle class="ar-pulse" r="4.5" style="offset-path:path('M656 107H706');--i:2"/>
+      <circle class="ar-pulse" r="4.5" style="offset-path:path('M806 144V206H336V144');--i:1.5"/>
+      <g class="ar-node" style="--i:0"><rect class="ar-tile" x="1" y="70" width="194" height="74" rx="10"/><text class="ar-t" x="20" y="102">Telefon · böngésző</text><text class="ar-s" x="20" y="124">app (PWA) vagy web</text></g><g class="ar-node" style="--i:1"><rect class="ar-tile" x="247" y="70" width="178" height="74" rx="10"/><text class="ar-t" x="266" y="102">Web</text><text class="ar-s" x="266" y="124">Next.js · React</text></g><g class="ar-node" style="--i:2"><rect class="ar-tile" x="477" y="70" width="178" height="74" rx="10"/><text class="ar-t" x="496" y="102">Feladatsor</text><text class="ar-s" x="496" y="124">PostgreSQL</text></g><g class="ar-node" style="--i:3"><rect class="ar-tile ar-tile--acc" x="707" y="70" width="198" height="74" rx="10"/><text class="ar-t" x="726" y="102">Feldolgozó</text><text class="ar-s" x="726" y="124">ffmpeg · gerincgeometria</text></g>
+      <g class="ar-node" style="--i:4"><rect class="ar-tile ar-tile--acc" x="966" y="18" width="185" height="68" rx="10"/><text class="ar-t" x="984" y="46">AI-szolgáltató</text><text class="ar-s" x="984" y="68">Claude vagy DeepSeek</text></g>
+      <g class="ar-node" style="--i:5"><rect class="ar-tile ar-tile--soft" x="966" y="128" width="185" height="68" rx="10"/><text class="ar-t" x="984" y="156">Könyvadat</text><text class="ar-s" x="984" y="178">Open Library · Google Books</text></g>
+      <text class="ar-s" x="571" y="232" text-anchor="middle">a kész könyvek vissza a katalógusba — élő állapotjelzéssel</text>
+    </svg>
+  </div>
+  <ul class="tr">
+    <li class="rv" style="--d:4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3Z"/></svg><div><b>EU-ban tárolva</b><em>Saját szerver Németországban (Hetzner), Docker.</em></div></li><li class="rv" style="--d:5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><div><b>A videó törlődik</b><em>Feldolgozás után az eredeti felvétel törlődik.</em></div></li><li class="rv" style="--d:6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3M14 9l2 2"/></svg><div><b>Jelszó nélkül</b><em>Google-belépés vagy titkos tulajdonosi link.</em></div></li><li class="rv" style="--d:7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg><div><b>Cserélhető AI</b><em>Szolgáltatónként egy modul — nincs bezártság.</em></div></li>
+  </ul>
+  <div class="s-acts rv" style="--d:8;margin-top:14px"><button type="button" class="s-btn" data-open="tech" aria-haspopup="dialog"><span>Technológia és adatvédelem</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">13 / 18</span></div>
+</section>
+
+<!-- 14 ─ timeline -->
+<section class="slide" id="slide-timeline" data-id="timeline" data-title="Öt hét, 21 kiadás">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">06 — Ahol most tart</p>
+  <h2 class="s-h2  rv" style="--d:1">Öt hét, <em>21 kiadás.</em></h2>
+  <div class="tl" style="--n:8">
+    <div class="tl-odo rv" style="--d:2"><span class="tl-odo__n" style="--to:21">21</span><em>kiadás · v1.0 → v1.16</em></div>
+    <div class="tl-lane" aria-hidden="true"><div class="tl-fill"><i style="--w:12px;--h:45px;--c:#7c5534"></i><i style="--w:10px;--h:42px;--c:#86c0a1"></i><i style="--w:9px;--h:53px;--c:#86c0a1"></i><i style="--w:12px;--h:37px;--c:#e2d5c0"></i><i style="--w:14px;--h:32px;--c:#1f4d3a"></i><i style="--w:10px;--h:47px;--c:#a87a2e"></i><i style="--w:13px;--h:43px;--c:#a87a2e"></i><i style="--w:8px;--h:54px;--c:#54341d"></i><i style="--w:9px;--h:42px;--c:#54341d"></i><i style="--w:10px;--h:41px;--c:#86c0a1"></i><i style="--w:14px;--h:37px;--c:#a87a2e"></i><i style="--w:17px;--h:42px;--c:#a87a2e"></i><i style="--w:13px;--h:39px;--c:#a87a2e"></i><i style="--w:15px;--h:39px;--c:#dcb068"></i><i style="--w:9px;--h:54px;--c:#a87a2e"></i><i style="--w:16px;--h:42px;--c:#a87a2e"></i><i style="--w:13px;--h:40px;--c:#e2d5c0"></i><i style="--w:14px;--h:34px;--c:#a87a2e"></i><i style="--w:12px;--h:32px;--c:#7c5534"></i><i style="--w:12px;--h:48px;--c:#7a2e3a"></i><i style="--w:17px;--h:38px;--c:#1f4d3a"></i><i style="--w:12px;--h:41px;--c:#e2d5c0"></i><i style="--w:12px;--h:41px;--c:#dcb068"></i><i style="--w:10px;--h:49px;--c:#a87a2e"></i><i style="--w:10px;--h:50px;--c:#e2d5c0"></i><i style="--w:17px;--h:54px;--c:#e2d5c0"></i><i style="--w:15px;--h:47px;--c:#86c0a1"></i><i style="--w:8px;--h:38px;--c:#dcb068"></i><i style="--w:10px;--h:40px;--c:#7a2e3a"></i><i style="--w:15px;--h:37px;--c:#54341d"></i><i style="--w:8px;--h:39px;--c:#86c0a1"></i><i style="--w:12px;--h:32px;--c:#54341d"></i><i style="--w:12px;--h:53px;--c:#86c0a1"></i><i style="--w:12px;--h:33px;--c:#e2d5c0"></i><i style="--w:16px;--h:37px;--c:#7c5534"></i><i style="--w:9px;--h:48px;--c:#7a2e3a"></i><i style="--w:14px;--h:53px;--c:#a87a2e"></i><i style="--w:15px;--h:34px;--c:#7c5534"></i><i style="--w:9px;--h:31px;--c:#86c0a1"></i><i style="--w:15px;--h:52px;--c:#a87a2e"></i><i style="--w:12px;--h:31px;--c:#dcb068"></i><i style="--w:12px;--h:32px;--c:#dcb068"></i><i style="--w:10px;--h:38px;--c:#e2d5c0"></i><i style="--w:9px;--h:34px;--c:#7c5534"></i><i style="--w:14px;--h:32px;--c:#1f4d3a"></i><i style="--w:9px;--h:42px;--c:#1f4d3a"></i><i style="--w:8px;--h:50px;--c:#1f4d3a"></i><i style="--w:15px;--h:39px;--c:#54341d"></i><i style="--w:14px;--h:47px;--c:#dcb068"></i><i style="--w:11px;--h:32px;--c:#54341d"></i><i style="--w:9px;--h:32px;--c:#a87a2e"></i><i style="--w:11px;--h:31px;--c:#86c0a1"></i><i style="--w:12px;--h:40px;--c:#86c0a1"></i><i style="--w:16px;--h:44px;--c:#1f4d3a"></i><i style="--w:9px;--h:53px;--c:#7a2e3a"></i><i style="--w:12px;--h:54px;--c:#7a2e3a"></i><i style="--w:12px;--h:55px;--c:#54341d"></i><i style="--w:12px;--h:43px;--c:#7a2e3a"></i><i style="--w:15px;--h:54px;--c:#86c0a1"></i><i style="--w:17px;--h:47px;--c:#e2d5c0"></i><i style="--w:12px;--h:32px;--c:#54341d"></i><i style="--w:13px;--h:47px;--c:#1f4d3a"></i><i style="--w:15px;--h:50px;--c:#86c0a1"></i><i style="--w:12px;--h:53px;--c:#7a2e3a"></i></div></div>
+    <i class="tl-now" aria-hidden="true"><span>most</span></i><span class="tl-next-cap" aria-hidden="true">javaslat</span>
+    <ol class="tl-stops">
+      <li class="tl-s" style="--i:0"><span class="tl-s__w">09. 12.</span><span class="tl-s__t">Indulás</span><span class="tl-s__p">Specifikáció, mintafelvételek, kézzel ellenőrzött könyvlista.</span></li><li class="tl-s" style="--i:1"><span class="tl-s__w">09. 16.</span><span class="tl-s__t">Élesben</span><span class="tl-s__p">exlibrisvideo.hu, HTTPS, telefonos app-mód, kamera.</span></li><li class="tl-s" style="--i:2"><span class="tl-s__w">09. 17.</span><span class="tl-s__t">Gerincenkénti felismerés</span><span class="tl-s__p">Pontosság 54 → 78 %; v1.0.</span></li><li class="tl-s" style="--i:3"><span class="tl-s__w">10. 10.</span><span class="tl-s__t">Fiók és fotó</span><span class="tl-s__p">Google-belépés, egy könyv borítóról, címkék.</span></li><li class="tl-s" style="--i:4"><span class="tl-s__w">10. 18.</span><span class="tl-s__t">Telepíthető app</span><span class="tl-s__p">PWA, offline oldal, új telefonos menü.</span></li><li class="tl-s" style="--i:5"><span class="tl-s__w">10. 19.</span><span class="tl-s__t">Promóvideó</span><span class="tl-s__p">Magyarul és angolul — v1.15.</span></li><li class="tl-s tl-s--next" style="--i:6"><span class="tl-s__w">Következő</span><span class="tl-s__t">Mérés Claude‑dal</span><span class="tl-s__p">Javaslat: a pontosabb (drágább) modell mérése.</span></li><li class="tl-s tl-s--next" style="--i:7"><span class="tl-s__w">Következő</span><span class="tl-s__t">Partneri integrációk</span><span class="tl-s__p">Javaslat: könyvesbolti, kiadói kapcsolatok.</span></li>
+    </ol>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">14 / 18</span></div>
+</section>
+
+<!-- 15 ─ segments -->
+<section class="slide" id="slide-segments" data-id="segments" data-title="Kinek ér pénzt">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">07 — Piac</p>
+  <h2 class="s-h2 s-h2--wide rv" style="--d:1">Kinek ér pénzt <em>egy könyvleltár?</em></h2>
+  <div class="sg">
+    <article class="sg-t sg-t--live rv" style="--d:2"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M5 18 20 6l15 12"/><path pathLength="1" d="M9 15v19h22V15"/><rect pathLength="1" x="14" y="22" width="3" height="12"/><rect pathLength="1" x="18.5" y="20" width="3" height="14"/><rect pathLength="1" x="23" y="23" width="3" height="11"/></svg><h3>Magánkönyvtárak, gyűjtők</h3><p>Leltár, kölcsönzés, „mi van meg?” — a mai termék.</p><span class="s-status s-status--live">Működik</span></article><article class="sg-t rv" style="--d:3"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M5 14h30l-2-7H7Z"/><path pathLength="1" d="M7 14v20h26V14"/><path pathLength="1" d="M12 34V22h7v12"/><rect pathLength="1" x="23" y="21" width="6" height="6"/></svg><h3>Antikváriumok, könyvesboltok</h3><p>Készletfelvétel polcról, export a webshopba.</p><span class="s-status s-status--idea">Bővítési irány</span></article><article class="sg-t rv" style="--d:4"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M5 12 20 5l15 7"/><path pathLength="1" d="M8 15v15M15 15v15M25 15v15M32 15v15"/><path pathLength="1" d="M5 34h30"/></svg><h3>Könyvtárak, iskolák</h3><p>Adományok, letétek gyors felvétele, ellenőrzés.</p><span class="s-status s-status--idea">Bővítési irány</span></article><article class="sg-t rv" style="--d:5"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M5 13 20 6l15 7v15l-15 7-15-7Z"/><path pathLength="1" d="m5 13 15 7 15-7M20 20v15"/><path pathLength="1" d="m12.5 9.5 15 7"/></svg><h3>Hagyaték, költözés, biztosítás</h3><p>Vagyonleltár percek alatt, fotós bizonyítékkal.</p><span class="s-status s-status--idea">Bővítési irány</span></article><article class="sg-t rv" style="--d:6"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path pathLength="1" d="M20 10c-4-3-9-3-14-2v24c5-1 10-1 14 2 4-3 9-3 14-2V8c-5-1-10-1-14 2Z"/><path pathLength="1" d="M20 10v24"/><path pathLength="1" d="M25 16l2.5 2.5L32 14"/></svg><h3>Kiadók, könyvesboltok</h3><p>Ajánló és vásárlási link a saját polc mellett.</p><span class="s-status s-status--idea">Szponzoráció</span></article>
+  </div>
+  <p class="s-note sg-note rv" style="--d:8">Ma magánfelhasználóknak, ingyenesen működik. A többi szegmens a meglévő alapokra építhető irány — piaci számok nélkül, mert ezeket még nem mértük.</p>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">15 / 18</span></div>
+</section>
+
+<!-- 16 ─ sponsor -->
+<section class="slide" id="slide-sponsor" data-id="sponsor" data-title="Szponzoráció">
+  <div class="s-bg" aria-hidden="true"></div>
+  <div class="sp">
+    <div class="sp__copy">
+      <p class="s-k rv" style="--d:0">08 — Szponzoráció</p>
+      <h2 class="s-h2  rv" style="--d:1">Ott, ahol <em>a könyv él.</em></h2>
+      <p class="s-lead s-lead--sm rv" style="--d:2">A könyvlap a saját, valódi könyv mellett jelenik meg — reklámzaj nélkül, releváns helyen.</p>
+      <ol class="sp-pk">
+        <li class="rv" style="--d:3"><span>1</span><div><b>Névadó szponzor</b><em>Megjelenés a nyitóoldalon, az appban és a promóvideóban.</em></div></li><li class="rv" style="--d:4"><span>2</span><div><b>Könyvesbolti partner</b><em>Vásárlási link a könyvlapon, a hiányzó kötetekhez.</em></div></li><li class="rv" style="--d:5"><span>3</span><div><b>Kiadói partner</b><em>Ajánló a könyvlapon és a „Mit olvassak ma?” helyén.</em></div></li>
+      </ol>
+    </div>
+    <div class="sp__media rv-pop" style="--d:2">
+      <div class="br"><div class="br__bar"><i></i><i></i><i></i><span>exlibrisvideo.hu</span></div><div class="br__scr "><img src="/deck/media/bookpage.webp" alt="Könyvlap az alkalmazásban (Factfulness)"><span class="sp-slot sp-slot--l" style="--x:82%;--y:58.2%;--i:0"><b>1</b><em>Megvásárolható: Partner Könyvesbolt →</em></span><span class="sp-slot sp-slot--l" style="--x:82%;--y:73.5%;--i:1"><b>2</b><em>Ajánló: a Partner Kiadó ezt javasolja</em></span><span class="sp-slot sp-slot--r" style="--x:37%;--y:4%;--i:2"><b>3</b><em>Bemutatja: Szponzor</em></span></div></div>
+      <span class="s-tag">Koncepció — illusztráció</span>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">16 / 18</span></div>
+</section>
+
+<!-- 17 ─ acquire -->
+<section class="slide" id="slide-acquire" data-id="acquire" data-title="Kulcsrakészen átvehető">
+  <div class="s-bg" aria-hidden="true"></div>
+  <p class="s-k rv" style="--d:0">09 — Átvétel</p>
+  <h2 class="s-h2 s-h2--wide rv" style="--d:1">A teljes rendszer <em>kulcsrakészen</em> átvehető.</h2>
+  <ul class="aq">
+    <li class="rv" style="--d:2"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:0"/></svg><div><b>Teljes forráskód</b><em>TypeScript, Next.js 15, React 19 — tiszta, modulokra bontva.</em></div></li><li class="rv" style="--d:3"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:1"/></svg><div><b>Feldolgozó és AI-réteg</b><em>Gerincgeometria, követés, olvasás; cserélhető AI-szolgáltató.</em></div></li><li class="rv" style="--d:4"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:2"/></svg><div><b>Éles üzem</b><em>Docker, PostgreSQL, EU-szerver, napi mentés, automatikus telepítés.</em></div></li><li class="rv" style="--d:5"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:3"/></svg><div><b>1061 automata teszt</b><em>És a teljes műszaki specifikáció (SPEC.md).</em></div></li><li class="rv" style="--d:6"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:4"/></svg><div><b>Domain és márka</b><em>exlibrisvideo.hu, logó, arculat, kétnyelvű szövegek.</em></div></li><li class="rv" style="--d:7"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:5"/></svg><div><b>Promóanyag</b><em>Promóvideó magyarul és angolul, képernyőfelvételek, ez a prezentáció.</em></div></li><li class="rv" style="--d:8"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:6"/></svg><div><b>Kétnyelvű, telepíthető app</b><em>Magyar és angol felület, telefonra telepíthető (PWA).</em></div></li><li class="rv" style="--d:9"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path pathLength="1" d="m8.5 14.5 3.6 3.6 7.6-7.8" style="--i:7"/></svg><div><b>Átadás és betanítás</b><em>A DarwinAI csapatától — igény szerint továbbfejlesztéssel.</em></div></li>
+  </ul>
+  <div class="aq-foot rv" style="--d:10"><button type="button" class="s-btn" data-open="acquire" aria-haspopup="dialog"><span>Mit tartalmaz pontosan?</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><span class="s-label">Szponzoráció és teljes átvétel is lehetséges</span></div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">17 / 18</span></div>
+</section>
+
+<!-- 18 ─ contact -->
+<section class="slide slide--cta" id="slide-contact" data-id="contact" data-title="Következő lépés">
+  <div class="s-bg" aria-hidden="true"></div><div class="s-deco" aria-hidden="true"><svg viewBox="0 0 1300 120" preserveAspectRatio="none"><rect x="0" y="37" width="20" height="83" rx="1.5" fill="#e2d5c0"/><rect x="22" y="16" width="23" height="104" rx="1.5" fill="#1f4d3a"/><rect x="47" y="28" width="16" height="92" rx="1.5" fill="#1f4d3a"/><rect x="65" y="44" width="22" height="76" rx="1.5" fill="#dcb068"/><rect x="89" y="35" width="15" height="85" rx="1.5" fill="#a87a2e"/><rect x="106" y="41" width="19" height="79" rx="1.5" fill="#7a2e3a"/><rect x="127" y="35" width="23" height="85" rx="1.5" fill="#a87a2e"/><rect x="152" y="55" width="19" height="65" rx="1.5" fill="#a87a2e"/><rect x="173" y="4" width="14" height="116" rx="1.5" fill="#54341d"/><rect x="189" y="62" width="13" height="58" rx="1.5" fill="#54341d"/><rect x="204" y="60" width="23" height="60" rx="1.5" fill="#86c0a1"/><rect x="229" y="38" width="20" height="82" rx="1.5" fill="#dcb068"/><rect x="251" y="38" width="10" height="82" rx="1.5" fill="#86c0a1"/><rect x="263" y="30" width="15" height="90" rx="1.5" fill="#7a2e3a"/><rect x="280" y="56" width="10" height="64" rx="1.5" fill="#a87a2e"/><rect x="292" y="16" width="18" height="104" rx="1.5" fill="#1f4d3a"/><rect x="312" y="20" width="14" height="100" rx="1.5" fill="#54341d"/><rect x="328" y="41" width="20" height="79" rx="1.5" fill="#54341d"/><rect x="350" y="47" width="11" height="73" rx="1.5" fill="#e2d5c0"/><rect x="363" y="12" width="9" height="108" rx="1.5" fill="#dcb068"/><rect x="374" y="44" width="21" height="76" rx="1.5" fill="#1f4d3a"/><rect x="397" y="46" width="23" height="74" rx="1.5" fill="#54341d"/><rect x="422" y="57" width="20" height="63" rx="1.5" fill="#7c5534"/><rect x="444" y="49" width="19" height="71" rx="1.5" fill="#dcb068"/><rect x="465" y="63" width="10" height="57" rx="1.5" fill="#7c5534"/><rect x="477" y="69" width="18" height="51" rx="1.5" fill="#7a2e3a"/><rect x="497" y="38" width="15" height="82" rx="1.5" fill="#7a2e3a"/><rect x="514" y="11" width="10" height="109" rx="1.5" fill="#dcb068"/><rect x="526" y="29" width="24" height="91" rx="1.5" fill="#dcb068"/><rect x="552" y="63" width="16" height="57" rx="1.5" fill="#7a2e3a"/><rect x="570" y="14" width="9" height="106" rx="1.5" fill="#a87a2e"/><rect x="581" y="61" width="9" height="59" rx="1.5" fill="#7c5534"/><rect x="592" y="37" width="8" height="83" rx="1.5" fill="#7a2e3a"/><rect x="602" y="53" width="12" height="67" rx="1.5" fill="#7a2e3a"/><rect x="616" y="8" width="11" height="112" rx="1.5" fill="#dcb068"/><rect x="629" y="13" width="12" height="107" rx="1.5" fill="#7c5534"/><rect x="643" y="40" width="22" height="80" rx="1.5" fill="#a87a2e"/><rect x="667" y="60" width="15" height="60" rx="1.5" fill="#dcb068"/><rect x="684" y="43" width="15" height="77" rx="1.5" fill="#7a2e3a"/><rect x="701" y="30" width="12" height="90" rx="1.5" fill="#54341d"/><rect x="715" y="62" width="12" height="58" rx="1.5" fill="#dcb068"/><rect x="729" y="39" width="22" height="81" rx="1.5" fill="#a87a2e"/><rect x="753" y="3" width="18" height="117" rx="1.5" fill="#a87a2e"/><rect x="773" y="65" width="20" height="55" rx="1.5" fill="#1f4d3a"/><rect x="795" y="54" width="21" height="66" rx="1.5" fill="#7a2e3a"/><rect x="818" y="13" width="11" height="107" rx="1.5" fill="#7c5534"/><rect x="831" y="52" width="12" height="68" rx="1.5" fill="#a87a2e"/><rect x="845" y="1" width="16" height="119" rx="1.5" fill="#dcb068"/><rect x="863" y="42" width="12" height="78" rx="1.5" fill="#7c5534"/><rect x="877" y="5" width="24" height="115" rx="1.5" fill="#86c0a1"/><rect x="903" y="1" width="10" height="119" rx="1.5" fill="#1f4d3a"/><rect x="915" y="2" width="9" height="118" rx="1.5" fill="#a87a2e"/><rect x="926" y="47" width="11" height="73" rx="1.5" fill="#54341d"/><rect x="939" y="38" width="24" height="82" rx="1.5" fill="#1f4d3a"/><rect x="965" y="16" width="21" height="104" rx="1.5" fill="#e2d5c0"/><rect x="988" y="21" width="10" height="99" rx="1.5" fill="#86c0a1"/><rect x="1000" y="24" width="13" height="96" rx="1.5" fill="#a87a2e"/><rect x="1015" y="67" width="21" height="53" rx="1.5" fill="#a87a2e"/><rect x="1038" y="49" width="9" height="71" rx="1.5" fill="#7a2e3a"/><rect x="1049" y="12" width="14" height="108" rx="1.5" fill="#dcb068"/><rect x="1065" y="66" width="13" height="54" rx="1.5" fill="#1f4d3a"/><rect x="1080" y="43" width="11" height="77" rx="1.5" fill="#86c0a1"/><rect x="1093" y="53" width="15" height="67" rx="1.5" fill="#54341d"/><rect x="1110" y="67" width="16" height="53" rx="1.5" fill="#7c5534"/><rect x="1128" y="56" width="21" height="64" rx="1.5" fill="#dcb068"/><rect x="1151" y="61" width="19" height="59" rx="1.5" fill="#a87a2e"/><rect x="1172" y="52" width="19" height="68" rx="1.5" fill="#7c5534"/><rect x="1193" y="1" width="10" height="119" rx="1.5" fill="#1f4d3a"/><rect x="1205" y="18" width="16" height="102" rx="1.5" fill="#1f4d3a"/><rect x="1223" y="4" width="10" height="116" rx="1.5" fill="#e2d5c0"/><rect x="1235" y="70" width="16" height="50" rx="1.5" fill="#54341d"/><rect x="1253" y="46" width="23" height="74" rx="1.5" fill="#7c5534"/><rect x="1278" y="44" width="8" height="76" rx="1.5" fill="#86c0a1"/><rect x="1288" y="35" width="8" height="85" rx="1.5" fill="#a87a2e"/><rect x="1298" y="58" width="15" height="62" rx="1.5" fill="#54341d"/></svg></div>
+  <div class="ct">
+    <div class="ct__copy">
+      <p class="s-k rv" style="--d:0">10 — Következő lépés</p>
+      <h2 class="s-h2  rv" style="--d:1">Írjuk tovább <em>együtt.</em></h2>
+      <ol class="ct-steps">
+        <li class="rv" style="--d:2"><span>1</span><div><b>Élő bemutató</b><p>Húsz perc: felvétel, feldolgozás, katalógus — az Ön polcával.</p></div></li><li class="rv" style="--d:3"><span>2</span><div><b>Betekintés</b><p>Kód, működés, mérések, költségek — nyitott könyvként.</p></div></li><li class="rv" style="--d:4"><span>3</span><div><b>Megállapodás</b><p>Szponzoráció vagy a teljes rendszer átvétele.</p></div></li>
+      </ol>
+    </div>
+    <div class="ct-card rv-pop" style="--d:3">
+      <span class="cv-mark"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M6.5 1.5h19a5 5 0 0 0 5 5v23a5 5 0 0 0-5 5h-19a5 5 0 0 0-5-5v-23a5 5 0 0 0 5-5Z" fill="#1f4d3a"/><path d="M8 4h16a4.5 4.5 0 0 0 4 4v20a4.5 4.5 0 0 0-4 4H8a4.5 4.5 0 0 0-4-4V8a4.5 4.5 0 0 0 4-4Z" fill="none" stroke="#dcb068" stroke-width="0.9" opacity="0.9"/><rect x="8.6" y="12.2" width="4" height="14.8" rx="0.6" fill="#fbf6ec" opacity="0.92"/><rect x="13.6" y="9" width="5.6" height="18" rx="0.7" fill="#fbf6ec"/><rect x="13.6" y="10.8" width="5.6" height="1" fill="#dcb068"/><rect x="13.6" y="24.2" width="5.6" height="1" fill="#dcb068"/><path d="M15.3 15.4v5.2l4-2.6Z" transform="translate(-0.4 0)" fill="#1f4d3a"/><rect x="21.2" y="13.2" width="3.6" height="14.4" rx="0.6" fill="#fbf6ec" opacity="0.8" transform="rotate(9 23 27.4)"/><rect x="6.8" y="27.2" width="18.4" height="1.5" rx="0.5" fill="#dcb068"/></svg><span><b>Ex Libris <em>Video</em></b><small>by DarwinAI · darwinai.hu</small></span></span>
+      <p class="ct-card__l">Kérdés, bemutató, ajánlat — egy levél elég.</p>
+      <a class="s-cta" href="mailto:hello@exlibrisvideo.hu?subject=Ex%20Libris%20Video%20%E2%80%94%20befektet%C3%A9s%20%2F%20szponzor%C3%A1ci%C3%B3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Írjon nekünk</span></a>
+      <p class="ct-mail"><a href="mailto:hello@exlibrisvideo.hu">hello@exlibrisvideo.hu</a><button type="button" class="s-copy" data-copy="hello@exlibrisvideo.hu" data-done="Másolva ✓">Másolás</button></p>
+      <div class="ct-links"><a class="s-btn" href="https://www.exlibrisvideo.hu" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span>Kipróbálom</span></a><button type="button" class="s-btn s-btn--gold" data-vid="/promo/exlibris-promo-hu-v1.2.0-720p.mp4" data-vposter="/promo/exlibris-promo-poster-v1.2.0.jpg" data-vtitle="Ex Libris Video — promóvideó"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5v15l12-7.5Z" fill="currentColor" stroke="none"/></svg><span>Promóvideó</span></button></div>
+    </div>
+  </div>
+  <div class="s-foot"><span>Ex Libris Video · befektetői bemutató</span><span class="s-num">18 / 18</span></div>
+</section>
+  </div>
+</main>
+
+<div class="deck-nav">
+  <span class="deck-ver">Prezentáció v1.0.0 · 303b893 · app v1.16.0</span>
+  <button type="button" class="deck-arrow" id="prevBtn" aria-label="Előző dia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+  <div class="deck-count"><b id="curNum">1</b> / <span id="totNum">18</span></div>
+  <button type="button" class="deck-arrow" id="nextBtn" aria-label="Következő dia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+  <div class="deck-hint">← → lapozás · O áttekintés · F teljes képernyő</div>
+</div>
+
+<div class="overview" id="overview" role="dialog" aria-modal="true" aria-label="Az összes dia">
+  <div class="overview__head"><span class="deck-topbar__title">Az összes dia · Prezentáció v1.0.0 · 303b893 · app v1.16.0</span><button type="button" class="deck-btn" id="ovClose">Vissza a diához</button></div>
+  <div class="overview__grid" id="ovGrid"></div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="gate__bg" aria-hidden="true"><div class="s-deco" aria-hidden="true"><svg viewBox="0 0 1300 120" preserveAspectRatio="none"><rect x="0" y="54" width="17" height="66" rx="1.5" fill="#7a2e3a"/><rect x="19" y="47" width="19" height="73" rx="1.5" fill="#7a2e3a"/><rect x="40" y="28" width="10" height="92" rx="1.5" fill="#a87a2e"/><rect x="52" y="38" width="14" height="82" rx="1.5" fill="#e2d5c0"/><rect x="68" y="49" width="21" height="71" rx="1.5" fill="#54341d"/><rect x="91" y="31" width="22" height="89" rx="1.5" fill="#e2d5c0"/><rect x="115" y="25" width="23" height="95" rx="1.5" fill="#a87a2e"/><rect x="140" y="1" width="15" height="119" rx="1.5" fill="#a87a2e"/><rect x="157" y="1" width="20" height="119" rx="1.5" fill="#dcb068"/><rect x="179" y="65" width="15" height="55" rx="1.5" fill="#54341d"/><rect x="196" y="24" width="20" height="96" rx="1.5" fill="#86c0a1"/><rect x="218" y="59" width="11" height="61" rx="1.5" fill="#7a2e3a"/><rect x="231" y="1" width="11" height="119" rx="1.5" fill="#86c0a1"/><rect x="244" y="31" width="9" height="89" rx="1.5" fill="#86c0a1"/><rect x="255" y="49" width="13" height="71" rx="1.5" fill="#dcb068"/><rect x="270" y="27" width="14" height="93" rx="1.5" fill="#7c5534"/><rect x="286" y="4" width="18" height="116" rx="1.5" fill="#dcb068"/><rect x="306" y="23" width="15" height="97" rx="1.5" fill="#dcb068"/><rect x="323" y="54" width="13" height="66" rx="1.5" fill="#e2d5c0"/><rect x="338" y="67" width="18" height="53" rx="1.5" fill="#54341d"/><rect x="358" y="33" width="21" height="87" rx="1.5" fill="#a87a2e"/><rect x="381" y="65" width="12" height="55" rx="1.5" fill="#7c5534"/><rect x="395" y="61" width="14" height="59" rx="1.5" fill="#e2d5c0"/><rect x="411" y="63" width="18" height="57" rx="1.5" fill="#54341d"/><rect x="431" y="42" width="15" height="78" rx="1.5" fill="#54341d"/><rect x="448" y="39" width="10" height="81" rx="1.5" fill="#a87a2e"/><rect x="460" y="24" width="11" height="96" rx="1.5" fill="#7c5534"/><rect x="473" y="38" width="9" height="82" rx="1.5" fill="#54341d"/><rect x="484" y="53" width="10" height="67" rx="1.5" fill="#dcb068"/><rect x="496" y="39" width="20" height="81" rx="1.5" fill="#86c0a1"/><rect x="518" y="36" width="15" height="84" rx="1.5" fill="#7c5534"/><rect x="535" y="16" width="17" height="104" rx="1.5" fill="#dcb068"/><rect x="554" y="20" width="16" height="100" rx="1.5" fill="#e2d5c0"/><rect x="572" y="18" width="20" height="102" rx="1.5" fill="#7a2e3a"/><rect x="594" y="51" width="20" height="69" rx="1.5" fill="#7a2e3a"/><rect x="616" y="20" width="20" height="100" rx="1.5" fill="#54341d"/><rect x="638" y="36" width="14" height="84" rx="1.5" fill="#7c5534"/><rect x="654" y="70" width="22" height="50" rx="1.5" fill="#1f4d3a"/><rect x="678" y="22" width="20" height="98" rx="1.5" fill="#1f4d3a"/><rect x="700" y="3" width="14" height="117" rx="1.5" fill="#1f4d3a"/><rect x="716" y="55" width="12" height="65" rx="1.5" fill="#54341d"/><rect x="730" y="7" width="19" height="113" rx="1.5" fill="#dcb068"/><rect x="751" y="42" width="11" height="78" rx="1.5" fill="#7c5534"/><rect x="764" y="59" width="10" height="61" rx="1.5" fill="#1f4d3a"/><rect x="776" y="29" width="22" height="91" rx="1.5" fill="#7c5534"/><rect x="800" y="64" width="23" height="56" rx="1.5" fill="#7c5534"/><rect x="825" y="64" width="19" height="56" rx="1.5" fill="#a87a2e"/><rect x="846" y="1" width="17" height="119" rx="1.5" fill="#7a2e3a"/><rect x="865" y="53" width="23" height="67" rx="1.5" fill="#54341d"/><rect x="890" y="54" width="12" height="66" rx="1.5" fill="#1f4d3a"/><rect x="904" y="43" width="23" height="77" rx="1.5" fill="#1f4d3a"/><rect x="929" y="61" width="15" height="59" rx="1.5" fill="#7a2e3a"/><rect x="946" y="10" width="9" height="110" rx="1.5" fill="#dcb068"/><rect x="957" y="70" width="13" height="50" rx="1.5" fill="#e2d5c0"/><rect x="972" y="1" width="18" height="119" rx="1.5" fill="#7a2e3a"/><rect x="992" y="55" width="14" height="65" rx="1.5" fill="#a87a2e"/><rect x="1008" y="62" width="23" height="58" rx="1.5" fill="#54341d"/><rect x="1033" y="64" width="21" height="56" rx="1.5" fill="#a87a2e"/><rect x="1056" y="31" width="14" height="89" rx="1.5" fill="#dcb068"/><rect x="1072" y="4" width="8" height="116" rx="1.5" fill="#54341d"/><rect x="1082" y="24" width="11" height="96" rx="1.5" fill="#dcb068"/><rect x="1095" y="62" width="13" height="58" rx="1.5" fill="#54341d"/><rect x="1110" y="18" width="21" height="102" rx="1.5" fill="#a87a2e"/><rect x="1133" y="3" width="9" height="117" rx="1.5" fill="#86c0a1"/><rect x="1144" y="58" width="17" height="62" rx="1.5" fill="#dcb068"/><rect x="1163" y="15" width="18" height="105" rx="1.5" fill="#54341d"/><rect x="1183" y="53" width="19" height="67" rx="1.5" fill="#54341d"/><rect x="1204" y="4" width="12" height="116" rx="1.5" fill="#7a2e3a"/><rect x="1218" y="49" width="18" height="71" rx="1.5" fill="#1f4d3a"/><rect x="1238" y="18" width="13" height="102" rx="1.5" fill="#e2d5c0"/><rect x="1253" y="22" width="19" height="98" rx="1.5" fill="#a87a2e"/><rect x="1274" y="31" width="10" height="89" rx="1.5" fill="#54341d"/><rect x="1286" y="18" width="10" height="102" rx="1.5" fill="#1f4d3a"/><rect x="1298" y="23" width="9" height="97" rx="1.5" fill="#dcb068"/></svg></div></div>
+  <div class="gate__box">
+    <span class="cv-mark"><svg viewBox="0 0 32 36" aria-hidden="true"><path d="M6.5 1.5h19a5 5 0 0 0 5 5v23a5 5 0 0 0-5 5h-19a5 5 0 0 0-5-5v-23a5 5 0 0 0 5-5Z" fill="#1f4d3a"/><path d="M8 4h16a4.5 4.5 0 0 0 4 4v20a4.5 4.5 0 0 0-4 4H8a4.5 4.5 0 0 0-4-4V8a4.5 4.5 0 0 0 4-4Z" fill="none" stroke="#dcb068" stroke-width="0.9" opacity="0.9"/><rect x="8.6" y="12.2" width="4" height="14.8" rx="0.6" fill="#fbf6ec" opacity="0.92"/><rect x="13.6" y="9" width="5.6" height="18" rx="0.7" fill="#fbf6ec"/><rect x="13.6" y="10.8" width="5.6" height="1" fill="#dcb068"/><rect x="13.6" y="24.2" width="5.6" height="1" fill="#dcb068"/><path d="M15.3 15.4v5.2l4-2.6Z" transform="translate(-0.4 0)" fill="#1f4d3a"/><rect x="21.2" y="13.2" width="3.6" height="14.4" rx="0.6" fill="#fbf6ec" opacity="0.8" transform="rotate(9 23 27.4)"/><rect x="6.8" y="27.2" width="18.4" height="1.5" rx="0.5" fill="#dcb068"/></svg><span><b>Ex Libris <em>Video</em></b><small>by DarwinAI</small></span></span>
+    <p class="s-k" style="margin-top:18px">Befektetői és szponzori bemutató</p>
+    <h1 class="gate__t">Elég egy <em>videó.</em></h1>
+    <div class="gate__btns">
+      <button type="button" class="gate__btn gate__btn--gold" id="gateFull"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5v15l12-7.5Z" fill="currentColor" stroke="none"/></svg> Indítás teljes képernyőn</button>
+      <button type="button" class="gate__btn" id="gateWin">Indítás ablakban</button>
+    </div>
+    <p class="gate__hint">← → lapozás · O áttekintés · F teljes képernyő · B sötét képernyő · Enter = indítás</p>
+    <p class="gate__ver">Prezentáció v1.0.0 · 303b893 · app v1.16.0</p>
+  </div>
+</div>
+
+<dialog class="deck-vid" id="vdlg" aria-label="Videó">
+  <div class="deck-vid__box">
+    <div class="deck-vid__bar"><span id="vtitle"></span><div><button type="button" class="deck-btn" id="vclose">Bezárás (Esc)</button></div></div>
+    <div class="deck-vid__frame"><video id="vplayer" controls playsinline preload="none"></video></div>
+  </div>
+</dialog>
+
+<dialog class="dlg" id="dlg-pipeline" aria-labelledby="dlg-pipeline-t">
+  <div class="dlg__in"><button type="button" class="dlg__x" data-close aria-label="Bezárás"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <p class="dlg__k">A technológia</p><h2 id="dlg-pipeline-t">Hogyan lesz a videóból könyvlista?</h2>
+    <p>A korábbi, egész képkockákat olvasó megoldásnál egy könyvből több tétel lett (minden kockán kicsit másképp olvasta, a szomszéd gerinc szerzője átcsúszott). Ezért a rendszer ma <b>minden gerincet geometriailag megkeres, kivág és külön olvas el</b>:</p>
+    <ul>
+      <li><b>Kulcskockák:</b> másodpercenként ~8 kockából a legélesebbet tartja meg (~0,33 mp-enként); gyors pásztázásnál mindkét felét.</li>
+      <li><b>Polcsávok és gerinchatárok:</b> függőleges élek sűrűsége és szögpásztázás (±24°), gerincenkénti dőléssel.</li>
+      <li><b>Kameramozgás és követés:</b> oszlopprofilok keresztkorrelációja; a gerinchatárok kockáról kockára láncolódnak — egy fizikai gerinc = egy tétel.</li>
+      <li><b>Olvasás:</b> a legélesebb 1–2 nézetet kivágja, felállítja, és mindkét irányba fordítva küldi az AI-nak; az olvashatatlan szeleteket összevonva újraolvassa.</li>
+      <li><b>Ellenőrzés:</b> a 0,8 alatti biztonságú olvasatot egy második, független olvasás megerősíti vagy elveti; ami bizonytalan marad, átnézésre kerül.</li>
+      <li><b>Összefésülés:</b> ugyanaz a polc több felvételen sem duplázódik; a magányos egyezésnél a tulajdonost kérdezi (ugyanaz / másik példány / más könyv).</li>
+      <li><b>Gazdagítás:</b> téma, eredeti cím, év, leírás (AI), borító (Open Library, Google Books).</li>
+    </ul>
+  </div>
+</dialog>
+<dialog class="dlg" id="dlg-accuracy" aria-labelledby="dlg-accuracy-t">
+  <div class="dlg__in"><button type="button" class="dlg__x" data-close aria-label="Bezárás"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <p class="dlg__k">Mérés</p><h2 id="dlg-accuracy-t">Hogyan mértünk?</h2>
+    <p>Öt mintafelvétel (5 polc, összesen 158 könyv) <b>kézzel ellenőrzött könyvlistájával</b> vetettük össze a felismerést (scripts/eval-recognition.ts). Ugyanaz a modell (deepseek-flash), két módszer:</p>
+    <table><thead><tr><th>Mérőszám</th><th>Egész kockák</th><th>Gerincenként</th></tr></thead><tbody>
+      <tr><td>Pontosság (a talált tételekből valódi könyv)</td><td>54,4 %</td><td>77,7 %</td></tr>
+      <tr><td>Pontos cím (a megtalált könyveknél)</td><td>88,3 %</td><td>93,5 %</td></tr>
+      <tr><td>Megtalálás — jól látható gerincek</td><td>79,0 %</td><td>81,5 %</td></tr>
+      <tr><td>Megtalálás — összes gerinc</td><td>70,3 %</td><td>68,4 %</td></tr>
+      <tr><td>Feldolgozási idő (5 felvétel)</td><td>5 p 15 mp</td><td>2 p 50 mp</td></tr>
+    </tbody></table>
+    <p>A rendszer a <b>Claude Opus 5</b> modellel is fut (pontosabb, drágább); ezt a változatot még nem mértük — ez a következő lépés. A kevés képpontos, homályos gerincek továbbra is a fő hibaforrás; ezeket a rendszer nem találgatja ki, hanem fotóval a tulajdonos elé teszi.</p>
+  </div>
+</dialog>
+<dialog class="dlg" id="dlg-tech" aria-labelledby="dlg-tech-t">
+  <div class="dlg__in"><button type="button" class="dlg__x" data-close aria-label="Bezárás"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <p class="dlg__k">Technológia és adatvédelem</p><h2 id="dlg-tech-t">Mi fut a motorháztető alatt?</h2>
+    <h3>Felépítés</h3>
+    <ul>
+      <li><b>Web:</b> Next.js 15.5 (App Router), React 19, TypeScript, Tailwind CSS 4 — egy kódbázis a webre és a telefonos appra.</li>
+      <li><b>Adat:</b> PostgreSQL 16, Drizzle ORM; a feladatsor is az adatbázisban (FOR UPDATE SKIP LOCKED) — nincs külön üzenetsor.</li>
+      <li><b>Feldolgozó:</b> külön konténer, ffmpeg + sharp; saját gerincgeometria és -követés.</li>
+      <li><b>AI:</b> szolgáltató-modul (Anthropic Claude, DeepSeek, teszthez mock) — modell vagy szolgáltató cseréje a kód többi részét nem érinti.</li>
+      <li><b>Üzem:</b> Docker, Coolify, Hetzner (EU); git push = automatikus telepítés; éjszakai adatbázis-mentés.</li>
+    </ul>
+    <h3>Adatvédelem</h3>
+    <ul>
+      <li>Az adatok az EU-ban (Németország) vannak; az eredeti videó a feldolgozás után törlődik — a kulcskockák és a gerincfotók maradnak a katalógushoz.</li>
+      <li>Nincs jelszó: Google-belépés vagy titkos tulajdonosi link (csak a hash-e tárolt); a katalógus PIN-nel zárható.</li>
+      <li>A jegyzet, a kölcsönadás és az e-mail cím csak a tulajdonosnak látszik.</li>
+    </ul>
+  </div>
+</dialog>
+<dialog class="dlg" id="dlg-acquire" aria-labelledby="dlg-acquire-t">
+  <div class="dlg__in"><button type="button" class="dlg__x" data-close aria-label="Bezárás"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <p class="dlg__k">Átvétel</p><h2 id="dlg-acquire-t">Mit kap, aki átveszi?</h2>
+    <ul>
+      <li><b>Forráskód</b> a teljes git-történettel; a <b>SPEC.md</b> specifikáció a rendszer „szerződése”; README és üzemeltetési leírás (COOLIFY.md).</li>
+      <li><b>1061 automata teszt</b> (vitest) — a felismerés, az összefésülés, az API és a felület kritikus részeire.</li>
+      <li><b>Mérőkészlet:</b> mintafelvételek, kézzel ellenőrzött könyvlista és kiértékelő szkript — minden modellváltás mérhető.</li>
+      <li><b>Éles környezet</b> átadása vagy költöztetése (Docker-image, adatbázis, tárhely), domain: exlibrisvideo.hu.</li>
+      <li><b>Márka és anyagok:</b> logó, arculat, promóvideó (magyar és angol, 16:9 és 9:16), képernyőfelvételek, ez a prezentáció.</li>
+      <li><b>Átadás:</b> betanítás és igény szerint továbbfejlesztés a DarwinAI-tól.</li>
+    </ul>
+    <p>A pontos feltételeket (ár, licenc, átadási idő) személyes egyeztetésen rögzítjük.</p>
+  </div>
+</dialog>
+
+<script type="application/json" id="trk">{"w":1080,"h":1920,"duration":9.590567,"onShelf":29,"books":[{"id":"e467bd9c","obs":[[0,78,221,346,1507],[0.625,86,202,340,1488],[1,81,211,343,1498],[1.375,76,221,339,1501],[1.375,68,154,315,1425],[1.625,67,134,313,1421],[1.875,0,144,275,1421]],"first":0,"title":"Az új név története","author":"Elena Ferrante","c":0.95},{"id":"ef62d9d7","obs":[[0,340,217,540,1507],[0.625,340,207,538,1498],[1,340,202,542,1507],[1.375,324,154,553,1430],[1.375,337,207,538,1507],[1.625,324,134,551,1430],[1.875,286,144,508,1440]],"first":0,"title":"Aki megszökik és aki marad","author":"Elena Ferrante","c":0.95},{"id":"0c19d1e5","obs":[[0,540,154,853,1517],[0.625,540,144,855,1517],[1,540,154,853,1521],[1.375,538,144,853,1517],[1.375,545,86,842,1459],[1.625,545,77,840,1459],[1.875,508,86,794,1459],[2.5,32,86,329,1459],[2.5,38,192,184,1536],[2.75,0,230,211,1536]],"first":0,"title":"Az elveszett gyerek története","author":"Elena Ferrante","c":0.95},{"id":"42985636","obs":[[2.5,795,298,926,1334],[2.5,788,288,907,1498],[2.75,637,230,805,1536],[3,518,211,670,1536],[3.375,248,230,410,1690],[3.375,270,192,410,1536]],"first":2.5,"title":"Rokonok","author":"Móricz Zsigmond","c":0.95},{"id":"0a756190","obs":[[2.5,849,442,1069,1382],[2.5,918,307,1037,1459],[2.75,810,326,950,1536],[3,670,307,826,1536],[3.375,410,346,562,1690],[3.375,421,307,572,1536],[4,54,346,238,1690]],"first":2.5,"title":"Levelek Lilynek","author":"Alan Macfarlane","c":0.9},{"id":"5b721984","obs":[[3.375,853,154,1080,1690],[3.375,864,192,1080,1536],[4,540,192,788,1690],[4.375,302,154,583,1690],[4.625,173,134,405,1574],[4.625,162,154,410,1690],[4.875,0,134,227,1517]],"first":3.375,"title":"Római vér","author":"Steven Saylor","c":0.95},{"id":"9f1f95c1","obs":[[4,799,346,886,1690],[4.375,583,307,680,1690],[4.625,410,307,518,1690]],"first":4,"title":"Istenek kertje","author":"Gerald Durrell","c":0.85},{"id":"a9217dd9","obs":[[4.375,886,250,1080,1690],[4.625,729,250,891,1574],[4.625,745,250,950,1690],[4.875,551,250,767,1498],[5.5,97,230,346,1594],[5.625,54,230,302,1613],[5.625,43,384,292,1555]],"first":4.375,"title":"The Committed","author":"Viet Thanh Nguyen","c":0.95},{"id":"ff39f65c","obs":[[4.875,832,211,1015,1478],[5.5,389,134,605,1574],[5.625,335,134,562,1594],[5.625,367,192,540,1555],[6.25,11,230,194,1574]],"first":4.875,"title":"A gólyakalifa","author":"Babits Mihály","c":0.95},{"id":"0f649913","obs":[[5.5,583,192,864,1574],[5.625,540,192,842,1594],[5.625,540,288,842,1594],[6.25,194,230,518,1594],[6.625,0,250,194,1594]],"first":5.5,"title":"Abaddon kapuja","author":"James S. A. Corey","c":0.95},{"id":"63d0b111","obs":[[5.5,853,173,1080,1594],[5.625,821,173,1080,1613],[5.625,842,192,1080,1632],[6.25,518,192,767,1632],[6.625,194,192,518,1632],[6.875,0,154,259,1632]],"first":5.5,"title":"Factfulness","author":"Hans Rosling","c":0.9},{"id":"a0d6aff3","obs":[[6.25,767,384,875,1574],[6.625,518,384,616,1574],[6.875,259,365,367,1574]],"first":6.25,"title":"On the Road","author":"Jack Kerouac","c":0.8},{"id":"1f397045","obs":[[6.25,875,461,940,1574],[6.625,616,461,680,1574],[6.875,367,442,443,1574]],"first":6.25,"title":"Ádám és Éva naplója","author":"Mark Twain","c":0.9},{"id":"f82939c6","obs":[[6.25,940,422,1010,1574],[6.625,680,422,756,1574],[6.875,443,403,518,1574]],"first":6.25,"title":"A balgaság dicsérete","author":"Rotterdami Erasmus","c":0.9},{"id":"cdeb3907","obs":[[6.25,1010,403,1080,1574],[6.625,756,403,821,1574],[6.875,518,384,605,1574]],"first":6.25,"title":"A fejedelem","author":"Niccolò Machiavelli","c":0.9},{"id":"60b1b3d3","obs":[[6.625,886,422,972,1574],[6.875,670,384,788,1536],[6.875,659,403,778,1574],[7.375,173,422,281,1536],[7.625,0,422,86,1536]],"first":6.625,"title":"Változás","author":null,"c":0.5},{"id":"801323ac","obs":[[7.375,907,192,1026,1536],[7.625,724,192,853,1536],[7.875,518,192,637,1536],[7.875,508,154,637,1632],[8.5,70,144,216,1651],[8.75,65,154,200,1670],[9.375,59,154,194,1670]],"first":7.375,"title":"Szép arany álmáit a nap","author":"Ray Bradbury","c":0.9},{"id":"f69fc6b2","obs":[[7.625,918,269,1026,1536],[7.875,713,134,886,1536],[7.875,724,269,842,1536],[8.5,335,144,508,1555],[8.75,319,144,491,1574],[9.375,313,144,486,1574]],"first":7.625,"title":"Az iszlám rövid története","author":"William Montgomery Watt","c":0.9},{"id":"b953a8a7","obs":[[7.625,1015,269,1080,1536],[7.875,832,269,972,1536],[7.875,864,230,1004,1498],[8.5,464,240,670,1517],[8.75,454,240,659,1536],[9.375,448,240,653,1536]],"first":7.625,"title":"Az emberi jelenség","author":"Pierre Teilhard de Chardin","c":0.9},{"id":"d45ab560","obs":[[7.875,356,154,508,1632],[8.5,0,144,86,1632],[8.75,0,154,81,1670],[9.375,0,154,76,1670]],"first":7.875,"title":"Az ember a Fellegvárban","author":"Philip K. Dick","c":0.9},{"id":"19db8dcf","obs":[[7.875,626,221,767,1574],[8.5,205,221,367,1594],[8.75,194,230,351,1613],[9.375,189,230,346,1613]],"first":7.875,"title":"Start with Why","author":"Simon Sinek","c":0.9}]}</script>
+<script src="/deck/assets/deck.js?v=303b893"></script>
+</body>
+</html>
