@@ -7,7 +7,7 @@
  *  - the first paint only holds the poster image (a small JPEG with a high fetch priority – it is the biggest thing
  *    on screen) – no video bytes at all (`preload="none"`, no `src`);
  *  - once the page has finished loading and the browser is idle, and the player is within ~800 px of the viewport,
- *    the file is requested (`src` + `preload="auto"`, 9.3 MB, `+faststart` so playback begins after the first chunk);
+ *    the file is requested (`src` + `preload="auto"`, 10.4 MB, `+faststart` so playback begins after the first chunk);
  *  - when about half of it is on screen it plays – muted, because browsers only autoplay silent video – and it
  *    pauses again when scrolled away or the tab is hidden;
  *  - it does NOT autoplay with "reduce motion" or the data saver on, nor when the browser refuses (iOS low-power
@@ -20,9 +20,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/client';
 import { cn } from '@/components/ui/cn';
 
-/** 1280×720 H.264/AAC, 78 s, re-encoded from promo/out (see CHANGELOG 1.12.0); the version is part of the name (immutable cache) */
-export const PROMO_VIDEO_SRC = '/promo/exlibris-promo-hu-v1.1.0-720p.mp4';
-export const PROMO_POSTER_SRC = '/promo/exlibris-promo-poster-v1.1.0.jpg';
+/** 1280×720 H.264/AAC, 2 min 1 s, re-encoded from promo/out (see CHANGELOG 1.13.0); the version is part of the name (immutable cache) */
+export const PROMO_VIDEO_SRC = '/promo/exlibris-promo-hu-v1.2.0-720p.mp4';
+export const PROMO_POSTER_SRC = '/promo/exlibris-promo-poster-v1.2.0.jpg';
 
 /** start loading this far before the player scrolls into view */
 const PREFETCH_MARGIN = '800px 0px';

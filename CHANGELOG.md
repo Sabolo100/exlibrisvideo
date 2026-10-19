@@ -4,6 +4,20 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.13.0 – 2026-10-19
+
+### Changed
+- **A new, slower promo video** (v1.2.0, 2 min 1 s, 720p, 10.4 MB) replaces the 78-second one. Same content and order,
+  but the pace is calmer so the text can be read: the phone part (bottom menu, search, filters, "books of one
+  recording") now runs about 20 s instead of 12, the three steps and every feature got more time, and the recordings
+  play at close to real speed instead of being sped up. The caption under the player says "in two minutes" (it said
+  "78 seconds").
+- **The demo library in the video was re-curated.** The real-spine view showed several photos that stood crooked in
+  their drawn book, showed two books at once or were blurred; those 27 books were taken out (the library has 56 books
+  instead of 83) and two swapped spine photos were put right, so the shelf now shows only upright spine photos. (The
+  last book of a shelf row leaning against the end is the app's own design.)
+- The old v1.1.0 video and its poster are removed from `public/promo/` (new file names carry the new version).
+
 ## 1.12.0 – 2026-10-19
 
 ### Changed

@@ -181,7 +181,7 @@ describe('landing page', () => {
       expect(hu.indexOf(later), later).toBeGreaterThan(video);
     }
     expect(hu).toContain('Így lesz a polcodból katalógus'); // the section's name for assistive tech
-    expect(hu).toContain('78 másodpercben'); // the caption under the player
+    expect(hu).toContain('két percben'); // the caption under the player
     expect(hu).toContain(`src="${PROMO_POSTER_SRC}"`);
     expect(hu).toMatch(/fetchpriority="high"/i); // the poster is the biggest thing in the first paint
     expect(hu).toMatch(/<video[^>]*preload="none"/);
