@@ -170,11 +170,20 @@ describe('landing page', () => {
     expect(en).toContain('Record it with your phone');
   });
 
-  it('hero: the promo video costs the first paint nothing – a lazy poster, no video request until the player is near', async () => {
+  it('hero: the promo video sits right under the brand name and costs the first paint only its poster – no video request yet', async () => {
     const hu = await render(() => Hero({ demoCollectionId: null }));
-    expect(hu).toContain('Így lesz a polcodból katalógus');
+    // order on the page: brand name ("by DarwinAI") → promo video → headline → recording options
+    const credit = hu.indexOf('DarwinAI');
+    const video = hu.indexOf('<video');
+    expect(credit).toBeGreaterThan(-1);
+    expect(video).toBeGreaterThan(credit);
+    for (const later of ['id="landing-hero-title"', 'id="landing-phone-title"', 'id="upload"']) {
+      expect(hu.indexOf(later), later).toBeGreaterThan(video);
+    }
+    expect(hu).toContain('Így lesz a polcodból katalógus'); // the section's name for assistive tech
+    expect(hu).toContain('78 másodpercben'); // the caption under the player
     expect(hu).toContain(`src="${PROMO_POSTER_SRC}"`);
-    expect(hu).toContain('loading="lazy"');
+    expect(hu).toMatch(/fetchpriority="high"/i); // the poster is the biggest thing in the first paint
     expect(hu).toMatch(/<video[^>]*preload="none"/);
     expect(hu).not.toMatch(/<video[^>]*\ssrc=/);
     expect(hu).not.toContain(PROMO_VIDEO_SRC);

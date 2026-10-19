@@ -4,6 +4,20 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.12.0 – 2026-10-19
+
+### Changed
+- **The promo video moved to the top of the landing page.** It now sits right under the brand name ("Ex Libris Video" /
+  "by DarwinAI"), so a visitor sees it at once; the headline, the shelf illustration, the Google sign-in and the two ways
+  to hand over the shelf follow below it. The heading above the player is gone (its title stays as the section's name for
+  assistive tech; the `video.eyebrow` message is removed), the one-line summary is the caption under the player.
+- **A new promo video** (v1.1.0, 78 s, 720p, 9.3 MB) replaces the 58-second one: redone from this phone app's new design
+  (bottom menu and submenu, search, filters, "books of one recording"), with a larger demo library, the Google sign-in and
+  the installable app as features. The caption says "78 seconds" (it said 58).
+- The player still costs the first paint almost nothing: only the poster (66 KB, now with a high fetch priority – it is the
+  largest thing on screen) is in the first paint; the video file is requested once the page has finished loading and the
+  browser is idle, then it plays by itself, muted, as before.
+
 ## 1.11.0 – 2026-10-18
 
 ### Fixed

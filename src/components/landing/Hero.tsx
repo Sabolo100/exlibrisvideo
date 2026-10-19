@@ -12,7 +12,6 @@ import { env, googleAuthEnabled } from '@/lib/env';
 import { HeroShelf } from './HeroShelf';
 import { HeroWordmark } from './HeroWordmark';
 import { PromoVideo } from './PromoVideo';
-import { SectionHeading } from './SectionHeading';
 
 /**
  * "…or": on a touch screen below `lg` the phone card has no point (the visitor already holds a phone or tablet
@@ -57,8 +56,9 @@ function PhoneCard({ qrLabel, title, text, siteUrl, siteHost }: { qrLabel: strin
 }
 
 /**
- * Landing hero, one column from top to bottom: the brand name, the headline, one long shelf being filmed, the
- * Google sign-in, the recording – on the phone (QR code) *or* from this computer, side by side – and the promo video.
+ * Landing hero, one column from top to bottom: the brand name, the promo video (right under it, so it is the first
+ * thing a visitor sees), the headline, one long shelf being filmed, the Google sign-in and the recording – on the
+ * phone (QR code) *or* from this computer, side by side.
  */
 export async function Hero({ demoCollectionId }: { demoCollectionId?: string | null }) {
   const { t } = await getServerT();
@@ -83,7 +83,16 @@ export async function Hero({ demoCollectionId }: { demoCollectionId?: string | n
         {/* 0 · the brand, written out large */}
         <HeroWordmark />
 
-        {/* 1 · the key message */}
+        {/* 1 · the promo video, right under the brand: only its poster is in the first paint, the file is requested once the
+            page has loaded and plays (muted) by itself. The title is for assistive tech, the lead is the caption. */}
+        <section aria-label={t('landing.video.title')} className="w-full max-w-4xl">
+          <Card variant="bookplate" className="p-2.5 shadow-lift sm:p-3">
+            <PromoVideo />
+          </Card>
+          <p className="mt-3 text-sm leading-relaxed text-muted text-pretty sm:mt-4 sm:text-base">{t('landing.video.lead')}</p>
+        </section>
+
+        {/* 2 · the key message */}
         <div className="flex flex-col items-center gap-3.5 sm:gap-5">
           <p className="inline-flex w-fit items-center gap-2 rounded-full border border-accent/35 bg-accent-soft/70 px-3 py-1 text-xs font-semibold tracking-wide text-ink">
             <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
@@ -107,13 +116,13 @@ export async function Hero({ demoCollectionId }: { demoCollectionId?: string | n
           </ul>
         </div>
 
-        {/* 2 · one long shelf being filmed */}
+        {/* 3 · one long shelf being filmed */}
         <HeroShelf wide className="mt-2" />
 
-        {/* 3 · sign in (recommended) */}
+        {/* 4 · sign in (recommended) */}
         {googleAuthEnabled() ? <SignInCard className="mt-4 w-full max-w-xl" /> : null}
 
-        {/* 4 · the recording: on the phone (QR) – or from this computer. Two options, one look. */}
+        {/* 5 · the recording: on the phone (QR) – or from this computer. Two options, one look. */}
         <div id="upload" className="w-full scroll-mt-24 text-left">
           <div className="mx-auto grid w-full max-w-2xl gap-4 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-5 lg:has-[[data-uploader-open]]:items-start">
             <PhoneCard
@@ -127,21 +136,6 @@ export async function Hero({ demoCollectionId }: { demoCollectionId?: string | n
             <Uploader variant="hero" limits={uploadLimits} />
           </div>
         </div>
-
-        {/* 5 · the promo video: starts by itself when it comes into view, costs the page nothing before that */}
-        <section aria-labelledby="landing-video-title" className="mt-4 w-full max-w-4xl sm:mt-6">
-          <SectionHeading
-            id="landing-video-title"
-            eyebrow={t('landing.video.eyebrow')}
-            title={t('landing.video.title')}
-            lead={t('landing.video.lead')}
-          />
-          <div className="mt-6 sm:mt-8">
-            <Card variant="bookplate" className="p-2.5 shadow-lift sm:p-3">
-              <PromoVideo />
-            </Card>
-          </div>
-        </section>
 
         {demoCollectionId ? (
           <Button href={`/${demoCollectionId}`} variant="ghost" rightIcon={<ArrowRight />} className="w-fit">

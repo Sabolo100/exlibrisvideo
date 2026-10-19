@@ -1,11 +1,13 @@
 'use client';
 
 /**
- * The promo video under the recording block. It must never slow the page down, yet start the moment it is seen:
+ * The promo video, right under the brand name at the top of the landing page. It must never slow the first paint
+ * down, yet start as soon as the page is ready:
  *
- *  - the first paint only holds a small poster image (lazy) – no video bytes at all (`preload="none"`, no `src`);
- *  - when the player gets within ~800 px of the viewport the file is requested (`src` + `preload="auto"`,
- *    6.7 MB, `+faststart` so playback begins after the first chunk);
+ *  - the first paint only holds the poster image (a small JPEG with a high fetch priority – it is the biggest thing
+ *    on screen) – no video bytes at all (`preload="none"`, no `src`);
+ *  - once the page has finished loading and the browser is idle, and the player is within ~800 px of the viewport,
+ *    the file is requested (`src` + `preload="auto"`, 9.3 MB, `+faststart` so playback begins after the first chunk);
  *  - when about half of it is on screen it plays – muted, because browsers only autoplay silent video – and it
  *    pauses again when scrolled away or the tab is hidden;
  *  - it does NOT autoplay with "reduce motion" or the data saver on, nor when the browser refuses (iOS low-power
@@ -18,9 +20,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/client';
 import { cn } from '@/components/ui/cn';
 
-/** 1280×720 H.264/AAC, re-encoded from promo/out (see CHANGELOG 1.8.0); the version is part of the name (immutable cache) */
-export const PROMO_VIDEO_SRC = '/promo/exlibris-promo-hu-v1.0.0-720p.mp4';
-export const PROMO_POSTER_SRC = '/promo/exlibris-promo-poster-v1.0.0.jpg';
+/** 1280×720 H.264/AAC, 78 s, re-encoded from promo/out (see CHANGELOG 1.12.0); the version is part of the name (immutable cache) */
+export const PROMO_VIDEO_SRC = '/promo/exlibris-promo-hu-v1.1.0-720p.mp4';
+export const PROMO_POSTER_SRC = '/promo/exlibris-promo-poster-v1.1.0.jpg';
 
 /** start loading this far before the player scrolls into view */
 const PREFETCH_MARGIN = '800px 0px';
@@ -34,6 +36,35 @@ function autoplayAllowed(): boolean {
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
   const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
   return !connection?.saveData;
+}
+
+type IdleWindow = Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (handle: number) => void };
+
+/**
+ * Runs `run` once the page has finished loading and the browser has a quiet moment – the 9 MB file must not compete
+ * with the fonts, scripts and images of the first paint. Returns the cancel function.
+ */
+function whenPageIdle(run: () => void): () => void {
+  const w = window as IdleWindow;
+  let cancelled = false;
+  let idle: number | undefined;
+  let timer: number | undefined;
+  const fire = () => {
+    if (!cancelled) run();
+  };
+  const go = () => {
+    if (cancelled) return;
+    if (w.requestIdleCallback) idle = w.requestIdleCallback(fire, { timeout: 1500 });
+    else timer = window.setTimeout(fire, 300);
+  };
+  if (document.readyState === 'complete') go();
+  else window.addEventListener('load', go, { once: true });
+  return () => {
+    cancelled = true;
+    window.removeEventListener('load', go);
+    if (idle !== undefined) w.cancelIdleCallback?.(idle);
+    if (timer !== undefined) window.clearTimeout(timer);
+  };
 }
 
 export function PromoVideo({ className }: { className?: string }) {
@@ -70,15 +101,16 @@ export function PromoVideo({ className }: { className?: string }) {
     };
   }, []);
 
-  // request the file shortly before the player comes into view; "in view" = about half of it (with hysteresis)
+  // request the file shortly before the player comes into view (and once the page is idle); "in view" = about half of it (with hysteresis)
   useEffect(() => {
     const box = boxRef.current;
     if (!box || typeof IntersectionObserver === 'undefined') return;
+    let cancelIdle: (() => void) | null = null;
     const near = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
-          setArmed(true);
           near.disconnect();
+          cancelIdle = whenPageIdle(() => setArmed(true));
         }
       },
       { rootMargin: PREFETCH_MARGIN },
@@ -96,6 +128,7 @@ export function PromoVideo({ className }: { className?: string }) {
     return () => {
       near.disconnect();
       visible.disconnect();
+      cancelIdle?.();
     };
   }, []);
 
@@ -195,14 +228,14 @@ export function PromoVideo({ className }: { className?: string }) {
           }}
         />
 
-        {/* poster until the first frame; a plain lazy image, so it costs the page only a few KB */}
+        {/* poster until the first frame; a plain image (66 KB), fetched with a high priority – it is the largest thing in the first paint */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={PROMO_POSTER_SRC}
           alt=""
           width={1280}
           height={720}
-          loading="lazy"
+          fetchPriority="high"
           decoding="async"
           draggable={false}
           className={cn(
