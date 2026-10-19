@@ -35,3 +35,9 @@ coolifytoken.txt
 *TOKEN*.txt
 [Cc]oolify*.txt
 *-token.txt
+
+# Coolify API keys in any "cool... API ....txt" file (local only)
+[Cc]ool*[Aa][Pp][Ii]*.txt
+
+# DarwinAI publish drafts (projekt.json, prompt-library.json) - local only
+.darwinai/
