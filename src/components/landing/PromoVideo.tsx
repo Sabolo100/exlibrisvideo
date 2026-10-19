@@ -2,12 +2,14 @@
 
 /**
  * The promo video, right under the brand name at the top of the landing page – and at the very top of the phone
- * app's home screen (AppHome). It must never slow the first paint down, yet start as soon as the page is ready:
+ * app's home screen (AppHome). It follows the page language (Hungarian captions and app screens for hu, English for
+ * en – two separate files, see PROMO_MEDIA). It must never slow the first paint down, yet start as soon as the page
+ * is ready:
  *
  *  - the first paint only holds the poster image (a small JPEG with a high fetch priority – it is the biggest thing
  *    on screen) – no video bytes at all (`preload="none"`, no `src`);
  *  - once the page has finished loading and the browser is idle, and the player is within ~800 px of the viewport,
- *    the file is requested (`src` + `preload="auto"`, 10.4 MB, `+faststart` so playback begins after the first chunk);
+ *    the file is requested (`src` + `preload="auto"`, ~10.5 MB, `+faststart` so playback begins after the first chunk);
  *  - when about half of it is on screen it plays – muted, because browsers only autoplay silent video – and it
  *    pauses again when scrolled away or the tab is hidden;
  *  - it does NOT autoplay – and does not even request the file – with "reduce motion", the data saver or a slow
@@ -20,10 +22,21 @@ import { Maximize, Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/client';
 import { cn } from '@/components/ui/cn';
+import type { Locale } from '@/lib/types';
 
-/** 1280×720 H.264/AAC, 2 min 1 s, re-encoded from promo/out (see CHANGELOG 1.13.0); the version is part of the name (immutable cache) */
-export const PROMO_VIDEO_SRC = '/promo/exlibris-promo-hu-v1.2.0-720p.mp4';
-export const PROMO_POSTER_SRC = '/promo/exlibris-promo-poster-v1.2.0.jpg';
+export interface PromoMedia {
+  video: string;
+  poster: string;
+}
+
+/**
+ * 1280×720 H.264/AAC, 2 min 1 s each, re-encoded from promo/out/web (see CHANGELOG 1.13.0 and 1.15.0); the version is part of
+ * the name (immutable cache). hu = promo v1.2.0 (Hungarian captions, Hungarian app screens), en = promo v1.3.0 (English).
+ */
+export const PROMO_MEDIA: Record<Locale, PromoMedia> = {
+  hu: { video: '/promo/exlibris-promo-hu-v1.2.0-720p.mp4', poster: '/promo/exlibris-promo-poster-v1.2.0.jpg' },
+  en: { video: '/promo/exlibris-promo-en-v1.3.0-720p.mp4', poster: '/promo/exlibris-promo-poster-en-v1.3.0.jpg' },
+};
 
 /** start loading this far before the player scrolls into view */
 const PREFETCH_MARGIN = '800px 0px';
@@ -70,7 +83,13 @@ function whenPageIdle(run: () => void): () => void {
   };
 }
 
+/** The promo video in the page language. Keyed by the language, so switching it starts a fresh player (poster → file) for the other video. */
 export function PromoVideo({ className }: { className?: string }) {
+  const { locale } = useI18n();
+  return <PromoPlayer key={locale} media={PROMO_MEDIA[locale]} className={className} />;
+}
+
+function PromoPlayer({ className, media }: { className?: string; media: PromoMedia }) {
   const { t } = useI18n();
   const boxRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -213,7 +232,7 @@ export function PromoVideo({ className }: { className?: string }) {
       >
         <video
           ref={videoRef}
-          src={armed ? PROMO_VIDEO_SRC : undefined}
+          src={armed ? media.video : undefined}
           preload={armed ? 'auto' : 'none'}
           muted
           playsInline
@@ -237,7 +256,7 @@ export function PromoVideo({ className }: { className?: string }) {
         {/* poster until the first frame; a plain image (66 KB), fetched with a high priority – it is the largest thing in the first paint */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={PROMO_POSTER_SRC}
+          src={media.poster}
           alt=""
           width={1280}
           height={720}

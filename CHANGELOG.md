@@ -4,6 +4,20 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.15.0 – 2026-10-19
+
+### Changed
+- **The English pages play an English promo video.** The promo video now exists in two languages: the Hungarian one (2 min 1 s, captions and app screens in Hungarian) and an English edition
+  (2 min 1 s, English captions and screen recordings of the English app – the same scenes, pace and music). The player (`PromoVideo`) picks the file by the page language, on the landing page
+  and at the top of the phone app's home screen, and starts over with the other video (poster first) when the language is switched. The English page no longer shows the note
+  "The text in the video is in Hungarian." under the player.
+- New files in `public/promo/`: `exlibris-promo-en-v1.3.0-720p.mp4` (10.7 MB) and `exlibris-promo-poster-en-v1.3.0.jpg`; the Hungarian files stay. The loading rules are unchanged: only the poster in the first paint,
+  the file once the page is idle, nothing requested on data saver / reduced motion / a slow connection.
+
+### Tests
+- The landing and phone-home render specs check the poster of each language, that neither language requests a video file in the first paint, that the Hungarian note is gone,
+  and that both videos and posters exist in `public/promo/` (each video under 12 MB).
+
 ## 1.14.0 – 2026-10-19
 
 ### Changed

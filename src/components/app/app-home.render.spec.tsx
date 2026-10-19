@@ -14,7 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { AppHome } from './AppHome';
-import { PROMO_POSTER_SRC, PROMO_VIDEO_SRC } from '@/components/landing/PromoVideo';
+import { PROMO_MEDIA } from '@/components/landing/PromoVideo';
 import { I18nProvider } from '@/i18n/client';
 import { SessionProvider } from '@/components/site/SessionProvider';
 
@@ -54,19 +54,22 @@ describe('phone app home', () => {
 
   it('costs the first paint only the poster: no video request yet, muted inline player, controls for touch', () => {
     const hu = render();
-    expect(hu).toContain(`src="${PROMO_POSTER_SRC}"`);
+    expect(hu).toContain(`src="${PROMO_MEDIA.hu.poster}"`);
     expect(hu).toMatch(/fetchpriority="high"/i);
     expect(hu).toMatch(/<video[^>]*preload="none"/);
     expect(hu).not.toMatch(/<video[^>]*\ssrc=/);
-    expect(hu).not.toContain(PROMO_VIDEO_SRC);
+    expect(hu).not.toContain(PROMO_MEDIA.hu.video);
     expect(hu).toMatch(/<video[^>]*muted/);
     expect(hu).toMatch(/<video[^>]*playsinline/i);
     expect(hu).toContain('aria-label="Hang be"'); // the unmute switch is there for the touch screen
   });
 
-  it('the English home has the same order and the note about the Hungarian text in the video', () => {
+  it('the English home has the same order and plays the English video (its own poster, no note about the language)', () => {
     const en = render('en');
     expect(en.indexOf('<video')).toBeLessThan(en.indexOf('Film your bookshelf'));
-    expect(en).toContain('The text in the video is in Hungarian.');
+    expect(en).toContain(`src="${PROMO_MEDIA.en.poster}"`);
+    expect(en).not.toContain(PROMO_MEDIA.hu.poster);
+    expect(en).not.toContain(PROMO_MEDIA.en.video); // first paint: the poster only
+    expect(en).not.toContain('in Hungarian');
   });
 });

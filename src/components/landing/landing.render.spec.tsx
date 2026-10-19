@@ -55,7 +55,7 @@ import { HERO_BOOKS } from './hero-books';
 import { HeroWordmark } from './HeroWordmark';
 import { HowItWorks } from './HowItWorks';
 import { PrivacyPromise } from './PrivacyPromise';
-import { PROMO_POSTER_SRC, PROMO_VIDEO_SRC } from './PromoVideo';
+import { PROMO_MEDIA } from './PromoVideo';
 import { WhatYouGet } from './WhatYouGet';
 
 type AsyncComponent = (props: Record<string, unknown>) => Promise<ReactElement>;
@@ -182,26 +182,34 @@ describe('landing page', () => {
     }
     expect(hu).toContain('Így lesz a polcodból katalógus'); // the section's name for assistive tech
     expect(hu).toContain('két percben'); // the caption under the player
-    expect(hu).toContain(`src="${PROMO_POSTER_SRC}"`);
+    expect(hu).toContain(`src="${PROMO_MEDIA.hu.poster}"`);
     expect(hu).toMatch(/fetchpriority="high"/i); // the poster is the biggest thing in the first paint
     expect(hu).toMatch(/<video[^>]*preload="none"/);
     expect(hu).not.toMatch(/<video[^>]*\ssrc=/);
-    expect(hu).not.toContain(PROMO_VIDEO_SRC);
+    expect(hu).not.toContain(PROMO_MEDIA.hu.video);
     expect(hu).toMatch(/<video[^>]*muted/);
     expect(hu).toMatch(/<video[^>]*playsinline/i);
-    // Hungarian page: no note about the language of the video; the English page has one
+    // no note under the player; each page plays the video of its own language
     expect(hu).not.toContain('<figcaption');
+    expect(hu).not.toContain(PROMO_MEDIA.en.poster);
     const en = await render(() => Hero({ demoCollectionId: null }), 'en');
     expect(en).toContain('From shelf to catalogue');
-    expect(en).toContain('The text in the video is in Hungarian.');
+    expect(en).toContain(`src="${PROMO_MEDIA.en.poster}"`); // the English video's poster
+    expect(en).not.toContain(PROMO_MEDIA.hu.poster);
+    expect(en).not.toContain(PROMO_MEDIA.en.video); // still only the poster in the first paint
+    expect(en).not.toMatch(/<video[^>]*\ssrc=/);
+    expect(en).not.toContain('in Hungarian'); // the old "the text in the video is in Hungarian" note is gone
+    expect(en).not.toContain('<figcaption');
   });
 
-  it('the promo files the page points at are really in public/ (the names carry the version)', () => {
-    for (const src of [PROMO_VIDEO_SRC, PROMO_POSTER_SRC]) {
-      const file = path.join(process.cwd(), 'public', src);
-      expect(fs.existsSync(file), file).toBe(true);
+  it('the promo files the page points at (a video and a poster per language) are really in public/ (the names carry the version)', () => {
+    for (const media of Object.values(PROMO_MEDIA)) {
+      for (const src of [media.video, media.poster]) {
+        const file = path.join(process.cwd(), 'public', src);
+        expect(fs.existsSync(file), file).toBe(true);
+      }
+      expect(fs.statSync(path.join(process.cwd(), 'public', media.video)).size).toBeLessThan(12 * 1024 * 1024);
     }
-    expect(fs.statSync(path.join(process.cwd(), 'public', PROMO_VIDEO_SRC)).size).toBeLessThan(12 * 1024 * 1024);
   });
 
   it('sign-in card: website text is centred with the badge on the middle of the top edge, the phone app keeps it left', async () => {

@@ -185,7 +185,7 @@ export const landing = defineMessages({
     'video.unmute': 'Sound on',
     'video.mute': 'Sound off',
     'video.fullscreen': 'Full screen',
-    'video.note': 'The text in the video is in Hungarian.',
+    'video.note': '', // the English page plays the English video (v1.15.0); empty = no note under the player
     'peek.eyebrow': 'A quick peek',
     'peek.title': 'This is what your library looks like',
     'peek.lead': 'After the recording all your books are in one place: on a shelf, with covers, in a table, by author and topic – filtered by your tags, extended any time.',
