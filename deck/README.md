@@ -44,8 +44,8 @@ Mélylink: `/deck#7` (a kapu nélkül indul a 7. diánál). Nyomtatás/PDF: diá
 | 11 | Telefonon | Zsebben a könyvtár | két képernyőfelvétel, szinkron menü |
 | 12 | Export | Az adat a tiéd | a formátumok akkor gyúlnak fel, amikor a videóban kinyílik az exportmenü |
 | 13 | Felépítés | Egyszerű, cserélhető, EU | áramló adatvonalak, pulzusok |
-| 14 | Idővonal | Öt hét, húsz kiadás | kiadásszámláló, telő polc, „most” jel, javaslatok |
-| 15 | Piac | Kinek ér pénzt | csempék rajzolódó ikonokkal, állapotcímkék |
+| 14 | Idővonal | Öt hét, N kiadás (a CHANGELOG-ból) | kiadásszámláló, telő polc, „most” jel, javaslatok |
+| 15 | Piac | Kinek ér pénzt — a magánfelhasználó is fizet | csempék rajzolódó ikonokkal, állapotcímkék; tervezett árazás: a gerincek a polcra érkeznek, a 20. után aranykeretesek, és felgyúl az előfizetés |
 | 16 | Szponzoráció | Ott, ahol a könyv él | koncepció-jelölők a valódi könyvlapon |
 | 17 | Átvétel | Kulcsrakészen | kipipálódó lista |
 | 18 | Kapcsolat | Írjuk tovább együtt | gyűrűző gomb, promóvideó |
@@ -57,8 +57,12 @@ Részletes ablakok: a felismerés menete, a mérés táblázata, technológia é
 Mérés: `scripts/eval-recognition.ts` fejléce; tesztek: `npx vitest run` (1061 teszt, 2026-10-19);
 kiadások: `CHANGELOG.md`; felépítés és adatvédelem: `SPEC.md`, `COOLIFY.md`. Piaci számokat szándékosan nem
 tartalmaz (nincsenek mért adatok); a szegmensek és a szponzori helyek „irány” / „koncepció” jelölést kapnak.
+A magánfelhasználói árazás a tulajdonos terve (2026-10-20): 20 könyvig ingyenes, utána alacsony havidíj, pl. 1 000 Ft/hó —
+a dián „Tervezett árazás” címkével; a számok a `PR_FREE` állandóban és a dia szövegében vannak.
 
 ## Változásnapló
 
+- **1.1.0 – 2026-10-20** — Piac dia: a magánfelhasználó is fizetős lesz (tervezett freemium: 20 könyvig ingyenes, utána
+  pl. 1 000 Ft/hó), animált árazási sávval; a „Ma még minden ingyenes” megjegyzés marad.
 - **1.0.0 – 2026-10-19** — első változat: 18 dia, magyar nyelven, a promóvideó képernyőfelvételeivel és a
   minta-polcvideó valódi felismerési adataival.

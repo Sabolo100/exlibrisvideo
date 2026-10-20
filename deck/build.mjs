@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-export const DECK_VERSION = '1.0.0';
+export const DECK_VERSION = '1.1.0';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUB = path.join(ROOT, 'public/deck');
@@ -404,19 +404,35 @@ add('timeline', `Öt hét, ${RELEASES} kiadás`, '', `
 
 /* ------------------------------------------------------------------ 15 — kinek ér pénzt */
 const SG = [
-  [IC.home, 'Magánkönyvtárak, gyűjtők', 'Leltár, kölcsönzés, „mi van meg?” — a mai termék.', 'live', 'Működik'],
+  [IC.home, 'Magánkönyvtárak, gyűjtők', 'Leltár, kölcsönzés, „mi van meg?” — 20 könyvig ingyenes, utána kis havidíj.', 'live', 'Működik'],
   [IC.shop, 'Antikváriumok, könyvesboltok', 'Készletfelvétel polcról, export a webshopba.', 'idea', 'Bővítési irány'],
   [IC.lib, 'Könyvtárak, iskolák', 'Adományok, letétek gyors felvétele, ellenőrzés.', 'idea', 'Bővítési irány'],
   [IC.box, 'Hagyaték, költözés, biztosítás', 'Vagyonleltár percek alatt, fotós bizonyítékkal.', 'idea', 'Bővítési irány'],
   [IC.pub, 'Kiadók, könyvesboltok', 'Ajánló és vásárlási link a saját polc mellett.', 'idea', 'Szponzoráció'],
 ];
+// tervezett freemium: PR_FREE könyvig ingyenes, utána havidíj — a polcon a határ utáni gerincek aranykeretesek
+const PR_FREE = 20, PR_TOTAL = 34;
+let prSeed = 11;
+const prRnd = () => ((prSeed = (prSeed * 9301 + 49297) % 233280) / 233280);
+const prBooks = Array.from({ length: PR_TOTAL }, (_, i) => ({ w: 11 + Math.round(prRnd() * 7), h: 44 + Math.round(prRnd() * 24), c: tlCols[Math.floor(prRnd() * tlCols.length)], pay: i >= PR_FREE }));
+const PR_ROW = prBooks.map((b, i) => `<i class="${b.pay ? 'is-pay' : ''}" style="--w:${b.w}px;--h:${b.h}px;--c:${b.c};--i:${i}"></i>`).join('');
+const PR_CUT = 6 + prBooks.slice(0, PR_FREE).reduce((a, b) => a + b.w + 2, 0) - 1; // 6 px belső margó, 2 px rés
 add('segments', 'Kinek ér pénzt', '', `
   ${kick('07 — Piac')}
   ${h2('Kinek ér pénzt <em>egy könyvleltár?</em>', 1, 's-h2--wide')}
   <div class="sg">
     ${SG.map(([ic, t, p, st, lbl], i) => `<article class="sg-t${st === 'live' ? ' sg-t--live' : ''} rv" style="--d:${i + 2}">${ic}<h3>${esc(t)}</h3><p>${esc(p)}</p><span class="s-status s-status--${st}">${esc(lbl)}</span></article>`).join('')}
   </div>
-  <p class="s-note sg-note rv" style="--d:8">Ma magánfelhasználóknak, ingyenesen működik. A többi szegmens a meglévő alapokra építhető irány — piaci számok nélkül, mert ezeket még nem mértük.</p>`);
+  <div class="pr rv" style="--d:8">
+    <div class="pr__shelf">
+      <p class="pr__h"><span class="s-tag">Tervezett árazás</span><b>A magánfelhasználó is fizet — kíméletesen</b></p>
+      <div class="pr-row" aria-hidden="true">${PR_ROW}<span class="pr-cut" style="left:${PR_CUT}px"><em>${PR_FREE}. könyv</em></span></div>
+      <div class="pr-plank"></div>
+    </div>
+    <div class="pr-t"><em>Ingyenes</em><b>${PR_FREE} könyvig</b><span>kipróbálásra, egy kisebb polcra</span></div>
+    <div class="pr-t pr-t--pay"><em>Előfizetés</em><b>pl. 1 000 Ft / hó</b><span>a ${PR_FREE + 1}. könyvtől, korlátlan könyvvel</span></div>
+  </div>
+  <p class="s-note sg-note rv" style="--d:9">Ma még minden ingyenes. A többi szegmens a meglévő alapokra építhető irány — piaci számok nélkül, mert ezeket még nem mértük.</p>`);
 
 /* ------------------------------------------------------------------ 16 — szponzoráció */
 // a könyvlap képernyőképén (1280×800): 1 = a csillagok mellett, 2 = „A könyvről” rész, 3 = a fejléc

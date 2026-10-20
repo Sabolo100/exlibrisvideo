@@ -426,7 +426,29 @@
 .sg-t h3 { font: 500 21px/1.15 var(--f-display); margin-top: 6px; }
 .sg-t p { font-size: 13.5px; line-height: 1.5; color: rgba(242, 233, 216, 0.66); }
 .sg-t .s-status { margin-top: auto; align-self: flex-start; }
-.sg-note { margin-top: 18px; }
+.sg-note { margin-top: 14px; }
+/* tervezett freemium: a gerincek egyenként érkeznek; a 20. után aranykeretesek, ekkor gyúl fel az előfizetés */
+.sg .sg-t { min-height: 248px; }
+.pr { display: grid; grid-template-columns: minmax(0, 1fr) 236px 236px; gap: 14px; margin-top: 16px; }
+.pr__shelf { position: relative; display: flex; flex-direction: column; padding: 14px 16px 0; border-radius: 12px; background: var(--card); border: 1px solid var(--line); overflow: hidden; }
+.pr__h { display: flex; align-items: center; gap: 12px; }
+.pr__h b { font: 600 14.5px/1.3 var(--f-body); }
+.pr-row { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 78px; margin-top: 10px; padding: 0 6px; }
+.pr-row i { flex: none; width: var(--w); height: var(--h); background: var(--c); border-radius: 2px 2px 0 0; box-shadow: inset -2px 0 0 rgba(0, 0, 0, 0.25); }
+.pr-row i.is-pay { outline: 1.5px solid var(--gold); outline-offset: -1.5px; }
+.pr-cut { position: absolute; left: 0; bottom: 0; top: 2px; border-left: 2px dashed var(--gold-2); }
+.pr-cut em { position: absolute; left: 6px; top: -2px; font: 700 10px/1 var(--f-body); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-2); white-space: nowrap; }
+.pr-plank { height: 9px; margin: 0 -16px; background: linear-gradient(180deg, var(--wood-l), var(--wood) 60%, var(--wood-d)); }
+.pr-t { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.pr-t em { font: 600 10.5px/1.3 var(--f-body); font-style: normal; letter-spacing: 0.14em; text-transform: uppercase; color: var(--green); }
+.pr-t b { margin-top: 2px; font: 500 26px/1.1 var(--f-display); }
+.pr-t span { font-size: 12.5px; line-height: 1.45; color: rgba(242, 233, 216, 0.62); }
+.pr-t--pay { border-color: rgba(220, 176, 104, 0.55); background: linear-gradient(180deg, rgba(220, 176, 104, 0.12), transparent 70%), var(--card); }
+.pr-t--pay em { color: var(--gold); }
+.slide.is-active .pr-row i { animation: cv-drop 0.45s var(--ease) backwards; animation-delay: calc(1.1s + var(--i) * 90ms); }
+.slide.is-active .pr-cut { animation: d-fade 0.5s ease 2.9s backwards; }
+.slide.is-active .pr-t--pay { animation: pr-lit 0.9s var(--ease) 3s backwards; }
+@keyframes pr-lit { from { opacity: 0.35; transform: translateY(8px); border-color: var(--line); } }
 
 /* ------------------------------------------------------------ 16 — szponzoráció: helyek a könyvlapon */
 .sp { display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 40px; align-items: center; height: 618px; }

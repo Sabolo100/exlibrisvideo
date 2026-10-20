@@ -4,6 +4,13 @@ All notable changes of Ex Libris Video. Versions follow semantic versioning; the
 `package.json` and is shown in the site footer and the app settings next to a short build id (content hash
 of the sources, see `next.config.ts`). `GET /api/health` reports both.
 
+## 1.16.1 – 2026-10-20
+
+### Changed
+- **Investor deck (`/deck`, presentation v1.1.0), market slide:** private users are payers too, not only institutions – a "Tervezett árazás" (planned pricing) strip:
+  free up to 20 books, then a low monthly fee (e.g. 1 000 Ft / month). Book spines land on a shelf one by one; after the 20th they get a gold outline and the subscription
+  card lights up. The private-library tile says the same; the note now reads "Ma még minden ingyenes" (everything is free today). The app itself is unchanged.
+
 ## 1.16.0 – 2026-10-19
 
 ### Added
